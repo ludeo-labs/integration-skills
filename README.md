@@ -26,14 +26,14 @@ agent can install it with [`npx skills`](https://skills.sh).
 
 1. Install the skill for your engine (table above).
 2. Open your game project in your agent and say: *"Integrate Ludeo into my game."*
-3. The skill walks the unified **Phase 0–9** workflow (see [`shared/methodology/unified-phases.md`](./shared/methodology/unified-phases.md)).
+3. The skill walks the integration workflow phase by phase.
 4. When the integration is done, install `cloud-upload` and say *"Upload my build to Ludeo."*
 
 ## Repository layout
 
 ```
 skills/      The skills themselves (one folder per skill) — the source of truth
-shared/      Engine-neutral methodology + SDK concepts both engine skills draw on
+shared/      Engine-neutral SDK concepts both engine skills draw on
 scripts/     Repo tooling: validate skills, rebuild the registry, scaffold new skills
 templates/   Blueprint for authoring a new skill
 docs/        Architecture + install notes

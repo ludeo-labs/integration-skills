@@ -30,20 +30,7 @@ If both Unreal and Unity markers somehow appear, ask the user which engine is au
 guess. If neither appears and the task is integration (not upload), stop and tell the user no
 supported engine was detected.
 
-## The shared workflow
-
-Every engine skill walks the same **Phase 0–9** spine (engine-specific bodies, identical skeleton):
-see [`shared/methodology/unified-phases.md`](./shared/methodology/unified-phases.md). Phases marked
-`[MVP]` produce a working end-to-end demo on one curated slice (~48h target); `[Expansion]` phases
-broaden to full-game coverage.
-
 ## Ground rules (engine-neutral)
-
-These apply in every skill — read them before editing the user's project:
-
-- [`shared/methodology/ask-vs-infer.md`](./shared/methodology/ask-vs-infer.md) — when to look it up, ask, or infer.
-- [`shared/methodology/destructive-action-guards.md`](./shared/methodology/destructive-action-guards.md) — never delete/overwrite these paths.
-- [`shared/methodology/file-access-rules.md`](./shared/methodology/file-access-rules.md) — how to read skill-bundled files.
 
 **Never claim SDK behavior without checking documentation first.** Query the `sdk-docs` MCP server
 (see [`.mcp.json`](./.mcp.json)) or the skill's bundled `references/`. If neither covers it, tell the

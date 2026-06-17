@@ -20,17 +20,11 @@ If <preconditions not met>, stop and point the user at the right skill.
 
 ## Ground rules
 
-This skill follows the repo-wide methodology. Read before editing the user's project:
-
-- Ask vs Infer — `../../shared/methodology/ask-vs-infer.md`
-- Destructive Action Guards — `../../shared/methodology/destructive-action-guards.md`
-- File Access Rules — `../../shared/methodology/file-access-rules.md`
+REPLACE ME — list any repo-wide rules the agent must read before editing the user's project.
 
 ## Workflow
 
-This skill walks the unified phases (`../../shared/methodology/unified-phases.md`). Each phase has a
-reference file under `references/` using the per-phase template
-(`../../shared/methodology/per-phase-template.md`).
+This skill walks the integration phases. Each phase has a reference file under `references/`.
 
 | Phase | Reference |
 | --- | --- |

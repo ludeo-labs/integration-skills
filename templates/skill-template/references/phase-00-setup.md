@@ -1,6 +1,6 @@
 # Phase 00 — Setup & Install
 
-> Example reference file. Follow `../../../shared/methodology/per-phase-template.md` for every phase.
+> Example reference file — one per phase under `references/`.
 
 ## 1. Goal / Purpose
 Install the SDK and confirm the project compiles with and without it.

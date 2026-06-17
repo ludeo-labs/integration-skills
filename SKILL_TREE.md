@@ -6,7 +6,7 @@ bottom. Regenerate with `npm run build-registry`.
 
 ## Engine Integration
 
-Walk the unified [Phase 0–9 workflow](./shared/methodology/unified-phases.md) for a specific engine.
+Integrate the Ludeo SDK into a specific engine.
 
 - **`ludeo-unreal-integration`** — Integrate the Ludeo SDK into an **Unreal Engine** game (C++/Blueprint).
   Lifecycle, actions, state tracking, Player Flow restoration.
@@ -19,11 +19,8 @@ Walk the unified [Phase 0–9 workflow](./shared/methodology/unified-phases.md) 
 - **`cloud-upload`** — Validate, authenticate, upload a build to the Ludeo cloud, and poll until it is `ready`.
   → `skills/cloud-upload/`
 
-## Shared methodology (not installable skills — reference material)
+## Shared reference material (not installable skills)
 
-- [Unified Phase 0–9 spine](./shared/methodology/unified-phases.md)
-- [Per-phase reference template](./shared/methodology/per-phase-template.md)
-- [Ask vs Infer](./shared/methodology/ask-vs-infer.md) · [Destructive Action Guards](./shared/methodology/destructive-action-guards.md) · [File Access Rules](./shared/methodology/file-access-rules.md)
 - SDK concepts: [Player Flow = snapshot-restore](./shared/sdk-concepts/player-flow-is-snapshot-restore.md) · [Room ≠ Highlight](./shared/sdk-concepts/room-vs-highlight.md) · [Glossary](./shared/sdk-concepts/glossary.md)
 
 ## Quick lookup

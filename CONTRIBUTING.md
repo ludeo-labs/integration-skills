@@ -4,8 +4,8 @@
 
 This is a **monorepo** and the single source of truth for every Ludeo integration skill. Each skill in
 `skills/<name>/` is an independently versioned, independently installable
-[Agent Skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills). The hub adds the shared
-methodology, the registry/index, and CI.
+[Agent Skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills). The hub adds the
+registry/index and CI.
 
 ## Add a new skill
 
@@ -17,9 +17,7 @@ Then:
 
 1. Fill in `SKILL.md` frontmatter — `name` (kebab-case, matches the folder), `description` (when to
    trigger; this is what the agent matches on), and `metadata.version`.
-2. Write phase docs under `references/` using the
-   [per-phase template](./shared/methodology/per-phase-template.md). Engine skills follow the unified
-   [Phase 0–9 spine](./shared/methodology/unified-phases.md).
+2. Write phase docs under `references/`, one file per phase.
 3. Reference shared content instead of duplicating it (link into `shared/`).
 4. Run `npm run validate`, then `npm run build-registry` to refresh `registry.json` + `SKILL_TREE.md`.
 
@@ -27,7 +25,7 @@ Then:
 
 - **Frontmatter is mandatory**: `name` + `description`. The `description` decides when the skill fires —
   make it specific and trigger-oriented.
-- **Don't duplicate the methodology.** Engine-neutral guidance lives in `shared/`; skills link to it.
+- **Don't duplicate shared guidance.** Engine-neutral content lives in `shared/`; skills link to it.
 - **Engine-specific content stays in the skill body.** Only the skeleton is unified, never the idioms.
 - **Learnings are append-only and sanitized.** Follow
   [`shared/learnings-policy/learning-sanitization.md`](./shared/learnings-policy/learning-sanitization.md)
