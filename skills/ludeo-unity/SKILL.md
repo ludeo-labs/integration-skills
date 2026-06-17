@@ -139,3 +139,4 @@ file — so the user experiences each as a single phase.
 
 Read `references/0-build-game-with-sdk.md` and follow it. (Phase 1 establishes the full Unity
 structural model and search patterns once you reach codebase mapping.)
+
