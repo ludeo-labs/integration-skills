@@ -1,0 +1,13 @@
+{
+  "name": "ludeo-unity",
+  "version": "1.1.0",
+  "description": "Integrate the Ludeo SDK into a Unity (C#) game using the Ludeo Unity plugin.",
+  "license": "Apache-2.0",
+  "keywords": ["ludeo", "ludeo-skill", "agent-skill", "unity"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ludeo-labs/integration-skills.git",
+    "directory": "skills/ludeo-unity"
+  },
+  "files": ["SKILL.md", "references", "config", "scripts", "tools", "learnings"]
+}
