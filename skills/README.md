@@ -7,11 +7,11 @@ Each subfolder is an independently installable, independently versioned
 | Folder | Skill name | Status |
 | --- | --- | --- |
 | `ludeo-unreal/` | `ludeo-unreal-integration` | ⏳ empty placeholder — to be filled from `../../unreal-integration-skill` |
-| `ludeo-unity/` | `ludeo-unity-integration` | ⏳ empty placeholder — to be filled from `../../unity-integration-skill` |
+| `ludeo-unity/` | `ludeo-unity-integration` | ✅ filled (v1.1.0) from `../../unity-integration-skill` |
 | `cloud-upload/` | `cloud-upload` | ⏳ empty placeholder — to be authored later |
 
-All folders are currently empty placeholders (a `.gitkeep` keeps them in git). The registry only lists
-folders that contain a `SKILL.md`, so `registry.json` is empty until a skill is filled in.
+The registry only lists folders that contain a `SKILL.md`. Unfilled folders are empty placeholders
+(a `.gitkeep` keeps them in git) and are omitted from `registry.json` until a skill is filled in.
 
 ## Filling a skill in
 
