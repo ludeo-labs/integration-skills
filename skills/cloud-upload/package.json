@@ -1,0 +1,13 @@
+{
+  "name": "cloud-upload",
+  "version": "0.1.0",
+  "description": "Validate a finished game build and ship it to the Ludeo cloud with the @ludeo/cli tool.",
+  "license": "Apache-2.0",
+  "keywords": ["ludeo", "ludeo-skill", "agent-skill", "build", "upload", "ludeo-cli"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ludeo-labs/integration-skills.git",
+    "directory": "skills/cloud-upload"
+  },
+  "files": ["SKILL.md", "references", "config", "scripts", "tools", "learnings"]
+}
