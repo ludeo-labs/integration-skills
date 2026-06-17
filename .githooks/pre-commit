@@ -1,0 +1,27 @@
+#!/bin/sh
+# Pre-commit hook for integration-skills.
+# Runs `npm run check` (validate skills + verify the generated registry/index is current)
+# before a commit is created. Blocks the commit on failure.
+#
+# Enabled via `git config core.hooksPath .githooks` (the `prepare` npm script does this
+# automatically on `npm install`). See CONTRIBUTING.md.
+
+# 1) Secret scan — always run, because a secret can land in ANY file.
+echo "pre-commit: scanning staged changes for secrets…"
+if ! node scripts/scan-secrets.mjs; then
+  echo "pre-commit: commit blocked — see findings above."
+  exit 1
+fi
+
+# 2) Skill validation — only when something the checks care about is staged.
+if git diff --cached --name-only | grep -qE '^(skills/|shared/|scripts/|templates/|registry\.json|SKILL_TREE\.md|package\.json)'; then
+  echo "pre-commit: running 'npm run check'…"
+  if ! npm run --silent check; then
+    echo ""
+    echo "pre-commit: checks failed. Fix the errors above, or run 'npm run build-registry'"
+    echo "            to refresh registry.json / SKILL_TREE.md, then re-stage and commit."
+    exit 1
+  fi
+fi
+
+exit 0

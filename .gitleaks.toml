@@ -1,0 +1,27 @@
+# gitleaks config for integration-skills (CI backstop — see .github/workflows/secrets.yml).
+# Extends the built-in ruleset and adds a Ludeo-specific rule + an allowlist for placeholders.
+title = "integration-skills"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "ludeo-key"
+description = "Ludeo API key / secret / token"
+# TODO: tighten this to the real Ludeo key format once known.
+regex = '''(?i)ludeo[_-]?(api[_-]?)?(key|secret|token)["']?\s*[:=]\s*["']?([a-z0-9_\-]{12,})'''
+tags = ["ludeo", "key"]
+
+[allowlist]
+description = "Placeholders and template/example files are not real secrets"
+paths = [
+  '''.*\.template\.[a-zA-Z0-9]+$''',
+  '''templates/.*''',
+  '''.*\.example(\..*)?$''',
+  '''scripts/scan-secrets\.mjs$''',
+]
+regexes = [
+  '''\$\{[^}]*\}''',                              # ${LUDEO_API_KEY}
+  '''\$\{\{[^}]*\}\}''',                          # ${{ secrets.X }}
+  '''(?i)(REPLACE|EXAMPLE|CHANGEME|PLACEHOLDER|YOUR_|DUMMY|SAMPLE|TODO)''',
+]

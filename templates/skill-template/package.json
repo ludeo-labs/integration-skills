@@ -1,0 +1,13 @@
+{
+  "name": "{{SKILL_NAME}}",
+  "version": "0.1.0",
+  "description": "REPLACE ME",
+  "license": "Apache-2.0",
+  "keywords": ["ludeo", "ludeo-skill", "agent-skill"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ludeo-labs/integration-skills.git",
+    "directory": "skills/{{SKILL_NAME}}"
+  },
+  "files": ["SKILL.md", "references", "config", "scripts", "tools", "learnings"]
+}

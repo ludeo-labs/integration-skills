@@ -1,0 +1,48 @@
+name: release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      skills: ${{ steps.changed.outputs.skills }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: changed
+        name: Detect changed skills
+        shell: bash
+        run: |
+          base="${{ github.event.before }}"
+          # list top-level skill folders that changed in this push
+          changed=$(git diff --name-only "$base" HEAD 2>/dev/null | grep '^skills/' | cut -d/ -f2 | sort -u || true)
+          json=$(printf '%s\n' "$changed" | grep . | jq -R . | jq -cs . || echo '[]')
+          echo "skills=$json" >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: detect
+    if: needs.detect.outputs.skills != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        skill: ${{ fromJSON(needs.detect.outputs.skills) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: semantic-release
+        working-directory: skills/${{ matrix.skill }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx --yes semantic-release

@@ -1,0 +1,26 @@
+{
+  "name": "@ludeo/integration-skills",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Single source of truth for Ludeo integration skills (Unreal, Unity, build & ship).",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ludeo-labs/integration-skills.git"
+  },
+  "workspaces": [
+    "skills/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "validate": "node scripts/validate-skills.mjs",
+    "build-registry": "node scripts/build-registry.mjs",
+    "new-skill": "node scripts/new-skill.mjs",
+    "scan-secrets": "node scripts/scan-secrets.mjs",
+    "check": "npm run validate && npm run build-registry -- --check",
+    "prepare": "git config core.hooksPath .githooks || true"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

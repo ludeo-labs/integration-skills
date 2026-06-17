@@ -1,0 +1,25 @@
+{
+  "$comment": "Shared policy for skill learnings/ corpora. Each skill may override per-skill knobs in its own config/learning-policy.json.",
+  "schemaVersion": 1,
+  "appendOnly": true,
+  "categories": [
+    "architecture",
+    "common-mistakes",
+    "engine-quirks",
+    "save-systems"
+  ],
+  "tiers": {
+    "core": "Always loaded into context. Cross-cutting, high-signal lessons.",
+    "situational": "Loaded when the relevant phase or system is in play.",
+    "archive": "Retained for reference; not auto-loaded."
+  },
+  "filenameConvention": "kebab-case-one-lesson-per-file.md",
+  "sanitization": {
+    "policyFile": "learning-sanitization.md",
+    "forbid": ["game titles", "studio names", "api keys/secrets", "verbatim proprietary code", "personal data"]
+  },
+  "review": {
+    "requirePrecondition": true,
+    "note": "A learning must state the precondition under which it applies. Do not trust a learning without verifying its precondition holds in the current codebase."
+  }
+}

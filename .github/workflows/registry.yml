@@ -1,0 +1,31 @@
+name: registry
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Rebuild registry + skill tree
+        run: node scripts/build-registry.mjs
+      - name: Commit if changed
+        shell: bash
+        run: |
+          if ! git diff --quiet -- registry.json SKILL_TREE.md; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add registry.json SKILL_TREE.md
+            git commit -m "chore: rebuild registry [skip ci]"
+            git push
+          else
+            echo "Registry already up to date."
+          fi

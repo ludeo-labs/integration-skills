@@ -1,0 +1,12 @@
+{
+  "$comment": "Wires the Ludeo SDK documentation MCP server so agents look up SDK APIs instead of guessing. Copy values from your environment; do not commit secrets.",
+  "mcpServers": {
+    "sdk-docs": {
+      "command": "npx",
+      "args": ["-y", "@ludeo/sdk-docs-mcp"],
+      "env": {
+        "LUDEO_DOCS_BASE_URL": "${LUDEO_DOCS_BASE_URL:-https://docs.ludeo.com}"
+      }
+    }
+  }
+}
