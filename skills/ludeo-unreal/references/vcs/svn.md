@@ -43,7 +43,7 @@ svn switch ^/branches/ludeo-integration                 # in the project working
 
 ## `acquire_component(name, dest)`
 
-Same sources and methods as `git.md` `acquire_component` (release zip via authenticated `gh`, see `config/sdk-sources.json`), extracted into `Plugins/LudeoUESDK`. SVN has no submodules; the zip-and-commit path is the default.
+Same sources and methods as `git.md` `acquire_component` (release zip via `gh` **or** a plain `curl`/`wget` of the `downloadUrl` — the repo is public, no auth needed; see `config/sdk-sources.json → ludeoUESDKPlugin.release`), extracted into `Plugins/LudeoUESDK`. SVN has no submodules; the zip-and-commit path is the default.
 
 **Optional vendor-branch pattern** (offer when SDK version churn is expected): drop each SDK release at `^/vendor/LudeoUESDK/<version>` and `svn copy` it into the branch's `Plugins/`. An SDK upgrade is then a tracked copy/merge instead of a multi-GB delete-and-re-add. Extra ceremony — skip if the team prefers replacing the folder in place.
 
