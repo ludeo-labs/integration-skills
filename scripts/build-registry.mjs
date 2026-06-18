@@ -21,10 +21,10 @@ const ENGINE_HINTS = [
 ];
 
 function parseFrontmatter(md) {
-  const m = md.match(/^---\n([\s\S]*?)\n---/);
+  const m = md.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!m) return {};
   const fm = {};
-  for (const line of m[1].split('\n')) {
+  for (const line of m[1].split(/\r?\n/)) {
     const kv = line.match(/^([A-Za-z0-9_.]+):\s*(.*)$/);
     if (kv) fm[kv[1]] = kv[2].trim();
   }
@@ -75,8 +75,9 @@ const next = JSON.stringify(registry, null, 2) + '\n';
 
 if (CHECK) {
   const current = existsSync(REGISTRY_PATH) ? readFileSync(REGISTRY_PATH, 'utf8') : '';
-  // ignore generatedAt drift when comparing
-  const norm = (s) => s.replace(/"generatedAt":\s*"[^"]*"/, '"generatedAt": null');
+  // ignore generatedAt drift and CRLF working-tree conversion when comparing
+  const norm = (s) =>
+    s.replace(/\r\n/g, '\n').replace(/"generatedAt":\s*"[^"]*"/, '"generatedAt": null');
   if (norm(current) !== norm(next)) {
     console.error('registry.json is out of date. Run `npm run build-registry`.');
     process.exit(1);
