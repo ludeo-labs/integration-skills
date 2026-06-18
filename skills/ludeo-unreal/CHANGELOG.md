@@ -1,3 +1,12 @@
+## [1.0.1](https://github.com/ludeo-labs/integration-skills/compare/ludeo-unreal@1.0.0...ludeo-unreal@1.0.1) (2026-06-18)
+
+
+### Bug Fixes
+
+* Clean workflow ([95e9d86](https://github.com/ludeo-labs/integration-skills/commit/95e9d862ac02af226927af4d5d1473066c502c6c))
+* **ludeo-unreal:** align version to released 1.0.0 ([9bc394a](https://github.com/ludeo-labs/integration-skills/commit/9bc394a80ff55d4cbd1228afe73fc095a09c67e6))
+* **scripts:** make frontmatter + registry parsing CRLF-tolerant ([3439481](https://github.com/ludeo-labs/integration-skills/commit/34394819e900459d0f28da540ea09756144c0e41))
+
 # 1.0.0 (2026-06-18)
 
 
