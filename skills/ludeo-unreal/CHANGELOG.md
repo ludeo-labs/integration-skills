@@ -1,3 +1,21 @@
+# 1.0.0 (2026-06-18)
+
+
+### Bug Fixes
+
+* **ludeo-unity:** align package.json to 1.1.0 with SKILL.md ([e83e295](https://github.com/ludeo-labs/integration-skills/commit/e83e2952943ebf5fe024cf79a7d1544582b20c30))
+* **ludeo-unreal:** mark 6 false-positive secret-scan hits ([cd48075](https://github.com/ludeo-labs/integration-skills/commit/cd480750b9a562eff977c3d7125d09504afc7239))
+* release ([c239853](https://github.com/ludeo-labs/integration-skills/commit/c2398536794db4711eda20f0b5b66ddc3248b56e))
+* release ([59ee150](https://github.com/ludeo-labs/integration-skills/commit/59ee15046f493e9b1facafa709618ae70eff6d80))
+* release ([720072a](https://github.com/ludeo-labs/integration-skills/commit/720072acf43af332bf07e26a7cb89eae1e755b59))
+
+
+### Features
+
+* import the Unreal integration skill into the monorepo ([e2a43e6](https://github.com/ludeo-labs/integration-skills/commit/e2a43e60028c0df2becb143ee8843e7e152bb7ee))
+* **ludeo-unreal:** harvest 'open Creator room at level load' learning ([5affd37](https://github.com/ludeo-labs/integration-skills/commit/5affd3750a1a0cce62bb712b9c35daf5733c9fe6))
+* **ludeo-unreal:** import the Unreal integration skill into the monorepo ([6b9bf72](https://github.com/ludeo-labs/integration-skills/commit/6b9bf720cea1f1d69d5e58ececeb488239995946))
+
 # [1.3.0](https://github.com/ludeo-labs/unreal-integration-skill/compare/v1.2.0...v1.3.0) (2026-06-17)
 
 
