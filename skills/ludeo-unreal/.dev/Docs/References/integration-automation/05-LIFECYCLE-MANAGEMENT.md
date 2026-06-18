@@ -243,7 +243,7 @@ void ActivateSession()
     // Prepare activation parameters
     auto params = Ludeo::create<LudeoSessionActivateParams>();
     params.platformUrl = "https://services.ludeo.com";
-    params.apiKey = api_key;
+    params.apiKey = api_key;  // gitleaks:allow (assigns from a variable, not a literal key)
     params.gameVersion = game_version;
     params.windowHandle = GetPlatformWindowHandle();  // CRITICAL for video/overlay
     

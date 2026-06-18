@@ -132,7 +132,7 @@ SDK requires native window handle for video capture and overlay.
 ```cpp
 LudeoSessionActivateParams params = {};
 params.windowHandle = GetGameWindowHandle();  // ✅ REQUIRED!
-params.apiKey = m_api_key.c_str();
+params.apiKey = m_api_key.c_str();  // gitleaks:allow (assigns from a variable, not a literal key)
 // ... other params
 
 ludeo_Session_Activate(m_session_handle, &params, this, OnSessionActivatedCallback);

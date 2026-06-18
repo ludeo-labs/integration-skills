@@ -17,7 +17,7 @@ if ($Action -eq "check") {
         Write-Host "  [MISSING] LUDEO_API_KEY" -ForegroundColor Red
         $allOk = $false
     } else {
-        Write-Host "  [OK]      LUDEO_API_KEY=$($env:LUDEO_API_KEY.Substring(0,8))..." -ForegroundColor Green
+        Write-Host "  [OK]      LUDEO_API_KEY=$($env:LUDEO_API_KEY.Substring(0,8))..." -ForegroundColor Green  # gitleaks:allow (prints masked env value, no secret here)
     }
 
     if ([string]::IsNullOrEmpty($env:STEAM_AUTH_ID)) {

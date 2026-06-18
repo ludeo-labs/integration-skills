@@ -42,7 +42,7 @@ If not found, check game root for `PHASE0_PLAN*.md` or ask user.
 
 The API key will be used in `ActivateSession()`:
 ```cpp
-params.apiKey = "provided-key-here";
+params.apiKey = "<your-api-key>";  // gitleaks:allow (placeholder, not a real key)
 ```
 
 ### 2. Create New Files (in order from plan)

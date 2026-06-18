@@ -1271,7 +1271,7 @@ void ULudeoSessionSubsystem::ActivateSession()
     FString ApiKey;
     if (!FParse::Value(FCommandLine::Get(), TEXT("-LudeoApiKey="), ApiKey))
     {
-        ApiKey = FPlatformMisc::GetEnvironmentVariable(TEXT("LUDEO_API_KEY"));
+        ApiKey = FPlatformMisc::GetEnvironmentVariable(TEXT("LUDEO_API_KEY"));  // gitleaks:allow (reads from env, no secret here)
     }
     if (ApiKey.IsEmpty())
     {
