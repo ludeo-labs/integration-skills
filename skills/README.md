@@ -6,7 +6,7 @@ Each subfolder is an independently installable, independently versioned
 
 | Folder | Skill name | Status |
 | --- | --- | --- |
-| `ludeo-unreal/` | `ludeo-unreal-integration` | ⏳ empty placeholder — to be filled from `../../unreal-integration-skill` |
+| `ludeo-unreal/` | `ludeo-unreal-integration` | ✅ filled (v1.4.0) from `../../unreal-integration-skill` |
 | `ludeo-unity/` | `ludeo-unity-integration` | ✅ filled (v1.1.0) from `../../unity-integration-skill` |
 | `cloud-upload/` | `cloud-upload` | ⏳ empty placeholder — to be authored later |
 

@@ -1,0 +1,32 @@
+{
+  "$comment": "Policy for learnings/ privacy. Enforced by scripts/validate-skill.mjs. See references/learning-sanitization.md for the agent-facing rule.",
+  "sourceGameAllowlist": [
+    "ActionGame",
+    "Lyra",
+    "ActionRoguelike",
+    "FPSGameStarterKit",
+    "FTPS_Online",
+    "VoyagerV2",
+    "EndlessFPS",
+    "TacticsGame",
+    "multiple"
+  ],
+  "$sourceGameAllowlist_note": "sourceGame: frontmatter MUST be one of these abstract codenames. A real studio/title name is itself a leak. Add a new codename here at the START of each new client engagement.",
+  "apiMacroAllowlist": [
+    "GAME_API",
+    "GAMENAME_API",
+    "MODULE_API",
+    "UE_API",
+    "LUDEO_API",
+    "LUDEOUESDK_API",
+    "ENGINE_API",
+    "CORE_API",
+    "COREUOBJECT_API",
+    "GAMEPLAYABILITIES_API",
+    "MODULAR_API",
+    "LYRAGAME_API"
+  ],
+  "$apiMacroNote": "Allowlisted macros are engine/SDK/public-sample/placeholder exports. Any *_API NOT in this list is flagged as a likely client module-export macro (e.g. STUDIONAME_API). Use GAME_API as the neutral placeholder in sanitized learnings. LYRAGAME_API is allowed because Lyra is Epic's public open-source sample.",
+  "denylist": [],
+  "$denylistNote": "OPTIONAL belt-and-suspenders. The PRIMARY defense is the sanitization rule applied at write time (references/learning-sanitization.md) \u2014 this list is NOT a substitute. Leave empty unless an engagement wants a hard stop on a specific known token; client-specific denylists do not generalize and must never be the main control."
+}

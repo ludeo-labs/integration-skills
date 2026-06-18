@@ -1,0 +1,23 @@
+@echo off
+REM Ludeo Cloud Launch Script — executed by LudeoCast on cloud machines.
+REM Must sit at the packaged build root and be set as executableLaunchPath when
+REM submitting the build. BuildAndPackage.bat emits it there as run.bat.
+REM Launches ONLY the cooked standalone game — NEVER the editor (no editor fallback).
+REM Placeholders __GAME__ / __EXE__ are substituted at package time.
+
+start "" /wait "__GAME__/Binaries/Win64/__EXE__" ^
+    -cloud ^
+    -stdout ^
+    -unattended ^
+    -nopause ^
+    -CrashForUAT ^
+    -nosplash ^
+    -windowed ^
+    -ResX=1920 -ResY=1080 ^
+    -LogCmds="LogPipelineStateCache Verbose, LogShaderCompilers Verbose, LogD3D12RHI Log, LogRHI Log" ^
+    %*
+
+set GAME_EXIT_CODE=%ERRORLEVEL%
+echo [%date% %time%] Game exited with code %GAME_EXIT_CODE% >> "%~dp0crash_exit.log"
+
+exit /b %GAME_EXIT_CODE%

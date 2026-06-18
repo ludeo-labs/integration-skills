@@ -38,3 +38,12 @@ Thumbs.db
 # Per-project skill state (generated inside user games, not here — defensive)
 .ludeo/
 structure.html
+
+# ludeo-unreal maintainer-only .dev files — NEVER commit (client codenames,
+# internal specs, harvest handoff, the sanitization translation key). The rest
+# of .dev/ (Lyra refs, integration-automation docs, VCS contracts) is tracked.
+skills/ludeo-unreal/.dev/Docs/Ludeo_AI_Integration_Skill_Project_Spec.md
+skills/ludeo-unreal/.dev/Docs/Ludeo_AI_Integration_Skill_Project_Spec_Addendum.md
+skills/ludeo-unreal/.dev/Docs/HANDOFF-skill-harvest-state.md
+skills/ludeo-unreal/.dev/Docs/2026-*.md
+skills/ludeo-unreal/.dev/sanitization-translation-key.md
