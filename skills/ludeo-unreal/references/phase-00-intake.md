@@ -142,26 +142,50 @@ Downstream pre-flight checklists read this block directly. If a required field i
 
 **Why this matters:** A Ludeo captured too early is boring or empty — not because the integration is broken, but because nothing interesting has happened yet. Without documented thresholds, the team files "early capture looks wrong" as a bug and the agent debugs a non-bug for hours.
 
+> ### ⚠️ HARD RULE — the room OPENS at level load, NOT at "gameplay start"
+>
+> **`OpenRoom` happens as soon as the gameplay world is ready (component `BeginPlay`), decoupled from
+> any warmup / countdown / "combat-triggered" / "interesting-state" condition.** The ONLY thing those
+> conditions gate is **`BeginGameplay`** (the N-way gate: RoomReady + PlayerAdded + gameplay-phase).
+>
+> Do **not** phrase or record this as "open the room when gameplay starts," and do **not** gate
+> `Session::OpenRoom` on a game phase. In **Creator flow the platform delivers `OnRoomReady` ~1 ms
+> after `AddPlayer` ONLY when the room opened in the normal level-load window** — a room opened late
+> (e.g. seconds later, when the Playing phase starts) **never receives `OnRoomReady`, the begin gate
+> hangs, and nothing records** (Lyra Phase 2, log-verified). Two distinct triggers:
+> | Trigger | When | Gated on a game phase/state? |
+> |---|---|---|
+> | **Room open** (`OpenRoom` + `AddPlayer`) | level load (`BeginPlay`) | **NO — always at level load** |
+> | **BeginGameplay** | round actually interactive | **YES — warmup-skip / Playing-phase / interesting-state** |
+>
+> See `learnings/common-mistakes/open-creator-room-at-level-load-not-on-phase.md`.
+
 **Questions:**
 
 | ID | Question |
 |----|----------|
-| `CTR-1` | When should the Ludeo room OPEN? Mission start? After first objective? Only when "combat" is triggered? Only after the player has N seconds of progression? |
-| `CTR-2` | When should it CLOSE? Mission end? Extraction? Death? Explicit player action (photo mode, manual end)? |
+| `CTR-1` | When does **interactive gameplay BEGIN** (i.e. when should `BeginGameplay` fire)? After warmup/countdown? At "combat"? After N seconds of progression? (The room still OPENS at level load regardless — this only gates `BeginGameplay`.) Which pre-gameplay phases must be skipped in Player Flow? |
+| `CTR-2` | When should the room CLOSE? Mission end? Extraction? Death? Explicit player action (photo mode, manual end)? |
 | `CTR-3` | Is there a minimum "interesting state" threshold below which captures are EXPECTED to be uninteresting (e.g., `LevelProgression > 0`, at least one enemy killed)? Name it. |
 
 **Record as:**
 ```json
 "captureTimingRules": {
-  "roomOpenTrigger": "missionState == Alarm OR Combat",
+  "beginGameplayTrigger": "missionState == Alarm OR Combat",
   "roomCloseTrigger": "missionEnd OR playerDeath",
-  "minimumInterestingStateThreshold": "LevelProgression > 0 AND elapsedSeconds > 30"
+  "minimumInterestingStateThreshold": "LevelProgression > 0 AND elapsedSeconds > 30",
+  "_note": "Room ALWAYS opens at level load (BeginPlay). beginGameplayTrigger gates only BeginGameplay, never OpenRoom."
 }
 ```
 
-**→ Wired to:** Phase 2 lifecycle code review — room open/close must gate on `roomOpenTrigger`/`roomCloseTrigger`. Also wired to a documentation block in the TDD so that when early/empty captures surface, the team and future engineers can match against the documented threshold before debugging.
+**→ Wired to:** Phase 2 lifecycle code review — `OpenRoom` is at level load (NEVER phase-gated);
+`beginGameplayTrigger`/`minimumInterestingStateThreshold` gate **`BeginGameplay`** (the N-way gate);
+`roomCloseTrigger` gates the teardown chain. Also wired to a TDD documentation block so that when
+early/empty captures surface, the team can match against the documented threshold before debugging.
 
-**Evidence:** ActionGame #9 (`LevelProgression=0` in test captures debugged as broken writes until clarified as "capture too early, not a bug").
+**Evidence:** ActionGame #9 (`LevelProgression=0` in test captures debugged as broken writes until
+clarified as "capture too early, not a bug"). Lyra Phase 2 (room gated on Playing phase → `OnRoomReady`
+never fired → nothing recorded; fixed by opening the room at `BeginPlay`).
 
 ---
 

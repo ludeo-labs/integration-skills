@@ -69,6 +69,30 @@ Map each SDK lifecycle point to the game's actual code. Use CODE_MAP fields from
 
 **Room ≠ Highlight.** A room is a recording session that stays open for the entire gameplay session (one map/match). Multiple highlights can be captured within a single open room (player presses F9). Do NOT open/close rooms per highlight, per life, or per wave — one room per gameplay session.
 
+> ### ⚠️ HARD RULE — open the room at LEVEL LOAD, never gate `OpenRoom` on a game phase
+>
+> `OpenRoom` + `AddPlayer` run as soon as the gameplay world is ready — in the component's
+> `BeginPlay` (skip only non-ludeoable/frontend maps). **Do NOT defer `OpenRoom` until a warmup /
+> countdown / "Playing" / "combat" / interesting-state condition.** Those gate **`BeginGameplay`
+> only**, via the N-way gate (RoomReady + PlayerAdded + gameplay-phase-active).
+>
+> **Why this is load-bearing (not style):** in **Creator flow the platform delivers `OnRoomReady`
+> ~1 ms after `AddPlayer` ONLY when the room opened in the normal level-load window.** A room opened
+> late (e.g. seconds later, when the Playing phase starts) **never receives `OnRoomReady`** — the
+> begin gate hangs, `Player::BeginGameplay` is never called, and **nothing records**, even though
+> `OpenRoom`/`AddPlayer` both returned success. (Lyra Phase 2, log-verified.)
+>
+> Because the room opens before the player may have joined, drive `AddPlayer` off a **player-added
+> delegate + a pending-players queue** (flush in `OnRoomOpened`) — do not synchronously resolve "the
+> local player" at room-open time; they may not exist yet.
+>
+> **Diagnostic tell:** `OpenRoom`/`AddPlayer` succeed but no `Broadcasting RoomReady` line ever
+> appears, AND `OpenRoom` happened many seconds after session activation. Suspect a late/phase-gated
+> room open FIRST — do not force-begin (see `learnings/common-mistakes/never-force-begin-without-onroomready.md`),
+> and do not blame the SDK version, the overlay `failed to parse gameplays.gameplay-ready` warning
+> (a red herring), or backend config. Fix: move `OpenRoom` to `BeginPlay`. See
+> `learnings/common-mistakes/open-creator-room-at-level-load-not-on-phase.md`.
+
 | SDK Lifecycle Point | What to Find | CODE_MAP Source | How to Verify |
 |---|---|---|---|
 | Room Open (`FLudeoSession::OpenRoom`) | Start of playable unit | `lifecycle_hooks.roomOpen` | Trace from the hook to confirm it fires once per playable unit |
@@ -2281,7 +2305,13 @@ These are errors from prior integration attempts. The skill should actively prev
 
 **Mistake:** Only gating on `bRoomReady` + `PlayerHandle.IsSet()`, missing the game phase condition.
 **Why it's wrong:** Without a phase gate, `BeginGameplay` can fire during loading screens, warmup phases, or countdowns. State tracking captures non-gameplay data.
-**Prevention:** Always include a game-specific phase/state condition. Analyze the game's lifecycle in Section 3 to identify what signals "gameplay has started." Add as many gate conditions as needed.
+**Prevention:** Always include a game-specific phase/state condition on **`BeginGameplay`** (the N-way gate). Analyze the game's lifecycle in Section 3 to identify what signals "gameplay has started." Add as many gate conditions as needed. **But gate only `BeginGameplay` — never `OpenRoom` (see 8.2b).**
+
+### 8.2b Gating `OpenRoom` on a Game Phase (room opens too late → no OnRoomReady)
+
+**Mistake:** Deferring `Session::OpenRoom` until the gameplay/warmup/"Playing"/"combat" phase starts (e.g. `WhenPhaseStartsOrIsActive(Playing) → TryOpenRoom`), because intake said "open the room at match start." This is the N-way-gate condition applied to the wrong call.
+**Why it's wrong:** In **Creator flow the platform delivers `OnRoomReady` ~1 ms after `AddPlayer` ONLY when the room opened in the normal level-load window.** A room opened seconds late never receives `OnRoomReady`; the begin gate hangs, `BeginGameplay` is never called, and nothing records — even though `OpenRoom`/`AddPlayer` both returned success. The misleading symptoms (overlay `failed to parse gameplays.gameplay-ready`, no overlay UI) send agents chasing SDK versions and backend config; none of those are the cause.
+**Prevention:** Open the room in the component's `BeginPlay` (skip only frontend maps), decoupled from any phase; gate only `BeginGameplay` on the phase. Drive `AddPlayer` off a player-added delegate + pending-players queue (the player may not exist when the room opens). See the **HARD RULE** in §3.2 and `learnings/common-mistakes/open-creator-room-at-level-load-not-on-phase.md`.
 
 ### 8.3 Not Handling Deferred Session Activation
 

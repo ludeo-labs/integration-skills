@@ -360,6 +360,8 @@ Confirm all deliverables are implemented (not stubbed), code compiles, package b
 - **Must NOT be guarded:** `RegisterActionListeners()`, `OnActorSpawned()`, `DetectPollBasedActions()`, `ReportAction()` (actions and entity tracking must work in both flows)
 - **Watch for cascading guards:** A `bIsPlayerFlow` check on `CreateWritableObjects()` can indirectly block action registration if `RegisterActionListeners()` depends on the entity list that `CreateWritableObjects()` populates. Trace the call chain — don't just check direct guards.
 
+**Room-open-timing audit (every code-producing phase that touches the lifecycle):** Confirm `Session::OpenRoom` is called from the component's `BeginPlay` (at level load), **NOT** gated on a warmup / countdown / "Playing" / "combat" / interesting-state phase. Only `BeginGameplay` (the N-way gate) may wait on a game phase. Grep the component for `OpenRoom` and trace its caller: if a game-phase observer (e.g. `WhenPhaseStartsOrIsActive(Playing) → … → OpenRoom`) reaches `OpenRoom`, that is the bug — a late-opened Creator room never receives `OnRoomReady` and nothing records. Move the open to `BeginPlay`; gate only `BeginGameplay` on the phase. This holds even when no reference sample is available to diff against. See `learnings/common-mistakes/open-creator-room-at-level-load-not-on-phase.md` and the HARD RULE in `references/phase-02-lifecycle.md` §3.2.
+
 ### Phase 4 Hard Gate: Player Flow Before Phase 5
 
 **Phase 4 has mandatory execution ordering that overrides the normal flow.** Do NOT combine Phases 4 and 5 in a single plan. Phase 5 actions are meaningless if Player Flow doesn't work — highlights can't be played back.

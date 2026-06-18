@@ -8,7 +8,7 @@ Regenerate with `node scripts/generate-learnings-index.mjs` after adding a learn
 If you add a learning where you cannot run node (e.g. an installed skill copy),
 append the line by hand in the same format.
 
-Total: 274
+Total: 276
 
 - architecture/additive-action-emission-for-composable-goals.md | universal | p5 | Emit actions on multiple orthogonal axes — additive, not else-if
 - architecture/bind-session-notifications-once-at-subsystem-not-per-room.md | generalizable | p4 | Are the session-level notification delegates (OnRoomReady, OnLudeoSelected, pause/resume, back-to-menu) bound ONCE at session setup on a persistent owner, or rebound per-room on a transient component?
@@ -111,6 +111,7 @@ Total: 274
 - common-mistakes/destroy-default-spawns-before-restoring-tracked.md | universal | p4 | Does the game spawn AI/NPCs at level start that will duplicate with tracked entities?
 - common-mistakes/diagnostic-warning-logs-become-permanent-cruft.md | universal | p5 | Diagnostic Warning logs become permanent cruft if you don't budget their removal
 - common-mistakes/dialog-mute-window-must-bracket-all-deferred-triggers.md | generalizable | p4 | What's the latest possible moment the audio/dialog subsystem you're muting can be triggered? Does your Suppress→Resume window bracket that moment?
+- common-mistakes/diff-against-reference-sample-when-runtime-signal-missing.md | universal | p2 | When a runtime SDK signal (OnRoomReady, etc.) fails to fire but all the lifecycle CALLS succeed, and a known-good reference integration exists for THIS game or engine — have you diffed your flow against it BEFORE theori…
 - common-mistakes/direct-field-assignment-bypasses-setter-side-effects.md | universal | p4 | Direct field assignment in snapshot restore can bypass setter side effects
 - common-mistakes/do-not-stub-deliverables.md | universal | p4 | Do not mark a stage complete with stubbed deliverables
 - common-mistakes/do-not-trust-learning-without-verifying-precondition.md | universal | p2 | Learnings have preconditions — verify them before applying
@@ -168,6 +169,7 @@ Total: 274
 - common-mistakes/ondestroyed-not-for-bp-death.md | generalizable | p5 | Do enemies in this game call Destroy() when they die, or do they ragdoll/dissolve/fade? If not Destroy(), use poll-based health detection instead of OnDestroyed delegate.
 - common-mistakes/ondestroyed-vs-endplay-timing.md | universal | p5 | OnDestroyed may not fire before component EndPlay
 - common-mistakes/one-writable-per-uobject-key.md | universal | p4 | One writable per UObject* (always)
+- common-mistakes/open-creator-room-at-level-load-not-on-phase.md | generalizable | p2 | Does the integration OPEN the Creator room at level load (component BeginPlay), or does it delay OpenRoom until a 'gameplay start' phase/state? Only BeginGameplay should wait on the phase — the room itself must open at …
 - common-mistakes/packaging-smoke-test-required.md | universal | p2 | Does the game need to be packaged (not just editor-playable)? If yes, does it have a Source/ directory and a non-Editor .Target.cs? If no to either, plan for a minimal game module or a target-generating plugin (e.g., Co…
 - common-mistakes/pawn-not-spawned-at-action-phase-start.md | generalizable | p4 | Does the game's action phase start BEFORE the player pawn is spawned?
 - common-mistakes/per-class-action-token-strip-runtime-class-prefixes.md | generalizable | p5 | Are you deriving a per-class action name token (e.g. Destroy<UnitClass>, Kill<EnemyType>) from a class path? Derive it from the ACTUAL runtime class name and account for ALL wrapper/family prefixes (BP_, a project 'BP_P…
