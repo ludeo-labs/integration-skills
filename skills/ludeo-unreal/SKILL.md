@@ -1,12 +1,12 @@
 ---
 name: ludeo-unreal-integration
 description: Use when integrating the Ludeo SDK into an Unreal Engine game, performing Ludeo integration analysis, designing or implementing Ludeo integration architecture in UE code, or working on any phase of a Ludeo SDK integration (lifecycle, actions, state tracking, player flow). Also trigger when the user mentions Ludeo SDK, Ludeo integration, playable highlights integration, LudeoSession, LudeoRoom, DataWriter, DataReader, or game state tracking for Ludeo - when the work is on an Unreal Engine game's code. Do NOT use for Unity or non-Unreal engines (use ludeo-unity-integration instead), pure SDK-concept/documentation questions with no code work, cloud cast session/VM log diagnosis (use ludeo-diagnose-session), repo open-sourcing, or creating decks/docs about an integration.
-metadata.version: 1.0.0
+metadata.version: 1.0.1
 ---
 
 # Ludeo SDK Integration Skill
 
-**Skill version:** 1.0.0 · Compare against the [latest release](https://github.com/ludeo-labs/integration-skills/releases/latest) to confirm your installed copy is current. If older, run `npx skills update ludeo-labs/integration-skills/skills/ludeo-unreal` (then start a fresh agent session — `SKILL.md` is cached per session).
+**Skill version:** 1.0.1 · Compare against the [latest release](https://github.com/ludeo-labs/integration-skills/releases/latest) to confirm your installed copy is current. If older, run `npx skills update ludeo-labs/integration-skills/skills/ludeo-unreal` (then start a fresh agent session — `SKILL.md` is cached per session).
 
 ## Overview
 
