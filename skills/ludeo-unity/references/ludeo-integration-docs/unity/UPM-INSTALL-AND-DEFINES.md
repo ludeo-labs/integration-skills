@@ -5,26 +5,42 @@ types referenced are in [`../12-SDK-API-REFERENCE.md`](../12-SDK-API-REFERENCE.m
 
 ---
 
-## 1. Choose the install method (by Unity version)
+## 1. Get the plugin & install it
 
-Ludeo ships the plugin two ways — both are common Unity delivery methods. Pick by the project's
-Unity version (`ProjectSettings/ProjectVersion.txt`). This skill supports **Unity 2021.3 LTS+**.
+### Download the latest release (default source)
+The plugin is published as GitHub releases at **https://github.com/ludeo-labs/unity-plugin-releases**
+(public repo). Unless the user pinned a version, **download the latest release**:
+```bash
+# Public repo — no auth. Downloads the latest release's .zip into the current folder.
+gh release download --repo ludeo-labs/unity-plugin-releases --pattern "*.zip"
+```
+No `gh`? Open `https://github.com/ludeo-labs/unity-plugin-releases/releases/latest` and download the
+`.zip`, or resolve `…/releases/latest` via the GitHub API and fetch `assets[].browser_download_url`.
+
+The asset is `Release_LudeoSDK_Unity_Plugin_v<version>.zip` (~250 MB). **Extract it** → it unpacks to
+`Release/com.ludeo.sdk@<version>/` (a `Release/` parent + a version-suffixed folder, e.g.
+`Release/com.ludeo.sdk@4.2.2/`), which **is** the UPM package: `package.json` → `name: com.ludeosdk.unity`,
+`unity: 2019.4`. The release ships **one** UPM package supporting **Unity 2019.4+** (this skill is validated
+for **2021.3 LTS+**); there is no `.unitypackage` asset and no git-URL install in the release.
+
+### Choose the install method
+Install the extracted package one of these ways:
 
 | Method | Best for | How |
 | --- | --- | --- |
-| **UPM package** `com.ludeosdk.unity` | **Unity 6+** (the current package manifest is gated `unity: 6000.3`) | Package Manager → **+** → add by **git URL**, **tarball**, or **local path** (Ludeo provides the source). |
-| **`.unitypackage`** | Unity 2021.3 → pre-6, or teams that prefer asset import; universal fallback | *Assets → Import Package → Custom Package* → select `LudeoSDK_Unity_v<version>.unitypackage`. |
-
-> If the project's Unity is older than the package's `unity:` floor, use the `.unitypackage` (or an
-> older package version that supports that Unity). Don't force a newer package onto an older editor.
+| **Local UPM package** (recommended) | Any supported Unity (2021.3 LTS+) | Add a `file:` line to `Packages/manifest.json`, or Package Manager → **+** → *Add package from disk* → the extracted folder's `package.json`. |
+| **Embedded package** | Vendoring the package into the repo | Copy the extracted `com.ludeo.sdk` folder into the project's `Packages/` directory. |
+| **`.unitypackage`** | Only if Ludeo handed you one directly | *Assets → Import Package → Custom Package* → select the file. |
 
 ### UPM via `manifest.json`
-A UPM dependency is a line in `Packages/manifest.json`. The sample references a local path:
+A local UPM dependency is a line in `Packages/manifest.json` pointing at the extracted package folder
+(the one with `package.json` — i.e. `…/Release/com.ludeo.sdk@<version>`):
 ```json
-{ "dependencies": { "com.ludeosdk.unity": "file:../path/to/com.ludeo.sdk", "...": "..." } }
+{ "dependencies": { "com.ludeosdk.unity": "file:../path/to/Release/com.ludeo.sdk@<version>", "...": "..." } }
 ```
-For a real project use the **git URL** or **tarball/local path** Ludeo provides, e.g.
-`"com.ludeosdk.unity": "https://…/com.ludeo.sdk.git#<tag>"`.
+Keep the extracted folder somewhere stable (a temp dir breaks resolution later). A pinned git URL
+(`"com.ludeosdk.unity": "https://…/com.ludeo.sdk.git#<tag>"`) also works **if** Ludeo grants repo
+access, but the release `.zip` is the supported default.
 
 ---
 
