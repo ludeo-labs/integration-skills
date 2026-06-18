@@ -1,6 +1,6 @@
 {
   "name": "ludeo-unreal",
-  "version": "1.4.0",
+  "version": "1.0.0",
   "description": "Integrate the Ludeo SDK into an Unreal Engine (C++/Blueprint) game using the LudeoUESDK plugin.",
   "license": "Apache-2.0",
   "keywords": [
