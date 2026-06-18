@@ -1,7 +1,8 @@
 {
   "ludeoUESDKPlugin": {
     "description": "Unreal Engine wrapper plugin for the Ludeo SDK",
-    "repo": "https://github.com/EdgeGamingGG/ludeosdk-unreal-plugin",
+    "repo": "https://github.com/ludeo-labs/unreal-plugin-releases",
+    "repoNote": "DEFINITIVE source for the Unreal plugin + bundled C SDK (release assets). Tags: https://github.com/ludeo-labs/unreal-plugin-releases/tags . Supersedes the legacy EdgeGamingGG/ludeosdk-unreal-plugin repo — use ludeo-labs/unreal-plugin-releases for all new acquisitions.",
     "private": true,
     "defaultInstallPath": "Plugins/LudeoUESDK",
     "modules": {
@@ -10,24 +11,26 @@
     },
     "supportedEngineVersions": ["4.27", "5.0", "5.1", "5.2", "5.3", "5.4", "5.5", "5.6", "5.7"],
     "release": {
-      "latestTag": "4.2.0",
-      "asset": "LudeoUESDK-4.2.0.zip",
-      "ghDownload": "gh release download 4.2.0 -R EdgeGamingGG/ludeosdk-unreal-plugin -p '*.zip'",
+      "latestTag": "4.3.1",
+      "asset": "LudeoUESDK-4.3.1.zip",
+      "ghDownload": "gh release download 4.3.1 -R ludeo-labs/unreal-plugin-releases -p '*.zip'",
       "ghDownloadNote": "PRIMARY acquisition path. The repo is PRIVATE: anonymous requests against the raw downloadUrl return 404 (not 401/403), which misleadingly looks like the asset is gone. Verify `gh auth status` first; treat a 404 as 'probably auth', not 'probably deleted'. If gh is not installed/authenticated, that is a Phase 0 environment blocker to surface to the human.",
-      "downloadUrl": "https://github.com/EdgeGamingGG/ludeosdk-unreal-plugin/releases/download/4.2.0/LudeoUESDK-4.2.0.zip",
+      "downloadUrl": "https://github.com/ludeo-labs/unreal-plugin-releases/releases/download/4.3.1/LudeoUESDK-4.3.1.zip",
       "downloadUrlNote": "Browser-only convenience for a human logged into GitHub; does NOT work with curl/anonymous tooling (private repo).",
       "bundlesCSdk": true,
-      "approxZipBytes": 816468917,
+      "bundledCSdkVersion": "4.2.2",
+      "approxZipBytes": 816440478,
       "approxExtractedSize": "4.0 GB",
-      "note": "The release asset is FULLY self-contained: plugin root (.uplugin) + all 3 modules (LudeoSDK, LudeoUESDK, LudeoUESDKEditor) + the C SDK already populated at Source/LudeoSDK/SDK/ with binaries for Win64, Linux, and Android. Extract directly into Plugins/LudeoUESDK and the C SDK step is satisfied in the same download — no separate ludeoCSdk acquisition needed. Prefer this release asset over a GitHub source-archive zip, which would not resolve any LFS-tracked binaries. To find newer versions: `gh release list -R EdgeGamingGG/ludeosdk-unreal-plugin`."
+      "note": "The release asset is FULLY self-contained: plugin root (.uplugin) + all 3 modules (LudeoSDK, LudeoUESDK, LudeoUESDKEditor) + the C SDK already populated at Source/LudeoSDK/SDK/ with binaries for Win64, Linux, and Android. Plugin 4.3.1 bundles CoreSDK 4.2.2. Extract directly into Plugins/LudeoUESDK and the C SDK step is satisfied in the same download — no separate ludeoCSdk acquisition needed. Prefer this release asset over a GitHub source-archive zip, which would not resolve any LFS-tracked binaries. To find newer versions: `gh release list -R ludeo-labs/unreal-plugin-releases` (the asset name follows `LudeoUESDK-<tag>.zip`). Pin to the latest tag unless the human specifies a version.",
+      "signatureNote": "This config governs ACQUISITION (which release to download), not API signatures. Do not assume call signatures from the version number — grep the actual SDK headers under Source/LudeoSDK/SDK/ after extraction (the skill's Phase 0/2 guidance does this)."
     },
-    "note": "Do not flag engine version compatibility as a risk — the plugin supports UE 4.27 through 5.7. Two acquisition paths: (a) release zip (see `release` above) — single self-contained download, the right choice for Perforce/no-submodule workflows and for git 'download & include'; (b) git submodule of this repo, with the C SDK as a nested submodule (see ludeoCSdk)."
+    "note": "Do not flag engine version compatibility as a risk — the plugin supports UE 4.27 through 5.7. Two acquisition paths: (a) release zip (see `release` above) — single self-contained download, the right choice for Perforce/no-submodule workflows and for git 'download & include'; (b) git submodule of the plugin repo, with the C SDK as a nested submodule (see ludeoCSdk)."
   },
   "ludeoCSdk": {
     "description": "Native Ludeo C SDK — required by the UE plugin at Source/LudeoSDK/SDK/",
     "repo": "https://github.com/EdgeGamingGG/ludeo-sdk-releases",
     "defaultInstallPath": "Plugins/LudeoUESDK/Source/LudeoSDK/SDK",
     "bundledInPluginRelease": true,
-    "note": "As of plugin release 4.2.0 the C SDK ships BUNDLED inside the LudeoUESDK release zip (CoreSDK 4.2.0) — already populated at Source/LudeoSDK/SDK/. The ludeo-sdk-releases repo publishes version tags but NO release assets, so there is no standalone C SDK zip endpoint. Only acquire the C SDK separately when using the git-submodule path for the plugin (then add this repo as a nested submodule into Source/LudeoSDK/SDK); for the release-zip path it is already present."
+    "note": "The C SDK ships BUNDLED inside the LudeoUESDK release zip (plugin 4.3.1 bundles CoreSDK 4.2.2) — already populated at Source/LudeoSDK/SDK/. The release-zip path therefore needs NO separate C SDK acquisition. Only acquire the C SDK separately when using the legacy git-submodule path for the plugin (then add the C SDK repo as a nested submodule into Source/LudeoSDK/SDK); that repo publishes version tags but no standalone release-asset zip. The bundled path via ludeo-labs/unreal-plugin-releases is the definitive source."
   }
 }
