@@ -1,0 +1,26 @@
+{
+  "name": "ludeo-unreal",
+  "version": "1.4.0",
+  "description": "Integrate the Ludeo SDK into an Unreal Engine (C++/Blueprint) game using the LudeoUESDK plugin.",
+  "license": "Apache-2.0",
+  "keywords": [
+    "ludeo",
+    "ludeo-skill",
+    "agent-skill",
+    "unreal",
+    "unreal-engine"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ludeo-labs/integration-skills.git",
+    "directory": "skills/ludeo-unreal"
+  },
+  "files": [
+    "SKILL.md",
+    "references",
+    "config",
+    "scripts",
+    "tools",
+    "learnings"
+  ]
+}

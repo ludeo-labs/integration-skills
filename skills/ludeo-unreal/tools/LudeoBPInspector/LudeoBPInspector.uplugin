@@ -1,0 +1,18 @@
+{
+    "FileVersion": 3,
+    "Version": 1,
+    "VersionName": "1.0",
+    "FriendlyName": "Ludeo BP Inspector",
+    "Description": "Exposes Blueprint variable metadata and component info to Python for the Ludeo SDK integration skill.",
+    "Category": "Ludeo",
+    "CreatedBy": "Ludeo",
+    "EnabledByDefault": false,
+    "CanContainContent": false,
+    "Modules": [
+        {
+            "Name": "LudeoBPInspector",
+            "Type": "Editor",
+            "LoadingPhase": "Default"
+        }
+    ]
+}
