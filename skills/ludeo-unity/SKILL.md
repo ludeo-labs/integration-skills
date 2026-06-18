@@ -69,7 +69,7 @@ file — so the user experiences each as a single phase.
 
 | Phase | File | Purpose |
 | --- | --- | --- |
-| 0 | `references/0-build-game-with-sdk.md` | Install the plugin (UPM or `.unitypackage`), set scripting defines + `LudeoSettings`, baseline + SDK-enabled compile, run **intake** (incl. game-level save-system classification) |
+| 0 | `references/0-build-game-with-sdk.md` | **Download the latest plugin release** (`github.com/ludeo-labs/unity-plugin-releases`) + install the UPM package, set scripting defines + `LudeoSettings`, baseline + SDK-enabled compile, run **intake** (incl. game-level save-system classification) |
 | 1 | `references/1-map-game-code.md` | Produce CODE_MAP of the Unity project (scenes, MonoBehaviours, prefabs, managers) |
 | **2** | **`references/2-lifecycle-orchestrator.md`** | **SDK lifecycle (orchestrated) — dispatches the five briefs below as subagents; plans the restoration entry point + Non-Gameplay Handling** |
 | 2 · task 1 | `references/2-find-sdk-integration-points.md` | Map each game-event → `[SDK]`/`[Layer]` call site |

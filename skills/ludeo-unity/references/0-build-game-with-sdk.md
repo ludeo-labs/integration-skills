@@ -17,9 +17,11 @@ Required artifacts / pre-flight:
       start a fresh agent session and continue with phase 0 there."*
 - [ ] **This is a Unity project** — `Assets/`, `ProjectSettings/`, `Packages/manifest.json`. If not,
       stop and point the user at the engine-appropriate skill.
-- [ ] **Ludeo Unity plugin source** is known — a UPM package (`com.ludeosdk.unity`) **or** a
-      `.unitypackage`, delivered by Ludeo as a git URL / tarball / local path / file. If the user
-      hasn't said where it is, **ask** (§4). Do not invent a download location.
+- [ ] **Ludeo Unity plugin** obtained. **Default: download the latest release** from
+      `https://github.com/ludeo-labs/unity-plugin-releases/releases/latest` — a public repo whose
+      latest release is a single `.zip` containing the UPM package `com.ludeosdk.unity` (see Step 0b).
+      Use a different source **only** if Ludeo explicitly hands you a specific build (a pinned tag, a
+      private tarball, or a `.unitypackage`).
 - [ ] **`apiKey`** obtained from the user (required for `LudeoSettings`).
 - [ ] Context files read (§5).
 
@@ -34,11 +36,23 @@ git checkout -b feature/ludeo-integration-#1   # increment #N if it exists
 ```
 All subsequent work happens here so the attempt can be discarded by deleting the branch.
 
-### Step 0b — Detect Unity version → choose install method
-- `Glob("**/ProjectSettings/ProjectVersion.txt")` for the version (skill floor: **2021.3 LTS**).
-- **Unity 6+** → UPM package `com.ludeosdk.unity` (manifest gated `unity: 6000.3`).
-- **2021.3 → pre-6** → `.unitypackage` (or an older package version that supports that editor).
-- Report the version and chosen method; confirm with the user.
+### Step 0b — Download the plugin (latest release) ⭐
+The plugin is published at **https://github.com/ludeo-labs/unity-plugin-releases** (public repo).
+Unless the user pinned a version, **download the latest release**:
+```bash
+# Public repo — no auth. Downloads the latest release's .zip into the current folder.
+gh release download --repo ludeo-labs/unity-plugin-releases --pattern "*.zip"
+```
+No `gh`? Open `https://github.com/ludeo-labs/unity-plugin-releases/releases/latest` and download the
+`.zip` (or resolve `…/releases/latest` via the GitHub API → `assets[].browser_download_url`).
+
+The asset is `Release_LudeoSDK_Unity_Plugin_v<version>.zip` (~250 MB). **Extract it** → it unpacks to
+`Release/com.ludeo.sdk@<version>/` (a `Release/` parent + a version-suffixed folder, e.g.
+`Release/com.ludeo.sdk@4.2.2/`), and **that folder is the UPM package** — its `package.json` has
+`name: com.ludeosdk.unity`. The release ships **one** UPM package (no `.unitypackage` asset, no git-URL
+install); it supports **Unity 2019.4+** and this skill is validated for **2021.3 LTS+**.
+- `Glob("**/ProjectSettings/ProjectVersion.txt")` to record the project's Unity version; report it and
+  confirm with the user. If Ludeo handed you a `.unitypackage` instead, use the *Import Package* path in Step 1.
 
 ### Step 0c — Baseline (the "without SDK" compile)
 Before touching anything: confirm the project compiles in the Editor and the game plays **as-is**.
@@ -47,9 +61,14 @@ This is the guideline's *"compiles without the SDK enabled"* criterion — for U
 toggle). Note the baseline so later failures are attributable to the integration.
 
 ### Step 1 — Install the package (the "with SDK" compile)
-- **UPM:** add the dependency to `Packages/manifest.json` (Package Manager → **+** → git URL /
-  tarball / local path), e.g. `"com.ludeosdk.unity": "<url-or-path>"`.
-- **`.unitypackage`:** *Assets → Import Package → Custom Package* → select the file.
+Install the **extracted** package (from Step 0b) one of two ways — put the extracted folder somewhere
+stable first (alongside the project, not a temp dir, so the `file:` path keeps resolving):
+- **Local UPM package (recommended):** point `Packages/manifest.json` at the extracted package folder
+  (the one containing `package.json`):
+  `"com.ludeosdk.unity": "file:<path-to-extracted>/Release/com.ludeo.sdk@<version>"` — or Package
+  Manager → **+** → *Add package from disk* → pick that folder's `package.json`.
+- **Embedded package:** copy the extracted `Release/com.ludeo.sdk@<version>` folder into the project's `Packages/` directory.
+- **`.unitypackage` (only if Ludeo gave you one):** *Assets → Import Package → Custom Package* → select the file.
 - The package is **auto-referenced** — after install, `using LudeoSDK;` must compile in a project
   script with **no** asmdef reference and **no** scripting define. `LudeoPostProcess` auto-creates
   the SDK's StreamingAssets on import.
@@ -125,7 +144,9 @@ LudeoManager.InitLudeoSession(data =>                                   // [SDK]
 ## 4. Questions to ask the human
 
 Only what can't be inferred from code:
-- **Package source** — git URL / tarball / local path / `.unitypackage` file.
+- **Plugin version** — default is the **latest** release from
+  `github.com/ludeo-labs/unity-plugin-releases`; ask only whether they need a specific pinned version
+  or were given a custom build (private tarball / `.unitypackage`).
 - **`apiKey`**, `gameName`, `gameVersion`.
 - **Auth mode** — local testing without Steam (`runWithoutLauncher = true`) vs production
   (Steam/launcher). Steam appId if applicable.
