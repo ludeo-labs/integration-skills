@@ -147,9 +147,15 @@ Also plan four distinct sets of hooks:
   `Time.timeScale = 0f`, `AddNotifyResumeGame` → `Time.timeScale = 1f`, `AddNotifyReturnToMainMenu` → a
   CR-007 exit (stop tracking + `CloseRoom` + load menu scene). Session-lifetime; easy to forget. Map each
   onto a game hook. **Names have no `Request` suffix.**
-- **Pre-match / location-override suppression** — every mechanism the game runs at start of a run that
-  would touch restored state: intro cutscenes, countdowns, slow-mo intros, fly-in cameras, default-spawn
-  teleports (`SpawnPoint`/`Respawn`), scripted scene-start events, `Start`/`OnEnable` re-initializers.
+- **Start-of-run suppression (two categories)** — every mechanism the game runs between launch and the
+  first interactive frame, in **both** categories (don't enumerate only the first):
+  1. **State-clobbering** (would overwrite restored values): intro cutscenes, countdowns, slow-mo intros,
+     fly-in cameras, default-spawn teleports (`SpawnPoint`/`Respawn`), scripted scene-start events,
+     `Start`/`OnEnable` re-initializers. Miss one → Ludeo loads at the **wrong** state.
+  2. **Flow-blocking** (stall reaching the playable frame *without* touching state): "press start"/"press
+     any key"/"click to continue" gates, modal popups (daily-reward, news, "what's new"), EULA/login/
+     age-gate prompts, tutorial overlays, confirmation dialogs, between-segment reward/shop screens. Miss
+     one → Ludeo loads at the **right** state but never becomes **interactive**.
   List each with its hook (file:method) and the plan to gate it on `IsInLudeoFlow` `[Layer]`.
 
 Map each step onto a concrete game hook (file:method) where known; flag any that don't yet exist as an
@@ -331,7 +337,7 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 |---|---|---|
 | Tear down gameplay session + room | ... | EndGameplay/AbortGameplay; SDK LudeoSession stays alive (CR-007) |
 | SwitchToPlay → IsInLudeoFlow=true | LudeoController [Layer] | consent-gated (CR-012); gates pre-match suppression |
-| Selection-time: start scene load + suppress intros | onBeginRestore (HandleGetLudeoDone, before room opens) | loader calls NotifySceneReadyForRestore() → begin-gate leg 3 |
+| Selection-time: start scene load + suppress intros AND flow-blocking UI (press-start/modals/popups/EULA) | onBeginRestore (HandleGetLudeoDone, before room opens) | loader calls NotifySceneReadyForRestore() → begin-gate leg 3 |
 | Freeze sim / suppress (CR-010) | Time.timeScale = 0f (sync apply) or IsInLudeoFlow suppression (async apply) | separate flag from CR-011 overlay pause; async → freeze deadlocks |
 | Extract reader buckets | HandleGetLudeoDone [Layer] | cache into ludeoRestoredData; do NOT apply here |
 | On RoomReady (∧ AddGamePlayer ∧ sceneLoaded): apply → unfreeze → Begin | onRoomReady (phase 2) | two-pass + environment; apply before unfreeze; then BeginGameplay |
