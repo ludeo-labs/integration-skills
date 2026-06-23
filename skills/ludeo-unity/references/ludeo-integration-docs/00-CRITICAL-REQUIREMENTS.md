@@ -146,12 +146,16 @@ foreach (var (obj, restore) in created) {
 
 **Why:** single-pass breaks when object B references object A that isn't spawned yet.
 
-> **Reset matched/singleton instances before applying.** Pass 1 *spawns* fresh objects (zero-initialized),
-> but the **player singleton** and any **scene-placed object you match instead of spawn** (`07 §9`) are the
-> same live objects from the previous run — apply overwrites only the captured fields, so **uncaptured
-> gameplay state (inventory, ammo, score, buffs, cooldowns, status flags) leaks across runs.** Reset the
-> instance to a clean baseline at the top of its restore apply, *then* apply the snapshot. (Distinct from the
-> persistent-singleton *pause-flag* trap below — same cause, different victim.)
+> **Reset matched/singleton instances before applying** (player/restore flow only — creator flow plays from
+> the game's own fresh start and needs none of this). Pass 1 *spawns* fresh objects (zero-initialized), but the
+> **player singleton** and any **scene-placed object you match instead of spawn** (`07 §9`) are the same live
+> objects from the previous run — apply overwrites only the captured fields, so **uncaptured gameplay *and
+> visual* state leaks across runs:** not just logical fields (inventory, ammo, score, buffs, cooldowns, status
+> flags) but **everything visually relevant** that rides on a `DontDestroyOnLoad`/manager object and survives
+> the scene reload — persistent HUD/score readouts, active VFX/particle emitters, world-space damage numbers,
+> screen-shake, post-processing (vignette/bloom from a prior buff). Reset the instance to a clean baseline at
+> the top of its restore apply, *then* apply the snapshot. (Distinct from the persistent-singleton *pause-flag*
+> trap below — same cause, different victim.)
 
 → See [`07-RESTORATION-PATTERNS.md`](./07-RESTORATION-PATTERNS.md).
 
@@ -335,7 +339,7 @@ captured to restored objects. Restoration matches by **`ObjectType` bucket**.
 - **CR-001:** all SDK access behind interfaces; game **plays normally** with consent off (dummies); compile-time define only if shipping no-package builds.
 - **CR-003:** every async call checks `resultCode` inside its callback.
 - **CR-005:** no SDK tick wired; attribute sampling runs per active-gameplay frame on the main thread.
-- **CR-006:** Pass 1 creates all objects; Pass 2 reads attributes + resolves refs by your keys. Reset matched/singleton instances (player) to baseline before applying — they kept the prior run's state.
+- **CR-006:** Pass 1 creates all objects; Pass 2 reads attributes + resolves refs by your keys. Reset matched/singleton instances (player) to baseline before applying — they kept the prior run's gameplay **and visual** state (HUD/VFX/post-fx included).
 - **CR-007 (⚠️):** every gameplay exit path routes through `End`/`Abort`; tested quit/restart/menu.
 - **CR-009:** `AddGamePlayer`/`Begin`/`CloseRoom` only from their driving callbacks; restore `Begin` gates on RoomReady ∧ AddGamePlayer ∧ scene-loaded.
 - **CR-010 (⚠️):** restoring-flag first → start load (onBeginRestore) → freeze → cache reader → on RoomReady **apply → unfreeze → Begin** (never unfreeze before apply; never `timeScale=0` around an awaited spawn — suppress instead).
