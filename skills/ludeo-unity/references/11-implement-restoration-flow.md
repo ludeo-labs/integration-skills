@@ -198,14 +198,25 @@ Map `m_onStopGame` onto this game's "freeze the active run" hook. The gallery en
   controls disabled — re-enable movement *and* non-movement handlers at gameplay start), (3)
   `Time.timeScale` (a frozen sim looks exactly like blocked input).
 
-### Step 5: Gate pre-match / location-override mechanisms on `IsInLudeoFlow`
-Implement the suppression the plan enumerated: every start-of-run mechanism that would touch restored state
-— intro cutscenes, countdowns, slow-mo intros, fly-in cameras, default-spawn teleports
-(`SpawnPoint`/`Respawn`), scripted scene-start events, `Start`/`OnEnable` re-initializers — gated to skip
-when `LudeoController.Instance.IsInLudeoFlow` `[Layer]` is `true`. The Ludeo must start *exactly* at the
-captured state on the first visible frame. `IsInLudeoFlow` already exists (`m_data.isInLudeo`) — **no
-stub**; don't invent an ad-hoc "is this a replay" check. These fire during the scene load (which
-`onBeginRestore` kicked) and hit the gate **before** the apply runs.
+### Step 5: Gate start-of-run mechanisms on `IsInLudeoFlow` — two categories
+Implement the suppression the plan enumerated, gated to skip when `LudeoController.Instance.IsInLudeoFlow`
+`[Layer]` is `true`. On the player (Ludeo) flow, suppress **everything between launch and the first
+interactive frame of the captured state** — in two distinct categories, *both* gated, not just the first:
+
+1. **State-clobbering** — mechanisms that would overwrite restored values: intro cutscenes, countdowns,
+   slow-mo intros, fly-in cameras, default-spawn teleports (`SpawnPoint`/`Respawn`), scripted scene-start
+   events, `Start`/`OnEnable` re-initializers. Skip these or the Ludeo loads at the **wrong** state.
+2. **Flow-blocking** — UI/gates that stall progression to the playable frame *without* touching state:
+   "press start"/"press any key"/"click to continue" gates, modal popups (daily-reward, news, "what's
+   new"), EULA/login/age-gate prompts, tutorial overlays, confirmation dialogs, between-segment
+   reward/shop screens. Auto-dismiss or bypass these or the Ludeo loads at the **right** state but never
+   becomes **interactive** — the player stares at a popup instead of the captured moment.
+
+The Ludeo must start *exactly* at the captured state, **interactive**, on the first visible frame.
+`IsInLudeoFlow` already exists (`m_data.isInLudeo`) — **no stub**; don't invent an ad-hoc "is this a
+replay" check. These fire during the scene load (which `onBeginRestore` kicked) and hit the gate **before**
+the apply runs. The gate mechanism is identical for both categories; only the *what-to-look-for* widens —
+don't filter the codebase scan to state-touching mechanisms and miss a blocking modal.
 
 ### Step 6: Self-check, then hand back (no play test here)
 You do **not** play a Ludeo — the orchestrator does. Before returning, statically self-check against §7's
@@ -250,7 +261,7 @@ Surface to the orchestrator; don't guess:
   scene-load / before `Begin`.
 - A report: (1) apply placement + apply shape (freeze vs suppress), (2) flow `[Layer]` added, (3) the Seam
   (`ApplyRestoredState()` STUB call site), (4) overlay hooks wired, (5) pre-match suppression gated, (6)
-  files modified, (7) ready for the orchestrator's flow gate.
+  files modified, (7) ready for the orchestrator's flow gate. Note (5) covers **both** categories — state-clobbering and flow-blocking UI.
 - **No compile / play performed** — that's the orchestrator's human gate.
 
 ## 7. ✅ Success Criteria
@@ -273,7 +284,9 @@ Surface to the orchestrator; don't guess:
 - [ ] `Begin` gated on `RoomReady ∧ AddGamePlayer ∧ sceneLoaded`; not re-triggered from a game event.
 - [ ] CR-010 freeze and CR-011 overlay on **two separate flags**, reset at lifecycle start **and** every
       restore (persistent layer); freeze-vs-suppress matches the apply shape (async ⇒ suppress, not freeze).
-- [ ] Pre-match / location-override mechanisms gated on `IsInLudeoFlow`.
+- [ ] Start-of-run mechanisms gated on `IsInLudeoFlow` — **both** categories: state-clobbering (intros,
+      spawns, re-initializers) **and** flow-blocking (press-start gates, modals/popups, EULA/login, tutorial
+      overlays). The Ludeo reaches the captured state *and* is interactive on the first visible frame.
 - [ ] Flows hold `m_data` from construction; no `#if` toggling (CR-001 runtime); backups for edited files.
 
 ## 8. Common Mistakes
