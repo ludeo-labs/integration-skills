@@ -308,12 +308,16 @@ spawn graph has ordering needs (player before per-player UI), split Pass 1 into 
 > matched** (§9) is **never re-instantiated** — it's the same live object from the previous capture/replay.
 > Apply only overwrites the fields you captured-and-reapply, so **every gameplay field you did NOT capture
 > leaks across runs**: inventory/ammo, score & kill counts, active buffs/debuffs & status effects, ability
-> cooldowns, combo/charge meters, animator/`Rigidbody` residue, equipped-weapon, dead/respawning flags. The
-> **player singleton** (`DontDestroyOnLoad` / `static Instance` / a reference held on a `ScriptableObject` or
-> manager that survives scene loads) is the canonical offender — its `Awake`/`Start` zero-init ran once, runs
-> long ago. **Reset the matched/singleton instance to a clean baseline first** — call the game's own
-> new-game/respawn reset (or null/zero the runtime fields by hand) **at the top of its restore apply** — *then*
-> layer the captured snapshot on top. You own the reset that `Instantiate` would have given a fresh spawn for
+> cooldowns, combo/charge meters, animator/`Rigidbody` residue, equipped-weapon, dead/respawning flags — **and
+> everything *visually* relevant that rides on the same persistent objects**: HUD/score readouts, world-space
+> damage-number / VFX pools, active particle emitters, trail/decal residue, screen-shake, post-processing
+> (vignette/bloom left on from a prior run). A scene reload clears scene-local visuals; anything parented to a
+> `DontDestroyOnLoad` canvas/manager survives it. The **player singleton** (`DontDestroyOnLoad` / `static
+> Instance` / a reference held on a `ScriptableObject` or manager that survives scene loads) is the canonical
+> offender — its `Awake`/`Start` zero-init ran once, runs long ago. **Reset the matched/singleton instance to a
+> clean baseline first** — call the game's own new-game/respawn reset (or null/zero the runtime fields and clear
+> the persistent visuals by hand) **at the top of its restore apply** — *then* layer the captured snapshot on
+> top. You own the reset that `Instantiate` would have given a fresh spawn for
 > free. This is distinct from the integration-layer singleton's stale *pause flags* (§10.3) — same root cause
 > (persistent state across runs), different victim (the **game's** player object vs the **layer's** flags).
 
@@ -368,7 +372,8 @@ write to the live object `[Unity]`.
 void RestoreLudeoState(LudeoStateObjectRestore r) {
     ResetToBaseline();                                       // [Unity] FIRST — the singleton kept the prior run's
                                                              // state (§4 callout); clear inventory/buffs/score/
-                                                             // cooldowns/status so unrestored fields don't leak in.
+                                                             // cooldowns/status AND residual visuals (HUD, VFX,
+                                                             // post-fx) so unrestored fields don't leak in.
     r.TryGetAttribute(K.Position, out Vector3 pos);          // [SDK]
     r.TryGetAttribute(K.Rotation, out Quaternion rot);
     r.TryGetAttribute(K.Speed,    out float speed);
@@ -518,9 +523,9 @@ exist (the mirror of `06 §6` batch registration). For each batch-registered typ
 - **Match** the captured bucket entry to the scene-placed instance by stable key, then apply properties — for
   objects the scene always places (the player start, fixed turrets, scripted props). **Don't double-spawn**, and
   **reset the matched instance to a clean baseline before applying** (§4 callout): unlike a Pass-1 spawn it was
-  never re-instantiated, so any field you don't reapply (inventory, buffs, cooldowns, score, status flags)
-  carries over from the prior run. A persistent **player singleton** (`DontDestroyOnLoad`/`static`) is the
-  worst case — it survives even the scene reload.
+  never re-instantiated, so any field you don't reapply (inventory, buffs, cooldowns, score, status flags — plus
+  residual HUD/VFX/post-processing visuals) carries over from the prior run. A persistent **player singleton**
+  (`DontDestroyOnLoad`/`static`) is the worst case — it survives even the scene reload.
 - **Spawn** fresh from the bucket — for objects created dynamically during the captured run (enemies the
   spawner made, pickups dropped).
 
@@ -633,6 +638,8 @@ anything this run set.
 **Identity & two-pass**
 - [ ] No SDK id-map / `ObjectId` matching — buckets + your stable key (CR-014); singletons `[0]`, collections keyed.
 - [ ] Pass 1 spawns type-only + builds `keyMap`; Pass 2 applies attributes + resolves references.
+- [ ] Matched/singleton instances (player) reset to a clean baseline before apply — gameplay **and** persistent
+      visuals (HUD/VFX/post-fx) — so uncaptured state from the prior run doesn't leak in (§4/§9 callouts).
 - [ ] Apply is driven **synchronously from the restore driver**, not deferred to a spawned object's
       `Start`/`OnEnable` (dropped for scene-transition spawns → frozen-at-default 2nd-replay bug, §4). Apply is idempotent.
 - [ ] Missing reference key → **fail loud**; missing optional attribute → keep default (§1.4/§6).
