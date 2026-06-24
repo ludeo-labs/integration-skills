@@ -48,6 +48,4 @@ jobs:
         run: >-
           npx --yes
           -p semantic-release
-          -p @semantic-release/changelog
-          -p @semantic-release/git
           semantic-release
