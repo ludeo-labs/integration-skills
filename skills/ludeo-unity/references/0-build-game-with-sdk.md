@@ -77,8 +77,10 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
 - Open via **Ludeo → Setup and Show LudeoSettings** (creates/pings `LudeoSettings.asset` under
   `Assets/LudeoSDK/Resources/`).
 - Set `apiKey` (required), `gameName`, `gameVersion`.
-- **Testing without Steam** → `runWithoutLauncher = true`, set `launcherUserId` (their Steam id);
-  optionally `autoStartInLudeo` + `ludeoToAutoStart` to force the replay flow on launch.
+- **Testing without Steam** → `runWithoutLauncher = true`, set **both** `launcherUserId` (their Steam
+  id) **and** `betaVersion` (their Steam beta branch name) — no-launcher auth needs the pair; set one
+  without the other and `Activate` rejects. Optionally `autoStartInLudeo` + `ludeoToAutoStart` to force
+  the replay flow on launch.
 - **Production** → `runWithoutLauncher = false` (auth via Steam/launcher); **dev flags off**.
 - **⚠️ A shipped/cloud build MUST have `runWithoutLauncher = false`.** Left `true`, the build still
   runs locally but **fails to authenticate on the Ludeo cloud** (the platform is the launcher) — an

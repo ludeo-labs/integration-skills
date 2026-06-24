@@ -62,8 +62,11 @@ and hand to the user for manual review.
 
 > **Before telling the user to run, remind them about config.** A clean compile does *not* mean Ludeo
 > will authenticate. Confirm `LudeoSettings.asset` has a **real `apiKey`** and, for local no-launcher
-> testing, a **`launcherUserId`** (Steam id) — both set in phase 0. With a placeholder/missing key the
-> game runs but **Ludeo won't authenticate successfully** (`Activate` rejects).
+> testing (`runWithoutLauncher = true`), **both** `launcherUserId` (Steam id) **and** `betaVersion`
+> (Steam beta branch name) — the SDK needs the pair, and `Activate` rejects if either is missing. All
+> set in phase 0. With a placeholder/missing key, or a half-set no-launcher pair, the game runs but
+> **Ludeo won't authenticate** (`Activate` rejects) — and the SDK log won't name the offending field,
+> so check the `apiKey` and the `launcherUserId`/`betaVersion` pair first when auth fails.
 
 ## 4. Questions to ask the human
 
@@ -111,6 +114,9 @@ Report to the orchestrator: (1) compile status (package-on ✅/❌, define-off �
 - **Telling the user to run before checking the apiKey** — a clean compile hides an auth failure.
 - **Treating "compiles" as "works"** — the overlay is the real proof; chase its absence in the log now,
   not through every later phase.
+- **No-launcher auth fails with a vague log** — if `runWithoutLauncher = true` and `Activate`/auth
+  rejects with no clear cause, the usual culprit is a missing or mismatched `launcherUserId`/`betaVersion`
+  pair (both are required together). The SDK log rarely names the field — check the pair before anything else.
 
 ## Related / Next
 
