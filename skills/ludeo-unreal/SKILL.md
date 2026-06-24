@@ -36,7 +36,7 @@ You are a **Ludeo SDK integration expert**. You understand UE plugin architectur
 
 | Situation | What to do |
 |-----------|-----------|
-| Unsure about SDK API (method signatures, parameter types, callback chains) | **Look it up** — query the `sdk-docs` MCP server or read bundled `references/sdk-reference/` files. Never guess SDK behavior. |
+| Unsure about SDK API (method signatures, parameter types, callback chains) | **Look it up** — search the `sdk-docs` MCP server (the Ludeo SDK documentation) or read bundled `references/sdk-reference/` files. Never guess SDK behavior. |
 | Unsure about game-specific logic (which entities matter, what's a "significant action", how does the phase system work) | **Ask the human** — this is domain knowledge that can't be inferred from code alone. |
 | Unsure about UE engine patterns (how to travel, how GAS works, how to compile) | **Infer from the codebase** — grep for existing patterns, read the game's code. Cross-reference with `learnings/engine-quirks/`. |
 | Multiple valid approaches exist (write frequency, reconciliation vs manual, dedup strategy) | **Recommend one with reasoning, then ask** — don't present options without a recommendation, and don't decide silently on game-specific tradeoffs. |
@@ -311,12 +311,19 @@ For the meta-rule itself and the incidents that motivated it, see `learnings/com
 
 ### Step 4: Check MCP Servers
 
+The skill's primary, always-current source of SDK detail is the **`sdk-docs`** MCP server — the server that **searches the Ludeo SDK documentation** (method signatures, parameter structs, callback chains, concepts). It ships with the skill and runs on the integrator's machine. Set it up once, before doing any SDK work:
+
+> **If `sdk-docs` is not already connected**, wire it up from the bundled template, then continue. It is hosted (HTTP) at `https://ludeo-mcps-sdk-docs.ludeo.com/mcp` and needs an `X-User-Name` header.
+> - **Claude Code:** copy the `sdk-docs` entry from `<skill-base-dir>/config/mcp_config.template.json` into the project's `.mcp.json` (or run `claude mcp add`), set your username, then start a fresh session so the server connects.
+> - **Other agents:** add the same entry to your runtime's MCP config.
+> - If you cannot connect it, tell the human and fall back to the bundled `references/sdk-reference/` files — but **say so explicitly**, since the bundled copy covers concepts only and can drift from the live SDK.
+
 Check for available MCP servers:
-- **`sdk-docs`** — If available, use for detailed SDK API lookups. If not, use bundled `references/sdk-reference/` files.
+- **`sdk-docs`** — Primary. **Search it for any SDK API detail, at any phase**, instead of guessing. Fallback: bundled `references/sdk-reference/` files (concepts only).
 - **`ludeo-context`** — If available, use for company knowledge, QA workflows, repo context. Particularly useful for Phase 1 (mapping analysis) and Phases 4–5 (tracking/restore and actions discovery from QA event lists).
 - **Perforce MCP** (only when `vcs.type == "p4"`) — If a Perforce MCP server is connected (the official Perforce P4 MCP is recommended), use its tools for `edit`/`add`/`shelve`/`submit` and stream ops. Record the server name in `integration.json → vcs.p4.mcp`. If none is connected, set it to `null` and fall back to the raw `p4` CLI (see `references/vcs/p4.md`).
 
-If a needed MCP is unavailable, inform the human and proceed with the bundled fallback. Config template: `config/mcp_config.template.json`.
+If a needed MCP is unavailable, set it up from `config/mcp_config.template.json` (above), or inform the human and proceed with the bundled fallback.
 
 ### Step 5: Execute Phase Work
 
@@ -523,18 +530,18 @@ When the skill receives a correction (from TDD review or PR feedback):
 
 ## MCP Configuration
 
-The skill checks for MCP servers at session start:
+The skill ships its MCP server definitions in `config/mcp_config.template.json` and checks for them at session start. **These servers run on the integrator's machine — they are part of the installed skill, not this repo's tooling.** Copy the relevant entries into your agent's MCP config (Claude Code: `.mcp.json` at the project root, or `claude mcp add`), fill in the redacted credentials, and start a fresh session so they connect.
 
-| Server | Purpose | Fallback |
-|--------|---------|----------|
-| `sdk-docs` | SDK API reference, method signatures, parameter details | Bundled `references/sdk-reference/` files |
-| `ludeo-context` | Company knowledge, QA workflows, repo context, integration templates | Proceed without; analysis quality may be reduced |
+| Server | Hosted endpoint | Purpose | Fallback |
+|--------|-----------------|---------|----------|
+| `sdk-docs` | `https://ludeo-mcps-sdk-docs.ludeo.com/mcp` (HTTP, `X-User-Name` header) | **Search the Ludeo SDK documentation** — API reference, method signatures, parameter structs, callback chains | Bundled `references/sdk-reference/` files (concepts only) |
+| `ludeo-context` | `https://mcp-ludeo-context-internal.ludeo.com/mcp` (HTTP, bearer token) | Company knowledge, QA workflows, repo context, integration templates | Proceed without; analysis quality may be reduced |
 
 **When to use each MCP:**
-- `sdk-docs`: Any phase — whenever the skill needs SDK API details.
+- `sdk-docs`: Any phase — whenever the skill needs to **look up or search SDK documentation**. This is the document-search server; prefer it over guessing or over the bundled concept files.
 - `ludeo-context`: Phase 1 (mapping analysis), Phases 4–5 (tracking/restore and actions discovery from QA event lists).
 
-If MCP servers are not detected, inform the human and suggest setting up using `config/mcp_config.template.json`.
+If a server is not detected, set it up from `config/mcp_config.template.json` (see Step 4) before relying on its fallback, and tell the human which fallback you're using.
 
 ---
 

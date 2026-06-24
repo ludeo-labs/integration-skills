@@ -35,6 +35,6 @@ specific release; otherwise the latest published version is used.
 
 ## SDK docs MCP (recommended)
 
-Copy [`.mcp.json`](../.mcp.json) into your agent's MCP config so the skill can look up Ludeo SDK APIs
-via the `sdk-docs` server instead of guessing. Set `LUDEO_DOCS_BASE_URL` if your docs are hosted
-elsewhere.
+Copy [`.mcp.json`](../.mcp.json) into your agent's MCP config so the skill can search the Ludeo SDK
+documentation via the hosted `sdk-docs` server instead of guessing. Set your username in the
+`X-User-Name` header. Ask the Ludeo integrations team if the endpoint or credentials have changed.
