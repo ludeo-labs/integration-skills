@@ -26,11 +26,25 @@ for **2021.3 LTS+**); there is no `.unitypackage` asset and no git-URL install i
 ### Choose the install method
 Install the extracted package one of these ways:
 
-| Method | Best for | How |
-| --- | --- | --- |
-| **Local UPM package** (recommended) | Any supported Unity (2021.3 LTS+) | Add a `file:` line to `Packages/manifest.json`, or Package Manager → **+** → *Add package from disk* → the extracted folder's `package.json`. |
-| **Embedded package** | Vendoring the package into the repo | Copy the extracted `com.ludeo.sdk` folder into the project's `Packages/` directory. |
-| **`.unitypackage`** | Only if Ludeo handed you one directly | *Assets → Import Package → Custom Package* → select the file. |
+| Method | Best for | Mutable? | How |
+| --- | --- | --- | --- |
+| **Local UPM package** — `file:` to the extracted **folder** (recommended) | Any supported Unity (2021.3 LTS+) | ✅ referenced **in place** | Add a `file:` line to `Packages/manifest.json`, or Package Manager → **+** → *Add package from disk* → the extracted folder's `package.json`. |
+| **Embedded package** | Vendoring the package into the repo | ✅ | Copy the extracted `com.ludeo.sdk` folder into the project's `Packages/` directory. |
+| **`.unitypackage`** | Only if Ludeo handed you one directly | ✅ (imports into `Assets/`) | *Assets → Import Package → Custom Package* → select the file. |
+
+> **⚠️ Install the package *mutable*.** The plugin's editor setup writes back into its **own package
+> files** (rewrites a constant in its source + edits the native DLL `.meta` importer settings), so a
+> read-only install makes those writes **fail silently** and can misconfigure the core DLL. Unity's
+> mutability is **not** uniform across install forms:
+>
+> | Install form | Mutable? |
+> | --- | --- |
+> | `file:` → a **folder** (the recommended path) | ✅ mutable, referenced in place |
+> | Embedded folder under `Packages/` | ✅ mutable |
+> | `file:` → a **`.tgz`** tarball | ❌ copied to read-only `Library/PackageCache` |
+> | Git URL / registry | ❌ read-only `PackageCache` |
+>
+> Point `file:` at the **extracted folder**, never a tarball; avoid git-URL/registry installs.
 
 ### UPM via `manifest.json`
 A local UPM dependency is a line in `Packages/manifest.json` pointing at the extracted package folder
@@ -38,9 +52,11 @@ A local UPM dependency is a line in `Packages/manifest.json` pointing at the ext
 ```json
 { "dependencies": { "com.ludeosdk.unity": "file:../path/to/Release/com.ludeo.sdk@<version>", "...": "..." } }
 ```
-Keep the extracted folder somewhere stable (a temp dir breaks resolution later). A pinned git URL
-(`"com.ludeosdk.unity": "https://…/com.ludeo.sdk.git#<tag>"`) also works **if** Ludeo grants repo
-access, but the release `.zip` is the supported default.
+Keep the extracted folder somewhere stable (a temp dir breaks resolution later), and point `file:` at
+the **folder**, not a `.tgz` — a tarball lands in the read-only `PackageCache` (see the mutability note
+above). A pinned git URL (`"com.ludeosdk.unity": "https://…/com.ludeo.sdk.git#<tag>"`) resolves **if**
+Ludeo grants repo access, but it is **immutable** (PackageCache); the release `.zip` extracted to a
+folder is the supported default.
 
 ---
 
