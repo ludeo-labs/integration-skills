@@ -76,23 +76,25 @@ Fields (`LudeoSDK.UnityScripts.LudeoSettings`):
 | `platformUrl` | Ludeo backend | Default `https://services.ludeo.com` |
 | `ludeoLogLevel`, `ludeoLogCategory` | SDK logging | `Error` / `All` is a sane default |
 | `coreDllReference` | `Release` or `Development` core dll | `Release` for shipping |
-| `betaVersion` | Steam beta branch name | Match your Steam branch if used |
+| `betaVersion` | Steam beta branch name — **required with `launcherUserId` when `runWithoutLauncher = true`** | Match your Steam branch if used |
 | `runWithoutLauncher` | **Dev only** — skip the launcher/Steam auth | **`false` in production** |
-| `launcherUserId` | Dev no-launcher: your Steam id | Dev/testing only |
+| `launcherUserId` | Dev no-launcher: your Steam id — **must be paired with `betaVersion`** | Dev/testing only |
 | `autoStartInLudeo` + `ludeoToAutoStart` | Dev: force a Ludeo to replay on init | Dev/testing only |
 
 **Production vs. testing:**
 - **Production:** set `apiKey` (+ `gameName`/`gameVersion`); leave `runWithoutLauncher = false` so
   the game authenticates through Steam/the launcher.
-- **Local testing without Steam:** `runWithoutLauncher = true` and set `launcherUserId` to your
-  Steam id. Use `autoStartInLudeo`/`ludeoToAutoStart` to force the play/restore flow on launch for
-  iterating on restoration. **Never ship these on.**
+- **Local testing without Steam:** `runWithoutLauncher = true` and set **both** `launcherUserId` (your
+  Steam id) **and** `betaVersion` (your Steam beta branch name) — no-launcher auth needs the pair, and
+  `Activate` rejects if either is missing. Use `autoStartInLudeo`/`ludeoToAutoStart` to force the
+  play/restore flow on launch for iterating on restoration. **Never ship these on.**
 
 ### Dev/QA runtime overrides — change these without rebuilding
 
 `LudeoSettings.asset` is baked into `resources.assets` at build time, so a shipped player can't change
 it. QA teams iterating on a built (non-Editor) game need to flip the **dev triad** —
-`runWithoutLauncher`, `launcherUserId`, `ludeoToAutoStart` — **per tester, without a rebuild each time.**
+`runWithoutLauncher`, `launcherUserId`, `ludeoToAutoStart` (plus `betaVersion`, required alongside
+`launcherUserId` for no-launcher auth) — **per tester, without a rebuild each time.**
 
 The sibling C++/proprietary skill solves this with a `ludeo.ini` next to the executable (its canonical
 config source). Unity's model differs — the baked `.asset` stays the production source of truth (phase 13
@@ -121,7 +123,8 @@ gated so it can never affect a production build:**
                var key = line.Substring(0, eq).Trim(); var val = line.Substring(eq + 1).Trim();
                switch (key) {
                    case "runWithoutLauncher": s.runWithoutLauncher = val.ToLower() == "true"; break;
-                   case "launcherUserId":     s.launcherUserId     = val; break;
+                   case "launcherUserId":     s.launcherUserId     = val; break;   // required with betaVersion in no-launcher mode
+                   case "betaVersion":        s.betaVersion        = val; break;   // required with launcherUserId in no-launcher mode
                    case "ludeoToAutoStart":   s.ludeoToAutoStart   = val; s.autoStartInLudeo = !string.IsNullOrEmpty(val); break;
                    default: continue;
                }
@@ -139,18 +142,20 @@ gated so it can never affect a production build:**
    LudeoManager.InitLudeoSession(/* … */);
    ```
 4. **Author `ludeo-dev.ini` with the *actual* QA values — do not ship placeholders.** Ask the user for
-   the tester Steam id, whether to skip the launcher, and any Ludeo id to auto-replay, and write them in:
+   the tester Steam id, the Steam beta branch name (`betaVersion` — required alongside the Steam id in
+   no-launcher mode), whether to skip the launcher, and any Ludeo id to auto-replay, and write them in:
    ```ini
    # Ludeo DEV/QA overrides — applied ONLY in LUDEO_DEV builds, never production. key = value; '#' = comment.
    runWithoutLauncher = true          # true = skip Steam/launcher auth for local QA
-   launcherUserId     = QA_TESTER_1   # Steam id/username to run as in no-launcher mode
+   launcherUserId     = QA_TESTER_1   # Steam id to run as in no-launcher mode — REQUIRED with betaVersion
+   betaVersion        = public        # Steam beta branch name — REQUIRED with launcherUserId; auth rejects if either is missing
    ludeoToAutoStart   =               # a Ludeo id to auto-replay on launch; blank = normal capture
    ```
 5. **Ship `ludeo-dev.ini` to the build output** (a build post-process / copy step, same as any sidecar
    file). It only matters for `LUDEO_DEV` builds; a production build never reads it.
 
-**Ordering caveat:** `runWithoutLauncher` + `launcherUserId` are consumed at `Activate()`, which your
-integration layer owns, so overriding before `InitLudeoSession` is safe. `ludeoToAutoStart` /
+**Ordering caveat:** `runWithoutLauncher` + `launcherUserId` + `betaVersion` are consumed at `Activate()`,
+which your integration layer owns, so overriding before `InitLudeoSession` is safe. `ludeoToAutoStart` /
 `autoStartInLudeo` are read by the package's own `LudeoUnityManager`, which may initialize *before* your
 bootstrap — if the auto-replay doesn't pick up the override, run `ApplyOverrides()` from a
 `[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]` (earliest hook) or disable
