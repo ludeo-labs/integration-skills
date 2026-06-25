@@ -1,0 +1,21 @@
+{
+  "_comment": "Template for the MCP servers this skill uses. Copy the relevant entries into your agent's MCP config (Claude Code: .mcp.json at the project root, or `claude mcp add`), then fill in the redacted credentials. For sdk-docs, set X-User-Name to your Ludeo username (the local-part of your Ludeo email, e.g. jane.doe) — it identifies the caller. Both servers are optional — the skill falls back to the bundled references/ludeo-integration-docs/ when they are absent (see SKILL.md → MCP configuration). Ask the Ludeo integrations team for current URLs and credentials.",
+  "mcpServers": {
+    "sdk-docs": {
+      "_purpose": "Search the Ludeo SDK documentation — API reference, method signatures, parameter structs, callback chains (Unity/C# included). Primary source for SDK details at any phase. Fallback: bundled references/ludeo-integration-docs/.",
+      "type": "http",
+      "url": "https://ludeo-mcps-sdk-docs.ludeo.com/mcp",
+      "headers": {
+        "X-User-Name": "<your-username>"
+      }
+    },
+    "ludeo-context": {
+      "_purpose": "Ludeo company knowledge base — integration templates, QA workflows, event lists, repo context. Most useful for phase 1 (mapping) and phases 4-5 (tracking/restore and action discovery). Fallback: proceed without; analysis quality may be reduced.",
+      "type": "http",
+      "url": "https://mcp-ludeo-context-internal.ludeo.com/mcp",
+      "headers": {
+        "Authorization": "Bearer <your-token>"
+      }
+    }
+  }
+}
