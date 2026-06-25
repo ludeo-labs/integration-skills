@@ -123,18 +123,47 @@ evidence where it comes from code; mark unknowns `?`; **ask** the human-only ite
      only the game-level classification + save-entry-points now.
 
 ### Step 4 — Smoke-test the native layer
-Add a throwaway bootstrap call and confirm it reaches its callback:
+Add a throwaway bootstrap call and confirm it reaches its callback.
+
+> **⚠️ `InitLudeoSession` is NOT an inert probe — do not auto-fire it in the Editor.** It instantiates
+> `LudeoUnityManager` (`DontDestroyOnLoad`) and brings up Ludeo's overlay / native layer (cohtml),
+> which **hooks the OS cursor/input**. The Editor does **not** tear that native layer down when you stop
+> play mode, so initializing it in the Editor can leave the **cursor hidden/hooked across the entire
+> Editor** after a single play-stop (worse when the game also hides its own cursor — many do). The
+> symptom only shows *after* you stop play, so it reads as "did the integration break my Editor?". This
+> is a preview of **CR-007** (`00-CRITICAL-REQUIREMENTS.md`): the native/overlay layer is not released
+> on stop, which is exactly why phase 4 must route **every** gameplay exit through clean
+> `End`/`Abort` + SDK teardown.
+
+The smoke test has two legs — the **Editor** and a **player build** (IL2CPP + native plugins differ
+from the Editor). **Never use a bare auto-firing init** (`[RuntimeInitializeOnLoadMethod]` with no
+guard) — it re-inits the overlay every play and can hook the Editor cursor. Use the **player-only gated
+snippet** as the canonical shape:
+
 ```csharp
-LudeoManager.InitLudeoSession(data =>                                   // [SDK]
-    Debug.Log($"[Ludeo] init result: {data.resultCode}"));             // [Unity] Debug.Log
+// Throwaway smoke test — DELETE once both legs pass. Player-build only; never inits Ludeo in the Editor.
+[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+private static void LudeoSmokeTest()
+{
+    if (Application.isEditor) return;                                   // [Unity] don't hook the Editor cursor/input
+    LudeoManager.InitLudeoSession(data =>                              // [SDK]
+        Debug.Log($"[Ludeo] init result: {data.resultCode}"));         // [Unity] Debug.Log
+}
 ```
+
+- **Editor leg — fire it once, manually, then stop.** Trigger a single init from a `[MenuItem]` button
+  (or one hand-invoked call), read the log, confirm a `resultCode`, then **stop play immediately**. Do
+  **not** leave an init auto-firing in the Editor. As soon as this leg returns a `resultCode`, **delete
+  the Editor trigger.**
+- **Player-build leg — often deferred** (first IL2CPP builds run ~30–60 min). The gated snippet above
+  auto-fires **only in the built player**, so it's safe to leave in for that one build without ever
+  touching the Editor cursor. Run the build, confirm the `resultCode` in `Player.log`.
 - **Read the result from Unity's log** — the agent can't see the Editor Console. Follow
-  `ludeo-integration-docs/unity/READING-UNITY-LOGS.md` (read `Editor.log`, or run headless with
-  `-logFile`) and grep for `[Ludeo]` / `WrapperDllNotFound`.
+  `ludeo-integration-docs/unity/READING-UNITY-LOGS.md` (read `Editor.log` / `Player.log`, or run
+  headless with `-logFile`) and grep for `[Ludeo]` / `WrapperDllNotFound`.
 - Any `resultCode` proves the native plugin loaded. **`WrapperDllNotFound`** means it did not — a
   platform/plugin/build problem; fix before continuing (`04-BUILD-INTEGRATION.md`).
-- Verify in the **Editor** *and* a **player build** (IL2CPP + native plugins differ from the Editor).
-- Remove the throwaway call before moving on (the real init lives in the layer, phase 4).
+- **Delete the throwaway entirely once both legs pass** — the real init lives in the layer (phase 4).
 
 ### Step 5 — (moved to phase 6) Verify the player build is self-contained
 > **Moved to guideline phase 6 (verification & cloud)** — `references/13-upload-build.md` Step 3–4. The
@@ -247,6 +276,10 @@ The gate — satisfy all before advancing to phase 1.
   **manual** per entity regardless of how complete the save is.
 - **Treating a transition/streaming cache as the canonical save** — it holds partial deltas only.
 - **Building the per-entity restore matrix now** — defer to `phase 8`; the object model doesn't exist yet.
+- **Leaving an auto-running `InitLudeoSession` smoke test active in the Editor** — a bare
+  `[RuntimeInitializeOnLoadMethod]` re-inits the Ludeo overlay every play and can leave the OS cursor
+  hooked across the Editor after you stop. Gate it player-only (`if (Application.isEditor) return;`) or
+  remove it once the smoke test passes.
 
 ## Related / Next
 
