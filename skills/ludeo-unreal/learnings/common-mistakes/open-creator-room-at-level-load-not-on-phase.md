@@ -3,72 +3,50 @@ category: common-mistakes
 tier: generalizable
 sourceGame: Lyra
 phase: 2
-question: "Does the integration OPEN the Creator room at level load (component BeginPlay), or does it delay OpenRoom until a 'gameplay start' phase/state? Only BeginGameplay should wait on the phase — the room itself must open at level load, or OnRoomReady never fires in Creator flow."
+question: "Does the integration OPEN the Creator room at level load (component BeginPlay), or does it delay OpenRoom until a 'gameplay start' phase/state? Open at level load (matches the reference sample); gate only BeginGameplay on the phase. NOTE: this is a cleanliness/consistency rule, NOT a fix for 'OnRoomReady never fires'."
 sanitized: true
 ---
 
-# Open the Creator room at level load — gate only BeginGameplay on the gameplay phase
+# Open the Creator room at level load; gate only BeginGameplay on the gameplay phase
 
-## Precondition
+> ⚠️ **CORRECTION (read first).** An earlier version of this learning claimed that a *late-opened*
+> Creator room "never receives OnRoomReady." **That was a misdiagnosis.** In the Lyra incident,
+> opening the room early vs. late made **no difference** to `OnRoomReady` — both got
+> `unknown event_name "ludeo-play-ready"` and no `RoomReady`. The real cause of the missing
+> `RoomReady` was a **stale C SDK build** (see
+> [[sdk-build-version-must-match-current-backend]]). Keep that distinction: room-open timing is a
+> consistency/best-practice rule below — it is NOT the lever for a missing `OnRoomReady`.
 
-The game has a pre-gameplay phase (warmup / countdown / "waiting for players") before the
-interactive round starts, AND you are tempted to defer `Session::OpenRoom` until that round-start
-phase (because intake said "open the room at match start"). This is the misread.
+## The rule (still valid as best practice — matches the reference sample)
 
-## The symptom (Creator flow, very confusing)
-
-Everything succeeds and yet nothing records:
-- `Session activated`, consent `CanCreate=1`, overlay WS connects, `LudeoTransmitReady` fires.
-- `ludeo_Session_OpenRoom` **succeeds**, `ludeo_Room_AddPlayer` **succeeds**.
-- …then **`OnRoomReady` never fires** — no `Received event RoomReady`, no `Broadcasting RoomReady`,
-  so the N-way begin gate never latches and `Player::BeginGameplay` is never called.
-- The overlay also logs `failed to parse gameplays.gameplay-ready payload` — a **red herring**
-  (a known-good Creator-flow run shows the *same* warning and still gets RoomReady).
-
-It is NOT the SDK version (reproduced identically across two SDK builds), NOT auth/consent, NOT the
-PlayerID, and NOT a Studio-Labs game config. It is **when the room opens.**
-
-## Root cause
-
-In Creator flow the platform delivers `RoomReady` (≈1 ms after `AddPlayer`) **only when the room is
-opened in the normal level-load window.** Deferring `OpenRoom` until a later "gameplay phase"
-(e.g. ~30 s after activation, after warmup) means the platform never emits the Creator-flow
-`RoomReady`, so the begin gate hangs forever.
-
-The mistake is conflating two distinct triggers:
-- **Room open** → component `BeginPlay` (level load). Decoupled from any game phase.
-- **BeginGameplay** → the N-way gate (RoomReady + PlayerAdded + **gameplay-phase active**).
-
-"Open the room at match start" almost always means "begin *gameplay* at match start," NOT "delay the
-room HTTP open." Open the room early; let the gate hold `BeginGameplay` until the phase is live.
-
-## The fix (matches every working reference: Lyra sample, TacticsGame, FPSGameStarterKit)
+Open the Creator room in the component's `BeginPlay` (skip only non-ludeoable/frontend maps), decoupled
+from any warmup/"Playing"/combat phase. Gate **`BeginGameplay`** (not `OpenRoom`) on the gameplay
+phase via the N-way gate (RoomReady + PlayerAdded + gameplay-phase-active). This matches
+`ludeosdk-lyra-sample`, FPSGameStarterKit, and VoyagerV2, and keeps room-open decoupled from
+round-start so the player is added as soon as the world is ready.
 
 ```cpp
 void U...Component::BeginPlay()
 {
     Super::BeginPlay();
-    if (IsFrontendMap()) return;                 // skip non-ludeoable maps only
-
-    // Add the player whenever they join (before OR after the room opens) — queue + GameState delegate.
+    if (IsFrontendMap()) return;
     GameState->OnPlayerStateAddedEvent.AddUObject(this, &ThisClass::OnPlayerStateAdded);
     for (APlayerState* PS : GameState->PlayerArray) OnPlayerStateAdded(PS); // catch-up
-
     BindGamePhaseDelegates();   // Playing -> gate; PostGame -> teardown
-    TryOpenRoom();              // <-- OPEN THE ROOM NOW, at level load
+    TryOpenRoom();              // open at level load
 }
-
-// Playing phase sets the gate flag ONLY; it does NOT open the room.
-void OnGamePhaseStarted(...) { bGamePhaseActive = true; TryBeginGameplay(); }
+void OnGamePhaseStarted(...) { bGamePhaseActive = true; TryBeginGameplay(); } // phase gates BEGIN only
 ```
 
-Because the room opens before the player may have joined, AddPlayer must be driven by a player-added
-delegate with a pending-players queue flushed in `OnRoomOpened` (don't resolve "the local player"
-synchronously at room-open time — they might not exist yet).
+Because the room can open before the player joins, drive `AddPlayer` off a player-added delegate +
+pending-players queue (flush in `OnRoomOpened`); don't synchronously resolve "the local player" at
+room-open time.
 
-## Diagnostic shortcut
+## What this rule does and does NOT fix
 
-A Creator-flow run where `OpenRoom`+`AddPlayer` succeed but `Broadcasting RoomReady` never appears,
-and where `OpenRoom` happened many seconds after session activation → suspect a delayed room open
-first. Compare the timestamp of `OpenRoom` against session activation; a large gap is the tell.
-Do NOT force-begin (see [[never-force-begin-without-onroomready]]); fix the open timing instead.
+- **Does:** keeps room-open consistent with the reference samples; ensures the player is added
+  promptly; avoids tying room lifecycle to a game phase unnecessarily.
+- **Does NOT:** make `OnRoomReady` fire. If `OnRoomReady` never broadcasts (especially with an
+  `unknown event_name` warning after AddPlayer), the cause is almost certainly the **C SDK build
+  version**, not room timing — go to [[sdk-build-version-must-match-current-backend]] first. Also do
+  not force-begin ([[never-force-begin-without-onroomready]]).
