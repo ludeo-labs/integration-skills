@@ -37,6 +37,20 @@ boundary actions will go.
 1. Read the context files, then `CODE_MAP.json`.
 2. Use `entry_points`, `lifecycle_hooks`, `session_boundaries`, `object_model`, and
    `non_ludeoable_candidates` to pick the best location for each integration point in §5's table.
+2b. **Bind `OpenRoom` to the convergent signal, not a named entry.** Static analysis makes a method that
+   *reads* like the run entry (e.g. a `StartNewGame` menu handler) look canonical — but real games reach
+   live gameplay through **several** paths (new-game, resume/continue, load-save, an **Editor/debug
+   auto-enter or session-override**, NPC/scripted bypasses). Enumerate **all** of them from `CODE_MAP`
+   (cross-check `entry_points` against the per-run authority phase 1 flagged — a Fusion/`GameState`
+   machine, a `runState` field, etc.), then bind `OpenRoom` to the **one runtime point every path
+   converges on** (the transition into the in-game/"Ongoing" state). The binding must be **idempotent**
+   — that convergent signal can re-fire (per-scene re-spawns within one run), so guard on
+   "room already open" and open once per run; `End`/`Abort` clears the guard so the next run re-triggers.
+2c. **Trace `Activate`/consent ordering for the chosen bind point.** `Activate` and the first
+   `ConsentUpdated` `[SDK]` are **async** and may land **after** the gameplay scene loads. An `OpenRoom`
+   that fires at run-start before consent is known **silently no-ops** (the flow switch is still
+   disabled) — no room, no `RoomReady`, no overlay, no error. Flag this in `warnings` and note the fix:
+   record capture intent and (re)fire `OpenRoom` from the `ConsentUpdated` callback (`unity/CONSENT-AND-OVERLAY.md` §1).
 3. **Map the non-ludeoable areas.** For each entry in `CODE_MAP.non_ludeoable_candidates`, emit a
    boundary-action mapping: enter site → `StartNoneLudeable`, exit site → `StopNoneLudeable`
    (`[SDK]` `SendAction`). These fire in-session (tracking keeps running); the backend excludes the
@@ -50,6 +64,10 @@ Surface to the orchestrator; don't guess:
 - A **required `CODE_MAP` section is missing** — report it rather than inventing locations.
 - **Open-world/streaming:** multiple `start_sites[]`/`exit_sites[]` and `open-world.md` doesn't
   disambiguate which binds `OpenRoom` — ask which start begins a live run.
+- **"Is this the only way into a live run?"** Ask it for the chosen entry, and **chase every path** —
+  Editor/debug auto-enter, session-override, resume/continue, load-save, scripted/NPC bypasses. A
+  "single-player only" answer resolves the **co-op client-join** case **only**; it does **not** clear
+  these single-player bypasses. If any path skips the bound site, prefer the convergent signal (step 2b).
 
 ## 5. Patterns to apply
 
@@ -63,7 +81,7 @@ Surface to the orchestrator; don't guess:
 | --- | --- | --- | --- |
 | `LudeoManager.InitLudeoSession` | `[SDK]` | App startup, once | `entry_points` / bootstrap MonoBehaviour in init scene |
 | register `AddNotify*` then `LudeoSession.Activate` | `[SDK]` | Right after init, before gameplay | same bootstrap site |
-| `LudeoSession.OpenRoom` | `[SDK]` (via `[Layer]`) | A match/level **starts** (every start path) | `session_boundaries` (start) — no-per-level-scene games: pick **one** `start_sites[]` per `open-world.md` §3 |
+| `LudeoSession.OpenRoom` | `[SDK]` (via `[Layer]`) | A match/level **starts** (every start path) | `session_boundaries` (start) — **enumerate every call site that reaches live-run state**, then bind to the **convergent runtime signal they all hit** (the state-machine transition into the in-game/"Ongoing" state), **not** a plausibly-named entry method. No-per-level-scene games: `open-world.md` §3 |
 | per-frame `UpdateStateObjects()` sampling | `[Layer]` | While gameplay active | a gameplay MonoBehaviour `Update` `[Unity]` |
 | `LudeoGameplaySession.End` / `Abort` | `[SDK]` (via `[Layer]`) | Gameplay ends — **ALL exit paths** | `session_boundaries` (end) — no-per-level-scene games: wire **every** `exit_sites[]` (its `ludeo:` field says End vs Abort) |
 | `StartNoneLudeable` / `StopNoneLudeable` | `[SDK]` `SendAction` (via `[Layer]`) | Enter/exit a mid-gameplay non-ludeoable area | `non_ludeoable_candidates[].enter` / `.exit` |
@@ -99,13 +117,16 @@ they are not call sites picked from game code:
     "note": "wired by the LudeoController façade, NOT picked from game code (CR-009)",
     "AddGamePlayer": "from OpenRoom callback", "Begin": "from RoomReady notification", "CloseRoom": "after End/Abort"
   },
-  "warnings": ["<timing/threading/missing-CODE_MAP-section/dangling-non-ludeoable concerns>"]
+  "warnings": ["<timing/threading/missing-CODE_MAP-section/dangling-non-ludeoable concerns; OpenRoom-before-consent race (2c); entry paths that skip the bound OpenRoom site (2b)>"]
 }
 ```
 
 ## 7. ✅ Success Criteria
 
 - [ ] **Every game-event → SDK-call mapping listed** (init/activate, OpenRoom, sampling, release).
+- [ ] **`OpenRoom` bound to the convergent in-gameplay signal** (step 2b), idempotently, after
+      enumerating **all** entry paths — not a single named entry; consent/`Activate` ordering traced
+      (step 2c) and flagged if `OpenRoom` could fire before consent lands.
 - [ ] **Every gameplay exit path** from `session_boundaries` listed as `End`/`Abort` (CR-007) — a missed
       path = no Ludeo for that scenario.
 - [ ] **Every `non_ludeoable_candidates` entry mapped** to a `StartNoneLudeable`/`StopNoneLudeable`
@@ -118,6 +139,10 @@ they are not call sites picked from game code:
 
 - **Mapping an SDK tick** — the plugin ticks itself (CR-005).
 - **Missing an exit path** — `End`/`Abort` almost always needs multiple locations (CR-007).
+- **Binding `OpenRoom` to a method that *reads* like the entry** (a `StartNewGame` menu handler) instead
+  of the convergent in-gameplay transition — Editor auto-enter / resume / bypass paths skip it (step 2b).
+- **Assuming consent is known at run-start** — `Activate`/`ConsentUpdated` are async; an `OpenRoom`
+  before they land silently no-ops (step 2c).
 - **Treating `AddGamePlayer`/`Begin`/`CloseRoom` as game call sites** (CR-009).
 - **Guessing locations when a CODE_MAP section is missing** — report it instead.
 - **Leaving a non-ludeoable area with no `StopNoneLudeable`** — capture never re-enables.
