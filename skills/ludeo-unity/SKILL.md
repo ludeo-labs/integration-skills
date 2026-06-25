@@ -117,6 +117,9 @@ file — so the user experiences each as a single phase.
   so that consent-off / uninitialized states fall back to `Dummy*`/`Disabled*` implementations and
   the game plays normally. A scripting define (e.g. `LUDEO_SDK`) is **optional** — only if you must
   ship builds that exclude the SDK package entirely.
+- **Never claim SDK behavior without checking the docs.** Search the `sdk-docs` MCP server (see
+  *MCP configuration* below) or read the bundled `references/ludeo-integration-docs/`. If neither
+  covers it, say what you're unsure about rather than guessing.
 - **Paths inside workflow files are relative to the workflow file itself.** A workflow at
   `references/N-*.md` says `ludeo-integration-docs/<file>.md` to reach the docs folder.
 - **The agent writes outputs into the game's Unity project**, not into this skill. For example,
@@ -134,6 +137,30 @@ file — so the user experiences each as a single phase.
   - `UPM-INSTALL-AND-DEFINES.md` — install paths, scripting defines, the dummy-impl pattern.
   - `CONSENT-AND-OVERLAY.md` — consent gating, gallery, pause/resume overlay notifications.
   - `READING-UNITY-LOGS.md` — locating and reading `Editor.log` / `Player.log` for the compile/run gates.
+
+## MCP configuration
+
+The skill's primary, always-current source of SDK detail is the **`sdk-docs`** MCP server — it
+**searches the Ludeo SDK documentation** (API reference, method signatures, callback chains; Unity/C#
+included). It ships with the skill (`config/mcp_config.template.json`) and runs on the integrator's
+machine. Set it up once, before doing any SDK work.
+
+> **If `sdk-docs` is not already connected**, wire it up from the bundled template, then continue. It
+> is hosted (HTTP) at `https://ludeo-mcps-sdk-docs.ludeo.com/mcp` and needs an `X-User-Name` header
+> set to your Ludeo username (the local-part of your Ludeo email, e.g. `jane.doe`) — it identifies the
+> caller.
+> - **Claude Code:** copy the `sdk-docs` entry from `<skill-base-dir>/config/mcp_config.template.json`
+>   into the project's `.mcp.json` (or run `claude mcp add`), set `X-User-Name` to your Ludeo username,
+>   then start a fresh session so the server connects.
+> - **Other agents:** add the same entry to your runtime's MCP config.
+> - If you cannot connect it, tell the user and fall back to the bundled
+>   `references/ludeo-integration-docs/` — but **say so explicitly**, since the bundled copy can drift
+>   from the live SDK.
+
+| Server | Hosted endpoint | Purpose | Fallback |
+|--------|-----------------|---------|----------|
+| `sdk-docs` | `https://ludeo-mcps-sdk-docs.ludeo.com/mcp` (HTTP, `X-User-Name` header) | **Search the Ludeo SDK documentation** | Bundled `references/ludeo-integration-docs/` |
+| `ludeo-context` | `https://mcp-ludeo-context-internal.ludeo.com/mcp` (HTTP, bearer token) | Company knowledge, QA workflows, repo context | Proceed without; analysis quality may be reduced |
 
 ## Start here
 
