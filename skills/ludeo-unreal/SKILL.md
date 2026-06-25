@@ -313,8 +313,8 @@ For the meta-rule itself and the incidents that motivated it, see `learnings/com
 
 The skill's primary, always-current source of SDK detail is the **`sdk-docs`** MCP server — the server that **searches the Ludeo SDK documentation** (method signatures, parameter structs, callback chains, concepts). It ships with the skill and runs on the integrator's machine. Set it up once, before doing any SDK work:
 
-> **If `sdk-docs` is not already connected**, wire it up from the bundled template, then continue. It is hosted (HTTP) at `https://ludeo-mcps-sdk-docs.ludeo.com/mcp` and needs an `X-User-Name` header.
-> - **Claude Code:** copy the `sdk-docs` entry from `<skill-base-dir>/config/mcp_config.template.json` into the project's `.mcp.json` (or run `claude mcp add`), set your username, then start a fresh session so the server connects.
+> **If `sdk-docs` is not already connected**, wire it up from the bundled template, then continue. It is hosted (HTTP) at `https://ludeo-mcps-sdk-docs.ludeo.com/mcp` and needs an `X-User-Name` header set to your Ludeo username (the local-part of your Ludeo email, e.g. `jane.doe`) — it identifies the caller.
+> - **Claude Code:** copy the `sdk-docs` entry from `<skill-base-dir>/config/mcp_config.template.json` into the project's `.mcp.json` (or run `claude mcp add`), set `X-User-Name` to your Ludeo username, then start a fresh session so the server connects.
 > - **Other agents:** add the same entry to your runtime's MCP config.
 > - If you cannot connect it, tell the human and fall back to the bundled `references/sdk-reference/` files — but **say so explicitly**, since the bundled copy covers concepts only and can drift from the live SDK.
 

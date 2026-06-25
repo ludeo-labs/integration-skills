@@ -1,5 +1,5 @@
 {
-  "$comment": "Wires the hosted Ludeo SDK documentation MCP server so agents search SDK docs instead of guessing. Set your username in the X-User-Name header; do not commit secrets. This matches the sdk-docs entry the skills ship in skills/<name>/config/mcp_config.template.json.",
+  "$comment": "Wires the hosted Ludeo SDK documentation MCP server so agents search SDK docs instead of guessing. Set X-User-Name to your Ludeo username (the local-part of your Ludeo email, e.g. jane.doe); do not commit secrets. This matches the sdk-docs entry the skills ship in skills/<name>/config/mcp_config.template.json.",
   "mcpServers": {
     "sdk-docs": {
       "type": "http",
