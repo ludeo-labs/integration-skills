@@ -77,11 +77,13 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
 - Open via **Ludeo → Setup and Show LudeoSettings** (creates/pings `LudeoSettings.asset` under
   `Assets/LudeoSDK/Resources/`).
 - Set `apiKey` (required), `gameName`, `gameVersion`.
-- **Testing without Steam** → `runWithoutLauncher = true`, set **both** `launcherUserId` (their Steam
-  id) **and** `betaVersion` (their Steam beta branch name) — no-launcher auth needs the pair; set one
-  without the other and `Activate` rejects. Optionally `autoStartInLudeo` + `ludeoToAutoStart` to force
-  the replay flow on launch.
-- **Production** → `runWithoutLauncher = false` (auth via Steam/launcher); **dev flags off**.
+- **`runWithoutLauncher` is the implicit/explicit auth toggle** (the only auth switch — the plugin
+  marshals the auth struct from it; no per-call `authDetails` like C++):
+  - **Production (Steam) → `false` (implicit).** Supply **no** id (leave `launcherUserId` empty); the
+    SDK auto-detects Steam. **It does not init Steam** — the game must have Steam running *before*
+    `Activate` or activation returns `InvalidAuth`. **Dev flags off.**
+  - **Testing / CI without Steam → `true` (explicit).** Set `launcherUserId` (a Steam id); no Steam
+    needed. Optionally `autoStartInLudeo` + `ludeoToAutoStart` to force the replay flow on launch.
 - **⚠️ A shipped/cloud build MUST have `runWithoutLauncher = false`.** Left `true`, the build still
   runs locally but **fails to authenticate on the Ludeo cloud** (the platform is the launcher) — an
   invisible ship-blocker. The flag is baked into `resources.assets` at build time, so the project
@@ -179,8 +181,9 @@ Only what can't be inferred from code:
   `github.com/ludeo-labs/unity-plugin-releases`; ask only whether they need a specific pinned version
   or were given a custom build (private tarball / `.unitypackage`).
 - **`apiKey`**, `gameName`, `gameVersion`.
-- **Auth mode** — local testing without Steam (`runWithoutLauncher = true`) vs production
-  (Steam/launcher). Steam appId if applicable.
+- **Auth mode** — implicit Steam (`runWithoutLauncher = false`, production; needs Steam initialized
+  before `Activate`) vs explicit no-Steam (`runWithoutLauncher = true` + `launcherUserId`, testing/CI).
+  Steam appId if applicable.
 - **Ludeo concept** (intake §) — what makes a good highlight moment in this game; what the player
   should experience when launching a Ludeo; typical Ludeo length; which player actions matter most.
 - Anything the save-system greps leave ambiguous (does the game persist *gameplay* state or only
@@ -221,7 +224,7 @@ Context files (read first; relative to this workflow file):
 - Core loop (1–2 sentences):
 - Unity version / render pipeline / scripting backend (Mono | IL2CPP):
 - Target platform (Ludeo capture = Windows desktop):
-- Auth: apiKey set? · gameName/gameVersion · Steam appId? · runWithoutLauncher (dev) | launcher (prod)
+- Auth: apiKey set? · gameName/gameVersion · Steam appId? · runWithoutLauncher: false=implicit/Steam (prod) | true+launcherUserId=explicit (testing/CI)
 - Ludeo concept:
   - What is a good highlight moment in this game?
   - What should the player experience when launching a Ludeo (the restored moment)?

@@ -122,6 +122,12 @@ AddNotifyLudeoSelected (player picked a Ludeo in the gallery)        [SDK]
    it before recording starts — by **freezing** (synchronous apply) or by **suppressing** input/AI (async
    apply); never unfreeze *and* leave the sim un-suppressed during apply (§10.1). **Never unfreeze before the
    apply runs** — that's live sim frames mid-restore (the BL-4 trap).
+5. **The viewer never watches the level assemble.** The third begin-gate leg —
+   `sceneLoaded`/`NotifySceneReadyForRestore()` (CR-009) — means the scene is **fully assembled: apply done,
+   async spawns *settled*, sim *frozen-ready*** — not merely "scene activated + objects exist." Keep the
+   loading cover up until then; the first frame revealed behind the (paused) overlay must be the **finished
+   restored scene**, not a half-built one. Opening the room early to hide SDK latency is fine — but gate the
+   *reveal* and the scene-ready leg on settle+freeze, or the player resumes onto a level still popping in (§10.1).
 
 > **Two valid placements for "apply".** The tank applies at **scene-load** (its `ReplayLudeo` path, gated on
 > `IsInLudeoFlow`) and only calls `BeginGameplay` later in the `RoomReady` handler. REFERENCE-ARCHITECTURE's
@@ -533,6 +539,20 @@ Specify the match key and the hook where matching runs relative to scene load (e
 **Skip-when-not-in-play is automatic** — this whole path runs only because `IsInLudeoFlow` is `true`; the
 creator flow uses `06 §6` batch *registration* instead.
 
+> **⚠️ A live spawn *trigger* firing during play-forward re-creates what you restored.** Match-vs-spawn
+> covers objects present at scene-load; it does nothing about the game's own spawner firing **after** the
+> restore point. As the replay plays forward and the game re-enters a populating state — "combat started",
+> a wave start, an elimination/aggro refill, a room-enter repopulate — that trigger spawns a **fresh** group
+> **on top of** the live entities you restored (duplicates, wrong counts). **Gate the *trigger*** on
+> `IsInLudeoFlow`; **never gate the spawn *primitive*** (`AIManager.Spawn` / the per-enemy `Instantiate`) —
+> restore's Pass 1 calls it to place the restored entities, so gating the primitive breaks restore itself.
+> *Trigger = the decision to populate; primitive = the low-level spawn.* **And distinguish re-create from
+> advance:** suppress the trigger that re-fires the **already-restored** wave; a spawner that **advances**
+> to the *next* wave from the restored cursor (`game-patterns/procedural-world.md §5`) is legitimate
+> continuation — keep it. For a Ludeo that captures one bounded encounter, gating the wave triggers for the
+> whole play flow is the simple correct choice; where the replay plays through later waves, gate only the
+> re-create trigger.
+
 ---
 
 ## 10. Wait-For-Player, Freeze & Overlay (CR-010/011)
@@ -571,6 +591,14 @@ Suppression holds until `Begin`, then lifts so the player drives the restored st
 > The tank's **structural freeze** is a third shape of the same idea: entities spawned **paused** and gameplay
 > not "on" until `SetGameOn` runs from `RoomReady → BeginGameplay`. It's a form of suppression — the objects
 > exist but don't tick — so it's async-safe.
+
+> **⚠️ Settling is *visible*, not only a correctness concern.** §10.1 above treats async spawns as an
+> *overwrite* hazard (suppress vs freeze). They are also a **presentation** hazard: an async apply streams
+> spawns in over several frames, so if `NotifySceneReadyForRestore()` fires on "scene activated" the
+> begin-gate releases and the player **resumes while entities are still popping in** — they watch the level
+> assemble. Await the async spawns to completion (then the narrow scalar freeze) **before** signaling
+> scene-ready, and keep the scene covered until then, so the paused overlay's background and the first
+> interactive frame show the finished scene, not its assembly (§2.1 invariant 5).
 
 ### 10.2 Resume = `RoomReady → Begin`
 

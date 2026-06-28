@@ -139,7 +139,9 @@ Also plan four distinct sets of hooks:
   loader must call `NotifySceneReadyForRestore()` `[Layer]` on completion — the **third leg of the begin
   gate** (`RoomReady ∧ AddGamePlayer ∧ sceneLoaded`), which usually means **adding an awaitable/completion
   event to an `async void` scene loader**. Map this onto a game hook (file:method); if no such loader
-  callback exists, flag adding one as an Open Question.
+  callback exists, flag adding one as an Open Question. **Scene-ready must mean *fully assembled* — apply
+  done, async spawns settled, sim frozen-ready — not just scene-activated; plan to keep the loading cover
+  up until then so the viewer never watches the level assemble behind the paused overlay (`07 §2.1`/`§10.1`).**
 - **Post-restore resume** — reuse `phase 2`'s `onRoomReady` hook. Apply state inside it, **then** unfreeze,
   before `BeginGameplay`. **Resume is `RoomReady → Begin`** — *not* a self-built "press to begin" prompt,
   *not* `PlayerReady` (**does not exist in this SDK**), *not* `ResumeGame` (that's the mid-play overlay).
@@ -157,6 +159,14 @@ Also plan four distinct sets of hooks:
      age-gate prompts, tutorial overlays, confirmation dialogs, between-segment reward/shop screens. Miss
      one → Ludeo loads at the **right** state but never becomes **interactive**.
   List each with its hook (file:method) and the plan to gate it on `IsInLudeoFlow` `[Layer]`.
+- **Play-forward spawn triggers** — distinct from start-of-run suppression: these fire **during** the
+  replay, not before the first frame. A wave starter (`SpawnNextWave`), an elimination/aggro refill
+  (`SpawnForElimination`), a "combat started" room-repopulate will **re-create entities you already
+  restored**. Plan to gate the **trigger** on `IsInLudeoFlow` — **not** the spawn *primitive*
+  (`AIManager.Spawn`; restore's Pass 1 calls it to place the restored entities). Suppress a trigger that
+  re-fires the **restored** wave; leave a spawner that merely **advances** to the next wave from the
+  restored cursor (`07 §9`, `game-patterns/procedural-world.md §5`). List each spawn trigger (file:method)
+  with its keep/suppress decision.
 
 Map each step onto a concrete game hook (file:method) where known; flag any that don't yet exist as an
 Open Question for task 3/task 4.

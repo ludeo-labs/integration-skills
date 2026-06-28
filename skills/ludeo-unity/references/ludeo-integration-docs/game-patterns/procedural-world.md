@@ -159,6 +159,12 @@ level-based restore:
    restore them **before** entities (`07 §8`: you need them to know *what* to spawn). The progress
    cursor (wave index) positions the encounter; remaining entities then come back via the normal
    two-pass (`07 §4`). World/environment flags last (`07 §8` ordering).
+4. **Position the cursor — don't let entering the encounter *re-spawn* the restored wave.** "Remaining
+   waves match" means the spawner may **advance** to the *next* wave from the restored cursor. But the
+   trigger that fires when combat/the encounter (re)starts often **repopulates the current wave wholesale**,
+   stacking a fresh wave on the live enemies you just restored via two-pass. Gate that re-populate
+   **trigger** on `IsInLudeoFlow` — not the spawn primitive restore uses (`07 §9`). Restore the live wave as
+   a snapshot; let only genuine *advancement* run.
 
 Everything else is standard `07`: freeze during restore (CR-010), apply before `Begin`, resume via
 `RoomReady → Begin`.

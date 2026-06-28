@@ -257,11 +257,21 @@ public class LudeoController
         s.AddNotifyMuteRequest(d => { /* mute audio = d.isMuted */ });
         s.AddNotifyLocalizationChanged(d => { /* set language = d.language */ });
 
+        // Activate authenticates. With implicit auth (runWithoutLauncher = false, the Steam default),
+        // the SDK auto-detects Steam but does NOT init it — the game must have Steam running BEFORE
+        // this call or the callback returns InvalidAuth (UPM-INSTALL-AND-DEFINES.md §3).
         s.Activate(HandleActivateDone);
     }
 
     private void HandleActivateDone(LudeoSessionActivateCallbackData data)
     {
+        if (data.resultCode != LudeoResult.Success)   // e.g. InvalidAuth when Steam wasn't initialized
+        {
+            // Non-fatal: let the game continue WITHOUT Ludeo rather than blocking the player.
+            Debug.LogWarning($"Ludeo activate: {data.resultCode}; continuing without Ludeo.");
+            m_onInitDone(isStartingInLudeoFlow: false);
+            return;
+        }
         m_data.isInLudeo = data.isLudeoSelected;
         // If isLudeoSelected, a LudeoSelected notification is guaranteed to follow → play flow.
         m_onInitDone(isStartingInLudeoFlow: data.isLudeoSelected);
