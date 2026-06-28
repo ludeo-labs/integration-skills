@@ -108,9 +108,12 @@ init.
   `launcherUserId` empty. The SDK auto-detects the loaded Steamworks DLL and pulls the user identity
   itself. **The SDK does *not* initialize Steamworks** — your game must have Steam **already
   initialized and running before `Activate`**, or activation completes with
-  `LudeoResult.InvalidAuth`. (Most Steam games already `SteamAPI.Init()` at boot — just confirm it
-  runs before `Activate`; see [`../05-LIFECYCLE-MANAGEMENT.md`](../05-LIFECYCLE-MANAGEMENT.md)
-  "Startup sequence".)
+  `LudeoResult.InvalidAuth`. This is a **code-ordering** requirement, not just a setting: Steam often
+  initializes **late/async** (a login scene, via a Steam wrapper) while the SDK bootstraps early, so
+  **don't call `Activate` inline — gate it on a game-owned "auth ready" signal** with a bounded
+  fallback (see [`REFERENCE-ARCHITECTURE.md`](./REFERENCE-ARCHITECTURE.md) → "Implicit auth: gate
+  Activate on Steam-ready" and [`../05-LIFECYCLE-MANAGEMENT.md`](../05-LIFECYCLE-MANAGEMENT.md)
+  "Startup sequence").
 - **`true` = explicit auth — testing / CI / no-Steam.** You supply `launcherUserId` (a Steam user
   id) and the SDK authenticates as that user **without Steam running**. Optionally set `betaVersion`
   to match your Studio Lab environment.
@@ -118,6 +121,13 @@ init.
 **Don't confuse the two:** enabling `runWithoutLauncher` for a Steam build switches it *out* of
 implicit mode and makes it send a supplied-id auth struct — leave it **off** (and `launcherUserId`
 empty) for implicit Steam auth.
+
+> **⚠️ Implicit-auth precheck — the App-ID-0 landmine.** Cloud builds never touch Steam, so the Steam
+> **app id** is easily left at the placeholder **`0`** in *both* `steam_appid.txt` (next to the
+> executable) **and** the Steam wrapper's settings asset (e.g. Steamworks.NET's settings asset). With
+> app id `0`, `SteamAPI_Init` fails **even with the Steam client running**, and implicit `Activate`
+> then returns `InvalidAuth`. Before testing implicit auth: set the **real** app id in **both** places,
+> and **restart the Editor** after editing `steam_appid.txt` (it's read once at startup).
 
 **Production vs. testing:**
 - **Production (Steam):** set `apiKey` (+ `gameName`/`gameVersion`); leave `runWithoutLauncher =
@@ -233,6 +243,24 @@ Add a define **only** to support a build configuration that **excludes the SDK p
 
 > `versionDefines` is the clean way to do this: Unity sets the symbol automatically based on whether
 > the package is in the project, so the same code compiles with or without it.
+
+### A second, separate axis — the game's Steam wrapper (not the Ludeo package)
+
+Distinct from the package define above: a game that ships **both** a player-facing **Steam** build and a
+**Ludeo Cloud** build typically compiles its **Steam wrapper** out of the cloud build (e.g. a project
+define like `STEAMWORKS_OFF`, alongside a `LUDEO_BUILD`). Keep this axis separate from the
+package-present axis above — it's about *Steam*, not about the *Ludeo SDK*. It directly shapes auth:
+
+- **Real Steam build** → implicit auth → **gate `Activate` on Steam-ready**
+  ([`REFERENCE-ARCHITECTURE.md`](./REFERENCE-ARCHITECTURE.md) → "Implicit auth: gate Activate on
+  Steam-ready"). The Steam-gated call site sits behind `#if STEAMWORKS_NET && !STEAMWORKS_OFF`.
+- **Cloud build (Steam compiled out)** → the cloud supplies the token → the `#else` branch calls
+  `Activate` **immediately** (no Steam to wait for) and must not reference the Steam wrapper.
+
+So there are **three auth modes** — implicit/Steam, explicit/`launcherUserId`, cloud-token — and they
+interact with this define. **Consequence: you cannot validate implicit auth from the cloud build or the
+cloud flow** — implicit auth is only ever exercised by building the real Steam config. (Define names
+are illustrative; use your project's.)
 
 ---
 

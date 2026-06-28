@@ -80,8 +80,10 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
 - **`runWithoutLauncher` is the implicit/explicit auth toggle** (the only auth switch — the plugin
   marshals the auth struct from it; no per-call `authDetails` like C++):
   - **Production (Steam) → `false` (implicit).** Supply **no** id (leave `launcherUserId` empty); the
-    SDK auto-detects Steam. **It does not init Steam** — the game must have Steam running *before*
-    `Activate` or activation returns `InvalidAuth`. **Dev flags off.**
+    SDK auto-detects Steam but **does not init it** — Steam must be up before `Activate` or it returns
+    `InvalidAuth`. Set the real Steam **app id** (not `0`). **Dev flags off.** Implicit auth is a
+    code-ordering concern (gate `Activate`) and can't be validated from a cloud build — detail in
+    `unity/UPM-INSTALL-AND-DEFINES.md §3-4`.
   - **Testing / CI without Steam → `true` (explicit).** Set `launcherUserId` (a Steam id); no Steam
     needed. Optionally `autoStartInLudeo` + `ludeoToAutoStart` to force the replay flow on launch.
 - **⚠️ A shipped/cloud build MUST have `runWithoutLauncher = false`.** Left `true`, the build still

@@ -47,10 +47,35 @@ you tail the log.)
 | --- | --- |
 | Ludeo init / smoke logs | `\[Ludeo\]` or your log prefix |
 | Native layer didn't load | `WrapperDllNotFound` |
+| Auth failure (implicit/Steam or explicit) | `InvalidAuth` |
+| Steam init failure / auth red herrings | `SteamAPI_Init`, `Session auth details not specified`, `GfnGetPartnerSecureData` |
 | SDK result codes | `LudeoResult` / `resultCode` |
 | Compile errors | `error CS` |
 | Runtime exceptions | `Exception`, `NullReferenceException` |
 | SDK objects in use | `LudeoManager`, `LudeoSession`, `LudeoStateObject` |
+
+## Diagnosing `InvalidAuth` (implicit / Steam auth)
+
+`InvalidAuth` from the `Activate` callback has **two unrelated cause-families** — don't conflate them:
+
+1. **Code-ordering (the integration's responsibility):** `Activate` fired before Steam finished
+   initializing. Fix = gate `Activate` on an auth-ready signal
+   ([`REFERENCE-ARCHITECTURE.md`](./REFERENCE-ARCHITECTURE.md) → "Implicit auth: gate Activate on
+   Steam-ready").
+2. **Steam-environment (not code):** the Steam account doesn't own / isn't entitled to the app id
+   (common for an unreleased third-party title or an integrator's account); the Editor and the Steam
+   client run at **different OS privilege levels** (admin mismatch); the Editor wasn't **restarted**
+   after editing `steam_appid.txt`; or the app's release-state is *Unavailable* / missing default
+   packages. Also check the **App-ID-0 landmine** ([`UPM-INSTALL-AND-DEFINES.md §3`](./UPM-INSTALL-AND-DEFINES.md)).
+
+**Red-herring logs — don't be misled:**
+- Steamworks.NET prints a **generic multi-cause list** on *any* init failure; don't assume "client not
+  running."
+- The SDK's auth fallback chain emits GeForce-NOW noise — `GFN detected`, `GfnGetPartnerSecureData …
+  Error -18`, `Session auth details not specified and automatic …` — when the real problem is simply
+  that **Steam was never initialized**, not a GeForce-NOW issue.
+
+(Exact wording varies by SDK / wrapper version — match loosely.)
 
 ## Notes
 
