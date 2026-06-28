@@ -224,7 +224,10 @@ handler — the room/player aren't ready yet. Chain them through the callbacks.
 > independent of `SceneManager` — applying restored state on RoomReady while the scene is still loading
 > writes into an empty scene. The game must signal scene-load completion (`NotifySceneReadyForRestore()`),
 > which usually means adding an awaitable/event to an `async void` scene loader. Gate = `RoomReady ∧
-> AddGamePlayer ∧ sceneLoaded`. See CR-010 and `unity/REFERENCE-ARCHITECTURE.md`.
+> AddGamePlayer ∧ sceneLoaded`. **`sceneLoaded` means the scene is *fully assembled* — apply done, async
+> spawns settled, sim frozen-ready — not merely scene-activated; fire `NotifySceneReadyForRestore()` only
+> then, and keep the scene covered until it, so the player never resumes onto a level still assembling
+> (07 §2.1 invariant 5 / §10.1).** See CR-010 and `unity/REFERENCE-ARCHITECTURE.md`.
 
 → See [`05-LIFECYCLE-MANAGEMENT.md`](./05-LIFECYCLE-MANAGEMENT.md) for the callback flow.
 

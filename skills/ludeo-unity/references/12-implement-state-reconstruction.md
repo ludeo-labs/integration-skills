@@ -256,6 +256,11 @@ Surface to the orchestrator; don't guess:
 - **Reset matched/persistent singletons before applying (`07 §4`).** Uncaptured state leaks otherwise.
 - **Fail loud on a missing reference key**; keep the spawn default on a missing *optional* attribute.
 - **Read `IsInLudeoFlow`, don't set it** — it's task 3's switch; here it only gates pre-existing reconciliation.
+- **Gate spawn *triggers*, never the spawn *primitive* (`07 §9`).** A wave-start / combat-start / refill
+  trigger that fires during play-forward duplicates the restored population on top of the snapshot — gate
+  it on `IsInLudeoFlow`. The per-enemy spawn primitive (`AIManager.Spawn`) stays **ungated** — Pass 1 calls
+  it to place the restored entities. Suppress a trigger that re-creates the **restored** wave; keep one that
+  merely advances to the next wave from the restored cursor.
 - **Don't modify game logic** beyond the restore read-back; propose-confirm-execute every change.
 
 ## 6. Output Contract
