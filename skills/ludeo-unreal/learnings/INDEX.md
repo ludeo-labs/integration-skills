@@ -8,13 +8,14 @@ Regenerate with `node scripts/generate-learnings-index.mjs` after adding a learn
 If you add a learning where you cannot run node (e.g. an installed skill copy),
 append the line by hand in the same format.
 
-Total: 282
+Total: 291
 
 - architecture/additive-action-emission-for-composable-goals.md | universal | p5 | Emit actions on multiple orthogonal axes — additive, not else-if
 - architecture/bind-session-notifications-once-at-subsystem-not-per-room.md | generalizable | p4 | Are the session-level notification delegates (OnRoomReady, OnLudeoSelected, pause/resume, back-to-menu) bound ONCE at session setup on a persistent owner, or rebound per-room on a transient component?
 - architecture/bot-spawning-player-flow.md | generalizable | p1 | Does this game have dynamically spawned bots with unstable identity? If so, the Ludeo component should spawn bots directly during Player Flow rather than relying on the game's native spawner.
 - architecture/bp-inspector-replaces-human-questions.md | universal | p2 | BP Inspector tool eliminates most human-facing questions for BP-only games
 - architecture/bp-state-machine-vs-property-driven-init.md | universal | p3 | BP actors fall into two restoration categories — distinguish them before designing capture/restore
+- architecture/capture-lighting-sublevel-visibility-not-just-geometry.md | generalizable | p4 | When the player enters a sub-area, does the game swap LIGHTING by hiding the host map's lighting sublevel and showing the sub-area's lighting sublevel (separate from the geometry sublevel)? If so, restoring geometry alo…
 - architecture/capture-schema-lifecycle-management.md | universal | p4 | Manage the capture schema as a versioned contract from day one
 - architecture/cloud-needs-idle-ready-state-before-room-open.md | generalizable | p2 | In the cloud, does the game reach an idle, streamable 'ready & waiting' state (no room open, not recording) before any room opens? A game that boots straight into gameplay and opens a room at boot will never let the clo…
 - architecture/cold-spawned-actors-need-explicit-state-restore-for-cosmetics.md | universal | p4 | Does this actor have a state-driven cosmetic event (`BP_OnStateChanged`-style)? If yes: capture the state, restore it via a public setter post-spawn so the BP cosmetic chain runs.
@@ -54,6 +55,7 @@ Total: 282
 - architecture/progression-trails-vs-snapshot-state.md | generalizable | p1 | Does this game have progression-trail state (scripted milestones, completed objectives, mission-prop usage, level-blueprint event history) and not just snapshot state? If so, capture the time-ordered event sequence and …
 - architecture/restore-must-precede-natural-equip-flow.md | generalizable | p4 | Does the host engine have an automatic equip/cosmetic/loadout pipeline that fires post-pawn-spawn or post-loadout-load? If yes, is your Player Flow restore scheduled to run before or after that pipeline, and have you te…
 - architecture/restore-timing-can-be-core-not-polish.md | generalizable | p4 | Does the game run a startup choreography / queued-animation / state-machine sequence AFTER its 'gameplay active' signal (turn-based action queues, scripted intros, staged spawns)? If yes, restore-timing correctness is S…
+- architecture/restream-capture-time-sublevels-before-restore.md | generalizable | p4 | Can the player walk into a streamed sub-area (a memory, a polaroid scene, a sub-level loaded on a trigger) that is part of the slice's coverage but is NOT auto-loaded when the restore map boots? If yes, capture which su…
 - architecture/runtime-component-attach-via-worlddelegates.md | generalizable | p2 | Is the target game Blueprint-only with a BP GameState class that cannot be reparented to C++? If yes, use FWorldDelegates::OnPostWorldInitialization + World->GameStateSetEvent to attach ULudeoGameStateComponent at runti…
 - architecture/sdk-activation-competes-with-game-boot.md | generalizable | p2 | Does the game have a multi-step async boot flow (state machine, metadata fetch, loadout setup) that runs between GameInstance::Init and the main menu appearing?
 - architecture/sdk-overlay-input-no-callback-release-mouse-yourself.md | generalizable | p2 | When the Ludeo overlay shows an interactive screen (e.g. the PrePlayScreen 'Play Moment'), does OnPauseGameRequested fire? (Usually NO — verify in the log.) If the game captures the mouse (FPS: Game-Only input + hidden …
@@ -109,9 +111,11 @@ Total: 282
 - common-mistakes/deferred-activation-retry-loop.md | universal | p2 | 
 - common-mistakes/define-ue-api-breaks-non-minimal-classes.md | universal | p2 | #define UE_API + MinimalAPI breaks classes without UE_API-prefixed members
 - common-mistakes/delegate-forward-decl-vs-include.md | universal | p2 | DECLARE_DELEGATE types cannot be forward-declared as structs
+- common-mistakes/derive-solve-action-from-downstream-outcome.md | generalizable | p5 | Does the puzzle/objective you want a 'Solved' action for have NO bSolved flag, and is its own interaction-state enum ambiguous (it cycles on every interaction, and cancel/escape resets it the same way a solve does)? If …
 - common-mistakes/design-actions-for-goals-and-constraints.md | universal | p7 | For objective-based actions (capture, score, deliver), did you consider that Studio Labs needs to distinguish good-for-player vs bad-for-player? Did you track objective state as writable objects, not just actions?
 - common-mistakes/destroy-and-refill-must-decouple-actor-from-attribute.md | generalizable | p4 | Does the Player Flow restore path destroy actors (in-flight projectiles, weapons-in-hand, throwables) before re-applying state, AND does it refill any attribute (ammo, inventory, throwable count) that also needs the des…
 - common-mistakes/destroy-default-spawns-before-restoring-tracked.md | universal | p4 | Does the game spawn AI/NPCs at level start that will duplicate with tracked entities?
+- common-mistakes/detect-subarea-entry-by-relocation-not-streamed-sublevel.md | generalizable | p5 | Are you about to detect an 'entered a sub-area / flashback / memory' action by polling which sublevels are loaded+visible? STOP — do in-place set-pieces/cinematics in the main area ALSO stream sublevels? If so, 'a suble…
 - common-mistakes/diagnostic-warning-logs-become-permanent-cruft.md | universal | p5 | Diagnostic Warning logs become permanent cruft if you don't budget their removal
 - common-mistakes/dialog-mute-window-must-bracket-all-deferred-triggers.md | generalizable | p4 | What's the latest possible moment the audio/dialog subsystem you're muting can be triggered? Does your Suppress→Resume window bracket that moment?
 - common-mistakes/diff-against-reference-sample-when-runtime-signal-missing.md | universal | p2 | When a runtime SDK signal (OnRoomReady, etc.) fails to fire but all the lifecycle CALLS succeed, and a known-good reference integration exists for THIS game or engine — have you diffed your flow against it BEFORE theori…
@@ -195,6 +199,7 @@ Total: 282
 - common-mistakes/random-seed-is-not-optional.md | universal | p3 | Always capture and restore the game's master random seed
 - common-mistakes/readable-object-assert-on-missing-attributes.md | universal | p4 | 
 - common-mistakes/redeploy-tools-on-skill-update.md | universal | p2 | Always diff and redeploy skill tools when the skill is updated
+- common-mistakes/refresh-project-binaries-after-core-sdk-swap.md | universal | p2 | After swapping the core C SDK, the project's own Binaries/ copy of the DLL is NOT refreshed by an incremental build
 - common-mistakes/registerentity-must-write-initial-attributes.md | universal | p4 | `RegisterEntity` / `CreateObject` must write all readable attributes synchronously — deferring to the next tick crashes on replay
 - common-mistakes/remove-player-uses-string-id-not-handle.md | universal | p2 | FLudeoRoomRemovePlayerParameters uses PlayerID (FString), not PlayerHandle
 - common-mistakes/reverify-prior-session-blockers.md | universal | p3 | Don't trust prior-session "blockers" without re-verifying — misdiagnoses persist in `knownIssues` notes
@@ -261,6 +266,7 @@ Total: 282
 - engine-quirks/how-to-compile-ue-from-cli.md | universal | p2 | How to compile UE projects from CLI
 - engine-quirks/init-armor-bypasses-replenish-ensure.md | generalizable | p4 | Does the host engine's GAS attribute set use chunk-based bookkeeping (e.g., armor stored as Chunks × ChunkValue, replenish-to-next-chunk-boundary semantics)? If yes, the GAS `SetNumericAttributeBase` path may not be saf…
 - engine-quirks/loadout-not-loaded-in-player-flow.md | game-specific | p4 | APlayerStateBase::IsLoadoutLoaded never becomes true in Player Flow
+- engine-quirks/ludeo-roomwriter-private-dtor-bind-by-ref.md | universal | p4 | FLudeoRoomWriter has a private destructor — bind GetRoomWriter() by const ref, never copy to a value
 - engine-quirks/lyra-quickbar-not-exported-use-reflection.md | game-specific | p4 | Is the game's weapon/equipment component exported with the module API macro?
 - engine-quirks/lyra-unexported-symbols.md | generalizable | p2 | Do the game classes you need to call from the plugin have their methods exported with the module's API macro (e.g., GAMENAME_API)? If not, which methods need export macros added?
 - engine-quirks/modular-gameplay-plugin-dependency.md | universal | p2 | 
@@ -269,8 +275,11 @@ Total: 282
 - engine-quirks/reflection-write-doesnt-fire-onrep.md | universal | p4 | `FProperty::ImportText` / direct memory writes do NOT fire `OnRep_*` cascades
 - engine-quirks/sdk-data-reader-current-handle-is-process-global.md | universal | p4 | The LudeoUESDK data-reader "current handle" is a process-global cache — query calls between Enter and ReadData can desync it
 - engine-quirks/sdk-release-repo-is-private-use-gh-cli.md | universal | p0 | SDK plugin release repo is private — anonymous download URLs 404; use authenticated gh CLI
+- engine-quirks/sdk-release-repo-moved-and-ue53-needs-core-only-hybrid.md | generalizable | p2 | Is the target project on UE 5.3 (or any engine OLDER than the one the latest LudeoUESDK release was built for) AND hitting a stale-C-SDK-vs-backend problem? If so, the newest release zip's WRAPPER may not compile on you…
 - engine-quirks/sdk-release-zip-is-engine-version-specific.md | generalizable | p2 | Does the target engine version match the engine the LudeoUESDK release zip was built against? The published release asset can be built for an OLDER engine (e.g. a 4.2x-era release) and fail to compile on a newer one (e.…
+- engine-quirks/stream-unregistered-sublevel-with-levelstreamingdynamic.md | generalizable | p4 | Does Player Flow (or a slice-load entry point) need to stream a sublevel that is NOT listed in the restore map's Streaming Levels? If the game reaches that sub-area via its own LoadStreamLevel* call, that call only TOGG…
 - engine-quirks/uasset-ascii-scan-for-datatable-references.md | generalizable | p1 | Do you need to know which maps/assets a DataTable or plain-Actor BP references, and is booting the headless editor (30-60s+) overkill for the question?
+- engine-quirks/ubt-needs-dotnet6-rollforward-on-newer-runtime.md | generalizable | p2 | Does the compile machine have the .NET 6 runtime installed? UE 4.27/5.0-5.3's bundled UnrealBuildTool.exe targets Microsoft.NETCore.App 6.0; on a box that only has newer runtimes (8/9/10) it exits immediately with 'You …
 - engine-quirks/ue-with-cheat-manager-gates-debug-camera-in-shipping.md | generalizable | p6 | Do you need to use UE's debug camera (or any UCheatManager exec command) in shipping for runtime diagnosis? If yes, are you aware that force-spawning the cheat manager isn't sufficient because the methods themselves are…
 - engine-quirks/ue4-automationtool-msbuild-resolution.md | generalizable | p2 | Does RunUAT BuildCookRun fail with C# 5 syntax errors? Check if AutomationTool at runtime finds the old .NET 4.0 MSBuild instead of VS's MSBuild.
 - engine-quirks/ue4-ubt-path-different-from-ue5.md | generalizable | p2 | Is this a UE4 source build, UE4 launcher install, or UE5? On UE4 source builds, UnrealBuildTool.exe lives at Engine/Binaries/DotNET/UnrealBuildTool.exe (no subdirectory) — different from UE5's Engine/Binaries/DotNET/Unr…
