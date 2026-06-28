@@ -181,6 +181,9 @@ collections. `TryGetAttribute` returns `false` if the name is absent or the type
 
 > `SDKDisabled` — the backend disabled the SDK; stop attempting to create sessions.
 > `WrapperDllNotFound` — native DLL missing (build/package/platform issue).
+> `InvalidAuth` — from the `Activate` callback: implicit (Steam) auth but Steam wasn't initialized
+> before `Activate` (the SDK won't init it), or an invalid `launcherUserId` in explicit mode. Treat
+> as non-fatal — continue without Ludeo (`05-LIFECYCLE-MANAGEMENT.md`, `unity/UPM-INSTALL-AND-DEFINES.md §3`).
 
 ### `LudeoDataType` (attribute types)
 `Bool`, `Int8`, `UInt8`, `Int16`, `UInt16`, `Int32`(=`Int`), `UInt32`(=`Uint`), `Int64`, `UInt64`,

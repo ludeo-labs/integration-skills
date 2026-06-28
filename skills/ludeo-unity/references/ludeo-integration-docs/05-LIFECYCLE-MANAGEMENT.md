@@ -67,9 +67,18 @@ LudeoManager.InitLudeoSession(cb)                         [SDK]
    (check `resultCode == Success`). `WrapperDllNotFound` here = native layer didn't load (build
    problem, see `04-BUILD-INTEGRATION.md`).
 2. **Register notifications** `[SDK]` on the session **before** `Activate` (next section).
-3. **`LudeoSession.Activate`** `[SDK]` — connects to backend. In its callback,
-   `isLudeoSelected == true` ⇒ launched to play a Ludeo; a `LudeoSelected` notification follows →
-   branch to the play flow.
+3. **`LudeoSession.Activate`** `[SDK]` — connects to backend **and authenticates**. In its callback,
+   check `data.resultCode` (treat failure as non-fatal — continue the game *without* Ludeo, never
+   block the player), then `isLudeoSelected == true` ⇒ launched to play a Ludeo; a `LudeoSelected`
+   notification follows → branch to the play flow.
+   > **Auth happens here, and with implicit (Steam) auth — `runWithoutLauncher = false`, the
+   > production default — Steam must already be initialized before this call.** The SDK auto-detects
+   > Steam but does **not** initialize it; if Steam isn't running, `Activate` returns
+   > `LudeoResult.InvalidAuth`. So the real startup order is **Init → register notifications → (game's
+   > Steam init) → Activate** — Steam must be up before `Activate`, not before init. Explicit auth
+   > (`runWithoutLauncher = true` + `launcherUserId`) needs no Steam. Full toggle reference:
+   > [`unity/UPM-INSTALL-AND-DEFINES.md §3`](./unity/UPM-INSTALL-AND-DEFINES.md). A bounded timeout
+   > fallback (proceed without Ludeo if no callback within N seconds) keeps the player unstuck.
 4. **Consent** via `AddNotifyConsentUpdated` `[SDK]` feeds `LudeoFlowSwitch.SetFlags(...)` `[Layer]`.
 
 ---
@@ -227,6 +236,7 @@ to main before any `[SDK]` call (CR-013).
 | Restored Ludeo loads but input is dead (player can't move/act) | A persistent-singleton (`ScriptableObject`/`DontDestroyOnLoad`/`static`) layer carried a stale pause/freeze flag from a prior playmode session → `timeScale = 0` | Reset all mutable runtime state at the start/bootstrap hook; check the three input gates (`07 §10.4`) |
 | **Second replay** in one session hangs, opens a double room, or replays unsuppressed | First play not torn down on re-entry — stale pause flag deadlocks async restore, unclosed room+session, un-reset gameplay-active flag | Make `HandleGetLudeoDone` re-entrant: full `AbortGameplay` + `ResetBeginGate` + per-restore pause reset; start the new play only in the teardown callback (`07 §2.2`) |
 | `WrapperDllNotFound` in init cb | Native layer didn't load | Build/platform/plugins (`04-BUILD-INTEGRATION.md`) |
+| `InvalidAuth` in Activate cb (implicit/Steam auth) | Steam not initialized before `Activate` — the SDK won't init it for you | Bring Steam up before `Activate` (Init → notifications → Steam init → Activate); or use explicit auth (`runWithoutLauncher = true` + `launcherUserId`) for no-Steam/CI runs (`unity/UPM-INSTALL-AND-DEFINES.md §3`) |
 | Init returns `WrongState` / `Client still holding a handle to a Session instance` on the 2nd+ Editor Play (1st was fine) | Prior Play's `LudeoSession` never disposed; native state survives across Editor Plays | `Dispose()` the owned session in `Shutdown()` on `OnApplicationQuit`; restart the Editor **once** to clear the already-dangling session (see "Shutdown") |
 
 ---

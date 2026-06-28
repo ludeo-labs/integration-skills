@@ -77,16 +77,42 @@ Fields (`LudeoSDK.UnityScripts.LudeoSettings`):
 | `ludeoLogLevel`, `ludeoLogCategory` | SDK logging | `Error` / `All` is a sane default |
 | `coreDllReference` | `Release` or `Development` core dll | `Release` for shipping |
 | `betaVersion` | Steam beta branch name | Match your Steam branch if used |
-| `runWithoutLauncher` | **Dev only** — skip the launcher/Steam auth | **`false` in production** |
-| `launcherUserId` | Dev no-launcher: your Steam id | Dev/testing only |
+| `runWithoutLauncher` | **The implicit/explicit auth toggle** (see below) | **`false` (implicit) in production** |
+| `launcherUserId` | Explicit-auth (`runWithoutLauncher = true`) user id | Set only in explicit mode |
 | `autoStartInLudeo` + `ludeoToAutoStart` | Dev: force a Ludeo to replay on init | Dev/testing only |
 
+### Auth is one toggle — `runWithoutLauncher` (implicit vs. explicit)
+
+`runWithoutLauncher` is the **only** auth switch. The Unity plugin builds and marshals the auth
+struct for you from this flag — there is **no per-call `authDetails` argument** like the C++ SDK, so
+the C++ struct-lifetime pitfalls do not apply here. Auth is resolved **at `Activate` time**, not at
+init.
+
+- **`false` (default) = implicit auth — the production Steam path.** You supply **no** id; leave
+  `launcherUserId` empty. The SDK auto-detects the loaded Steamworks DLL and pulls the user identity
+  itself. **The SDK does *not* initialize Steamworks** — your game must have Steam **already
+  initialized and running before `Activate`**, or activation completes with
+  `LudeoResult.InvalidAuth`. (Most Steam games already `SteamAPI.Init()` at boot — just confirm it
+  runs before `Activate`; see [`../05-LIFECYCLE-MANAGEMENT.md`](../05-LIFECYCLE-MANAGEMENT.md)
+  "Startup sequence".)
+- **`true` = explicit auth — testing / CI / no-Steam.** You supply `launcherUserId` (a Steam user
+  id) and the SDK authenticates as that user **without Steam running**. Optionally set `betaVersion`
+  to match your Studio Lab environment.
+
+**Don't confuse the two:** enabling `runWithoutLauncher` for a Steam build switches it *out* of
+implicit mode and makes it send a supplied-id auth struct — leave it **off** (and `launcherUserId`
+empty) for implicit Steam auth.
+
 **Production vs. testing:**
-- **Production:** set `apiKey` (+ `gameName`/`gameVersion`); leave `runWithoutLauncher = false` so
-  the game authenticates through Steam/the launcher.
-- **Local testing without Steam:** `runWithoutLauncher = true` and set `launcherUserId` to your
+- **Production (Steam):** set `apiKey` (+ `gameName`/`gameVersion`); leave `runWithoutLauncher =
+  false` (implicit). Ensure Steam is initialized before `Activate`.
+- **Local testing / CI without Steam:** `runWithoutLauncher = true` and set `launcherUserId` to a
   Steam id. Use `autoStartInLudeo`/`ludeoToAutoStart` to force the play/restore flow on launch for
-  iterating on restoration. **Never ship these on.**
+  iterating on restoration. **Never ship these on.** Headless/CI builds have no Steam client, so
+  default them to explicit (or skip Ludeo activation) — otherwise they all fail with `InvalidAuth`.
+- **Ludeo Cloud:** the cloud infrastructure handles environment selection and authentication — you
+  do **not** configure Steam or auth settings for cloud instances. The implicit-auth Steam-init
+  requirement above is for Steam builds on the player's machine.
 
 ### Dev/QA runtime overrides — change these without rebuilding
 
