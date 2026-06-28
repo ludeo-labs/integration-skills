@@ -135,6 +135,8 @@ file — so the user experiences each as a single phase.
   - `REFERENCE-ARCHITECTURE.md` — the prescribed integration layer (`LudeoController` /
     `LudeoFlowSwitch` / `LudeoGameplaySessionManager` / `ILudeoStateHandler` / `LudeoKeys`).
   - `UPM-INSTALL-AND-DEFINES.md` — install paths, scripting defines, the dummy-impl pattern.
+  - `LAUNCH-AND-READINESS.md` — launch models (menu-gated vs. boot-straight-to-gameplay) + the
+    SDK-readiness gate that replaces the menu's implicit Activate/consent wait.
   - `CONSENT-AND-OVERLAY.md` — consent gating, gallery, pause/resume overlay notifications.
   - `READING-UNITY-LOGS.md` — locating and reading `Editor.log` / `Player.log` for the compile/run gates.
 

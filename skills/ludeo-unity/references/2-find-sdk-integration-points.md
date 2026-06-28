@@ -31,6 +31,10 @@ boundary actions will go.
     sub-structure** (open-world / streaming / sandbox / state-machine-driven), also read
     `ludeo-integration-docs/game-patterns/open-world.md` — doctrine for which `start_sites[]` binds
     `OpenRoom` and which `exit_sites[]` become `End`/`Abort`.
+  - **If `CODE_MAP.launch_model.readiness_gate_required` is `true`** (boot-straight / preselected /
+    fast-skippable menu), also read `ludeo-integration-docs/unity/LAUNCH-AND-READINESS.md` — the init
+    site and the gameplay-start (`OpenRoom`) site **collapse onto the same scene**, and `OpenRoom`
+    becomes **gate-driven**, not a synchronous game call after `InitLudeoSession`.
 
 ## 3. Steps
 
@@ -71,6 +75,13 @@ Surface to the orchestrator; don't guess:
 
 > **Do NOT map an SDK tick.** The plugin ticks itself via `LudeoUnityManager` (CR-005). The only
 > per-frame game call is the `[Layer]` `UpdateStateObjects()` sampling site.
+
+> **Boot-straight launch model (`launch_model.readiness_gate_required`):** `OpenRoom` does **not** bind
+> to a synchronous call in the gameplay scene's `Start()` — the scene auto-starts before the SDK is
+> ready, so a creator room opened there no-ops against the still-`Disabled` flow switch. Map `OpenRoom`
+> as **gate-driven** (fired when the readiness gate releases with `canCreate`), and record the
+> **bootstrap site** (`RuntimeInitializeOnLoadMethod` / build-index-0 boot scene) where init must run
+> before that `Start()`. Detail: `unity/LAUNCH-AND-READINESS.md`.
 
 **Callback-driven — NOT game integration points (CR-009).** Note where the façade will wire them, but
 they are not call sites picked from game code:

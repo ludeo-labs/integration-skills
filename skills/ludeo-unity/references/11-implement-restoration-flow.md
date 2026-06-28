@@ -158,6 +158,14 @@ identity** (which scene to load) from the world/definitions bucket here, with a 
 this is flow-owned and does not need task 4's per-entity apply. **At the menu / startup there is no player
 or world — you *boot* one here**, not restore into the menu (it silently no-ops, `07 §2`).
 
+> **Boot-straight launch model (`CODE_MAP.launch_model`):** the assumption above ("no player or world
+> yet") flips. When the game boots straight into gameplay, the first scene may have **already
+> instantiated the default new-game world — and possibly auto-started a creator run** — before
+> `LudeoSelected` resolves. So here you **reset / reload the already-live scene** rather than boot a
+> fresh one, and the re-entrant teardown (§2.2) must tear down that auto-started creator run. The
+> play-path auto-start is suppressed under `IsInLudeoFlow` (Step 5). See
+> `unity/LAUNCH-AND-READINESS.md` §3.2.
+
 Map `m_onStopGame` onto this game's "freeze the active run" hook. The gallery entry point
 (`OpenLudeoGallery` `[Layer]`, consent-gated) comes from CONSENT-AND-OVERLAY — confirm it's wired.
 
