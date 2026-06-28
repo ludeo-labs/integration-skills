@@ -43,8 +43,6 @@ LudeoManager  (static entry point)
 - **Play (restore):** `LudeoSelected` notification → `GetLudeo(id)` → read `LudeoDataReader` →
   `OpenRoom(roomId, ludeoId)` → `AddGamePlayer` → `RoomReady` → apply state → `Begin`.
 
-`LudeoRoom.IsLudeo` distinguishes the two at runtime (`true` = playing a Ludeo).
-
 ---
 
 ## `LudeoManager` — static entry point (`IDisposable`)
@@ -93,8 +91,8 @@ Get it from the `InitLudeoSession` callback. Register notifications **before** `
 
 ## `LudeoRoom` — gameplay room (`IDisposable`)
 
-Singleton-style: `static LudeoRoom ActiveRoom`. `bool IsLudeo` (play vs create). Obtained from the
-`OpenRoom` callback (`data.ludeoRoom`) or the `RoomReady` notification.
+Singleton-style: `static LudeoRoom ActiveRoom`. Obtained from the `OpenRoom` callback
+(`data.ludeoRoom`) or the `RoomReady` notification.
 
 | Member | Signature |
 | --- | --- |
