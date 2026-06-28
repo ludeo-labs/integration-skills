@@ -26,11 +26,25 @@ for **2021.3 LTS+**); there is no `.unitypackage` asset and no git-URL install i
 ### Choose the install method
 Install the extracted package one of these ways:
 
-| Method | Best for | How |
-| --- | --- | --- |
-| **Local UPM package** (recommended) | Any supported Unity (2021.3 LTS+) | Add a `file:` line to `Packages/manifest.json`, or Package Manager → **+** → *Add package from disk* → the extracted folder's `package.json`. |
-| **Embedded package** | Vendoring the package into the repo | Copy the extracted `com.ludeo.sdk` folder into the project's `Packages/` directory. |
-| **`.unitypackage`** | Only if Ludeo handed you one directly | *Assets → Import Package → Custom Package* → select the file. |
+| Method | Best for | Mutable? | How |
+| --- | --- | --- | --- |
+| **Local UPM package** — `file:` to the extracted **folder** (recommended) | Any supported Unity (2021.3 LTS+) | ✅ referenced **in place** | Add a `file:` line to `Packages/manifest.json`, or Package Manager → **+** → *Add package from disk* → the extracted folder's `package.json`. |
+| **Embedded package** | Vendoring the package into the repo | ✅ | Copy the extracted `com.ludeo.sdk` folder into the project's `Packages/` directory. |
+| **`.unitypackage`** | Only if Ludeo handed you one directly | ✅ (imports into `Assets/`) | *Assets → Import Package → Custom Package* → select the file. |
+
+> **⚠️ Install the package *mutable*.** The plugin's editor setup writes back into its **own package
+> files** (rewrites a constant in its source + edits the native DLL `.meta` importer settings), so a
+> read-only install makes those writes **fail silently** and can misconfigure the core DLL. Unity's
+> mutability is **not** uniform across install forms:
+>
+> | Install form | Mutable? |
+> | --- | --- |
+> | `file:` → a **folder** (the recommended path) | ✅ mutable, referenced in place |
+> | Embedded folder under `Packages/` | ✅ mutable |
+> | `file:` → a **`.tgz`** tarball | ❌ copied to read-only `Library/PackageCache` |
+> | Git URL / registry | ❌ read-only `PackageCache` |
+>
+> Point `file:` at the **extracted folder**, never a tarball; avoid git-URL/registry installs.
 
 ### UPM via `manifest.json`
 A local UPM dependency is a line in `Packages/manifest.json` pointing at the extracted package folder
@@ -38,9 +52,11 @@ A local UPM dependency is a line in `Packages/manifest.json` pointing at the ext
 ```json
 { "dependencies": { "com.ludeosdk.unity": "file:../path/to/Release/com.ludeo.sdk@<version>", "...": "..." } }
 ```
-Keep the extracted folder somewhere stable (a temp dir breaks resolution later). A pinned git URL
-(`"com.ludeosdk.unity": "https://…/com.ludeo.sdk.git#<tag>"`) also works **if** Ludeo grants repo
-access, but the release `.zip` is the supported default.
+Keep the extracted folder somewhere stable (a temp dir breaks resolution later), and point `file:` at
+the **folder**, not a `.tgz` — a tarball lands in the read-only `PackageCache` (see the mutability note
+above). A pinned git URL (`"com.ludeosdk.unity": "https://…/com.ludeo.sdk.git#<tag>"`) resolves **if**
+Ludeo grants repo access, but it is **immutable** (PackageCache); the release `.zip` extracted to a
+folder is the supported default.
 
 ---
 
@@ -118,7 +134,8 @@ empty) for implicit Steam auth.
 
 `LudeoSettings.asset` is baked into `resources.assets` at build time, so a shipped player can't change
 it. QA teams iterating on a built (non-Editor) game need to flip the **dev triad** —
-`runWithoutLauncher`, `launcherUserId`, `ludeoToAutoStart` — **per tester, without a rebuild each time.**
+`runWithoutLauncher`, `launcherUserId`, `ludeoToAutoStart` (plus `betaVersion`, required alongside
+`launcherUserId` for no-launcher auth) — **per tester, without a rebuild each time.**
 
 The sibling C++/proprietary skill solves this with a `ludeo.ini` next to the executable (its canonical
 config source). Unity's model differs — the baked `.asset` stays the production source of truth (phase 13
@@ -147,7 +164,8 @@ gated so it can never affect a production build:**
                var key = line.Substring(0, eq).Trim(); var val = line.Substring(eq + 1).Trim();
                switch (key) {
                    case "runWithoutLauncher": s.runWithoutLauncher = val.ToLower() == "true"; break;
-                   case "launcherUserId":     s.launcherUserId     = val; break;
+                   case "launcherUserId":     s.launcherUserId     = val; break;   // required with betaVersion in no-launcher mode
+                   case "betaVersion":        s.betaVersion        = val; break;   // required with launcherUserId in no-launcher mode
                    case "ludeoToAutoStart":   s.ludeoToAutoStart   = val; s.autoStartInLudeo = !string.IsNullOrEmpty(val); break;
                    default: continue;
                }
@@ -165,18 +183,20 @@ gated so it can never affect a production build:**
    LudeoManager.InitLudeoSession(/* … */);
    ```
 4. **Author `ludeo-dev.ini` with the *actual* QA values — do not ship placeholders.** Ask the user for
-   the tester Steam id, whether to skip the launcher, and any Ludeo id to auto-replay, and write them in:
+   the tester Steam id, the Steam beta branch name (`betaVersion` — required alongside the Steam id in
+   no-launcher mode), whether to skip the launcher, and any Ludeo id to auto-replay, and write them in:
    ```ini
    # Ludeo DEV/QA overrides — applied ONLY in LUDEO_DEV builds, never production. key = value; '#' = comment.
    runWithoutLauncher = true          # true = skip Steam/launcher auth for local QA
-   launcherUserId     = QA_TESTER_1   # Steam id/username to run as in no-launcher mode
+   launcherUserId     = QA_TESTER_1   # Steam id to run as in no-launcher mode — REQUIRED with betaVersion
+   betaVersion        = public        # Steam beta branch name — REQUIRED with launcherUserId; auth rejects if either is missing
    ludeoToAutoStart   =               # a Ludeo id to auto-replay on launch; blank = normal capture
    ```
 5. **Ship `ludeo-dev.ini` to the build output** (a build post-process / copy step, same as any sidecar
    file). It only matters for `LUDEO_DEV` builds; a production build never reads it.
 
-**Ordering caveat:** `runWithoutLauncher` + `launcherUserId` are consumed at `Activate()`, which your
-integration layer owns, so overriding before `InitLudeoSession` is safe. `ludeoToAutoStart` /
+**Ordering caveat:** `runWithoutLauncher` + `launcherUserId` + `betaVersion` are consumed at `Activate()`,
+which your integration layer owns, so overriding before `InitLudeoSession` is safe. `ludeoToAutoStart` /
 `autoStartInLudeo` are read by the package's own `LudeoUnityManager`, which may initialize *before* your
 bootstrap — if the auto-replay doesn't pick up the override, run `ApplyOverrides()` from a
 `[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]` (earliest hook) or disable

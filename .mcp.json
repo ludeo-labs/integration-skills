@@ -1,11 +1,11 @@
 {
-  "$comment": "Wires the Ludeo SDK documentation MCP server so agents look up SDK APIs instead of guessing. Copy values from your environment; do not commit secrets.",
+  "$comment": "Wires the hosted Ludeo SDK documentation MCP server so agents search SDK docs instead of guessing. Set X-User-Name to your Ludeo username (the local-part of your Ludeo email, e.g. jane.doe); do not commit secrets. This matches the sdk-docs entry the skills ship in skills/<name>/config/mcp_config.template.json.",
   "mcpServers": {
     "sdk-docs": {
-      "command": "npx",
-      "args": ["-y", "@ludeo/sdk-docs-mcp"],
-      "env": {
-        "LUDEO_DOCS_BASE_URL": "${LUDEO_DOCS_BASE_URL:-https://docs.ludeo.com}"
+      "type": "http",
+      "url": "https://ludeo-mcps-sdk-docs.ludeo.com/mcp",
+      "headers": {
+        "X-User-Name": "<your-username>"
       }
     }
   }
