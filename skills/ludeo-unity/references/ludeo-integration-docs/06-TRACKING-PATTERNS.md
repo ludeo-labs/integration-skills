@@ -480,7 +480,7 @@ Track if (1) AND (2 OR 3-not-derivable) AND (4-has-meaning).
 
 | Property kind | Typical | Caveat |
 |---|---|---|
-| Position / rotation / scale | Track (`Vector3`/`Quaternion`) | Attached objects: track the attachment relationship instead |
+| Position / rotation / scale | Track (`Vector3`/`Quaternion`) | Attached objects: track the attachment relationship instead. **Absolute world position is only restorable if the world's spatial frame is rebuilt identically** — for procedural / streamed / randomized layouts (or a runtime **floating-origin / origin-rebasing** shift, which trips even an **authored** world) the geometry sits at a different origin/rotation than at capture, so capture/replay the resolved placement (`game-patterns/procedural-world.md` §3 Placement, §5) or store positions relative to a stable reconstructed frame. Detected up front by phase 1's world-frame probe → `CODE_MAP.session_boundaries.world_frame` |
 | Velocity | Usually track | Skip only if restoration reconstructs motion from position-over-time |
 | Health / ammo / resource | Track (current, not max) | Max is usually static |
 | Enum state (alive/dead, AI mode) | Track as `int` | Serialize the enum to int; document meaning |

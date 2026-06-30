@@ -96,7 +96,7 @@ the tracked set, the capture writers, and the `ApplyRestoredState()` data read-b
 | 1 | Implement object tracking (capture) | `references/9-implement-object-tracking.md` | **per wave** (additive) | capture `.cs` for N's types (register + `OnStateDataUpdate` writers + keys) | **recompile clean + play + actually capture a session**, registration fires, no `LudeoResult` errors |
 | 2 | Plan state restoration | `references/10-plan-state-restoration.md` | **per wave** (append) | wave N's rows in `RESTORATION_PLAN.md` | **human reviews & approves the rows** (no code/run) |
 | 3 | Implement restoration flow | `references/11-implement-restoration-flow.md` | **ONCE (wave 1 only)** | flow `.cs` + `LudeoRestoredData` + `ApplyRestoredState()` **stub** | **play a captured Ludeo**: freeze → captured scene loads → stub reached in order → `Begin`; replay→replay tears down clean; overlay pause/resume |
-| 4 | Implement state reconstruction | `references/12-implement-state-reconstruction.md` | **per wave** (additive buckets) | wave N's buckets filled in `ApplyRestoredState()` (two-pass read-back) | **play a captured Ludeo**: wave N's cumulative set restores on first frame, non-zero two-pass counts, cross-ref resolved; replay-twice shows the **second's** state |
+| 4 | Implement state reconstruction | `references/12-implement-state-reconstruction.md` | **per wave** (additive buckets) | wave N's buckets filled in `ApplyRestoredState()` (two-pass read-back) | **play a captured Ludeo**: wave N's cumulative set restores on first frame, non-zero two-pass counts, cross-ref resolved; **placement sanity — no restored entity sits in empty space / far from the geometry** (§ below); replay-twice shows the **second's** state |
 
 **No task here is hands-off** — every one ends in a human gate the orchestrator must run, because the
 agent **cannot see the Unity Editor Console** and the capture/replay gates require the human to actually
@@ -110,6 +110,22 @@ captured. So **each wave's** task-1 gate is not just "capture compiles and runs"
 **actually play the game and capture at least one (ideally two, for the replay-twice tests) Ludeo** that
 includes **that wave's** new attributes before task 4 (and, in Wave 1, task 3) is tested. Make this ask
 explicit at every wave's task-1 gate.
+
+> **Required at the Task-4 gate: a placement sanity check from a deep-state capture.** Two parts, both
+> mandatory — not advisory:
+> 1. **Capture past the run's start, not at a level's origin.** A capture taken at the first room/level
+>    can sit at the engine's instantiate origin (an identity frame), so absolute positions restore
+>    correctly *there* even when the world's spatial frame is rebuilt non-deterministically elsewhere —
+>    masking the bug entirely. Require the gate's Ludeo to be captured **mid-run / past the first
+>    segment**.
+> 2. **Look at where the restored entities land.** Ask the integrator the symptom question directly:
+>    *"On the restored first frame, does any entity (player, enemies, props) sit in empty space, fall
+>    through the floor, or appear far from the geometry?"* A **yes** is a displaced-frame bug — the
+>    captured world frame wasn't reconstructed (`CODE_MAP.session_boundaries.world_frame`;
+>    [`game-patterns/procedural-world.md`](ludeo-integration-docs/game-patterns/procedural-world.md) §3/§5).
+>    This is a **symptom-level** check: it catches the failure even when phase 1's up-front detection
+>    missed the cause, and it doubles as a general "is the restore visually coherent" gate, not a
+>    genre-specific one.
 
 ### Re-capture every wave (schema invalidation)
 
@@ -135,13 +151,16 @@ The orchestrator relays whatever a subagent surfaces — it does not invent its 
 - **Task 2 (plan):** the apply's sync/async shape (freeze vs suppress); missing scene-loader completion
   signal; disagreements between this wave's `OBJECT_TRACKING.md` rows and `CODE_MAP.save_system.per_entity`.
 - **Task 0 gate:** approve **wave N's** appended rows.
-- **Task 1 gate:** confirm a clean recompile + a **captured** session that includes wave N's attributes
-  (and capture a 2nd Ludeo for the replay-twice tests). **Re-capture** if a prior wave's Ludeo is stale.
+- **Task 1 gate:** confirm a clean recompile + a **captured** session that includes wave N's attributes,
+  **captured mid-run / past the first segment** (an origin capture masks displaced-frame bugs — see the
+  Task-4 placement check) — and capture a 2nd Ludeo for the replay-twice tests. **Re-capture** if a prior
+  wave's Ludeo is stale.
 - **Task 2 gate:** approve **wave N's** rows in `RESTORATION_PLAN.md`.
 - **Task 3 gate (wave 1):** confirm the flow play-test (freeze → scene load → stub → `Begin`; replay→replay;
   overlay).
-- **Task 4 gate:** confirm wave N's cumulative restored state on the first frame + the replay-twice no-leak
-  test.
+- **Task 4 gate:** confirm wave N's cumulative restored state on the first frame + the **placement sanity
+  check** (no restored entity floating / fallen-through / far from geometry, from a deep-state capture —
+  §3) + the replay-twice no-leak test.
 - **End of each wave:** "wave N restores — widen to wave N+1?" (confirm-before-widen).
 
 ## 5. Patterns to apply
@@ -195,6 +214,9 @@ green**, and is **fully complete when the last wave in the plan is green**.
       not stale).
 - [ ] **Captured highlight plays back and visibly restores wave N's cumulative set** on the first frame
       (task 4 gate), two-pass counts non-zero, cross-refs resolved.
+- [ ] **Placement sanity, from a deep-state capture** — the gate's Ludeo was captured mid-run (not at a
+      level's origin), and no restored entity floats in empty space / falls through / sits far from the
+      geometry (task 4 gate). Catches displaced-world-frame bugs the symptom way, regardless of genre.
 - [ ] **Replay→replay** (in one session) tears the prior run down cleanly and shows the **second** Ludeo's
       state — no stale-flag deadlock, no dropped-`Start` defaults, no persistent-singleton leak (tasks 3–4).
 

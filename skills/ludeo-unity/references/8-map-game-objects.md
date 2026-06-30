@@ -120,6 +120,23 @@ spawn pattern (dynamic / scene-placed / both), whether it streams in/out (+ its 
 > level index (level-based), `RunMetadata` selection id (procedural), persistent world/region id
 > (open-world). Record it as a singleton "definitions"/"world" objectType, **load-bearing = yes, Wave 1**.
 
+> **⚠️ Identity is not placement — absolute world positions need a deterministic spatial frame.** Before
+> tracking any object's **absolute world position**, ask: is the level geometry **placed** deterministically
+> across runs? **Phase 1 already answered this from the code** — check
+> `CODE_MAP.session_boundaries.world_frame` (and `assembly`); if `world_frame.deterministic == false` (or it
+> wasn't probed), treat absolute positions as unsafe until you confirm the frame. The answer is usually
+> **no** for procedural / streamed / randomized layouts — the world re-assembles at a different
+> origin/rotation each run (connector alignment + offsets, often from an unseeded RNG) — **and also for a
+> runtime floating-origin / origin-rebasing world, which is `assembly: "authored"` yet still
+> frame-nondeterministic.** Then the absolute positions you captured restore into the void. Reproducing
+> *which* content
+> (rooms/levels — the identity key above) is **necessary but not sufficient**; you must also reproduce its
+> **placement**: either capture/replay the resolved layout transforms at the engine's placement seam, or
+> capture positions relative to a stable reconstructed frame (`06 §9.4`; for procedural,
+> `game-patterns/procedural-world.md` §3 Placement + §5). The tell is partial success — a capture in the
+> run's first room (still at origin) restores perfectly while deeper ones break, which is why a quick
+> start-of-level smoke test misses it (verify from a deep state — `9-tracking-restore-orchestrator.md`).
+
 > **⚠️ Always identify a time-base / continuity singleton — resume the moment, don't restart it.** A
 > viewer-centric sweep (§9.2) misses it because it lives on a **manager/singleton**, not a visible
 > GameObject: master/session clocks (music/scheduler position, beat/bar index, global timer), active

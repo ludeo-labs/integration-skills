@@ -512,11 +512,16 @@ don't restore them; record why.
 > **Procedural / non-deterministic assembly** (roguelike / procedural dungeon / wave-survival —
 > `game-patterns/procedural-world.md`): the scene is a **container** and **loading it re-rolls content**.
 > Restoring "definitions" here means **re-driving the generator from the captured `RunMetadata`** — the
-> selection id (chunk/room/seed), sub-roll id (encounter/wave-set), progress cursor (wave/depth), and
-> scaling counter (combat level) — and **suppressing the re-roll** so the builder reproduces the captured
+> selection id (chunk/room/seed), sub-roll id (encounter/wave-set), progress cursor (wave/depth),
+> scaling counter (combat level), **and — when the generator rolls the world *transform* (connector
+> alignment + per-transition offset), not just the content — the resolved per-room placement (transforms
+> / connector indices)** — and **suppressing the re-roll** so the builder reproduces the captured
 > assembly instead of rolling fresh. The clean mechanism is the same `IsInLudeoFlow` `[Layer]` gate used
-> for pre-match suppression: under it, `RandomChunk`/`GetEncounterByLevel`/wave-rolls return the captured
-> id. Restore the scaling counter **before** any post-restore spawn, and assemble the container **before**
+> for pre-match suppression: under it, `RandomChunk`/`GetEncounterByLevel`/wave-rolls **and the
+> connector/placement roll** return the captured value. **Placement is a distinct layer:** suppress the
+> layout/content roll and the room still lands at a fresh world transform unless you also replay its
+> captured placement, so the absolute entity positions you restore via the two-pass point into the void.
+> Restore the scaling counter **before** any post-restore spawn, and assemble the container **before**
 > the two-pass entity restore (§4). "Load the scene" alone is **not** restoration for these games.
 
 ---

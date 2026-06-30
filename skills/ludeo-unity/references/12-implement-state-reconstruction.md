@@ -213,7 +213,10 @@ entities when a world flag could despawn/alter a just-spawned entity. Honor the 
 > `RunMetadata` (via `GetLudeoTrackedDefinitions()` `[Layer]`) and **re-drive the level builder/pool from
 > the generation inputs**, gating `RandomChunk`/`GetEncounterByLevel`/wave-rolls on `IsInLudeoFlow` so they
 > return the *captured* ids instead of rolling. Restore the scaling counter (combat level) **before** any
-> post-restore spawn, and assemble the container **before** the two-pass entity restore.
+> post-restore spawn, and assemble the container **before** the two-pass entity restore. **If the room's
+> load-time `Setup` consumes the scaling counter / room list *during scene load*** (before this method
+> runs), arming it here is too late — arm it at `onBeginRestore`, pre-LoadScene (`11` Step 3). This method
+> owns only what the world consumes **after** the scene is up.
 
 ### Step 8: Pre-existing-object reconciliation (07 §9)
 For each batch-registered type, implement the plan's match-vs-spawn decision — **match** the scene-placed
