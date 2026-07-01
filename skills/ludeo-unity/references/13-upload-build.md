@@ -308,6 +308,9 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
 > processed the build and can run Ludeos from it) as the bar — there is **no discrete step that actually
 > runs/plays a Ludeo in the cloud** to confirm it. Leave this as an explicit gap to fill later (a CLI
 > command or platform action), per the team decision (2026-06-17). Do not fabricate a cloud-run step.
+> **Once a cloud-run step exists:** re-run the `07-RESTORATION-PATTERNS.md` §12 triple re-entry and
+> induced-latency tests there, not only in the Editor — local/editor teardown timing is exactly what
+> masks the leaks and races those tests are designed to catch (§2.3, §2.1 invariant 6).
 
 ## 4. Questions to ask the human
 

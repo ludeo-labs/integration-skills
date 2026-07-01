@@ -406,7 +406,7 @@ owns nothing new — go there. Two rules that intersect tracking:
 > **Actions fire in BOTH flows; state is capture-only.** `SendAction` re-fires at the same sites
 > during playback so the SDK can score the Ludeo's win/fail conditions — **never gate it on
 > `IsInLudeoFlow`**. State writes (`SetAttribute`, the per-tick capture in §3) **are** creator-only;
-> the play flow reads state back instead of writing it (see `07 §2.3`).
+> the play flow reads state back instead of writing it (see `07 §1.3`).
 
 ---
 

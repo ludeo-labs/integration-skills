@@ -96,6 +96,14 @@ results. All patterns are **Unity-native** — adapt based on what the project r
   `Grep("Random\.|new System\.Random|Seed|RandomChunk|RandomEncounter|LevelPool|ChunkPool|SelectionPool|GetLevelChoices|Instantiate.*[Pp]refab.*\[")`.
   Positive signal is content **selected/built at load**. A scene that always loads the same authored
   content is **not** procedural even if it uses `Random` for cosmetics.
+- **Networking-layer probe** (run for every game; positive → fill `networking_layer`):
+  `Grep("NetworkRunner|NetworkObject|NetworkBehaviour|PhotonNetwork|NetworkManager|ServerChangeScene")`
+  (Fusion/Mirror/Netcode for GameObjects signatures). On a hit, determine `scene_transition_owner`: does
+  the game's scene-change call site route through that layer's own scene API (`Runner.LoadScene`,
+  `NetworkManager.ServerChangeScene`, `NetworkManager.SceneManager.LoadScene`), or a plain
+  `SceneManager.LoadScene`/`LoadSceneAsync`? Also grep for and record the game's **own existing**
+  "quit to menu" / "restart run" scene-transition function (`file:line`) — `11-implement-restoration-flow.md`
+  needs it to decide whether to reuse it instead of authoring a new scene-load call.
 - **List every distinct way gameplay is left** — each is a required `End`/`Abort` site later (CR-007).
 
 **6b. Non-ludeoable areas (mid-gameplay segments)** — segments *inside* live play that should never
@@ -189,9 +197,18 @@ Decide **two orthogonal things** about how this game models a session:
    and set `session_boundaries.assembly = "procedural"` — capturing "which scene" won't relocate the
    moment (reload yields an empty container and re-rolls content), so phases 8/10 must capture the
    **generation inputs**.
+3. **Object-lifecycle ownership** — does gameplay run on a networking layer (Photon Fusion, Mirror,
+   Netcode for GameObjects) or an ECS/DOTS world with its **own spawn/despawn lifecycle**, independent
+   of Unity's scene lifecycle? If yes, determine whether scene transitions route through that layer's
+   own scene API or a plain `SceneManager.LoadScene`/`LoadSceneAsync`. **The latter is a live bug, not
+   a style choice:** a plain engine-level scene load never tells the layer the scene changed, so it
+   never despawns the objects it owns — they survive into the next restore (orphaned enemies, leaked
+   controllers, duplicate live objects). This is genre-orthogonal — record it regardless of what genre
+   file(s) load — and it gates a **required** decision in `11-implement-restoration-flow.md` (the task
+   that authors the restore scene-load call), not just a note here.
 
 These axes are independent: a game can be procedural *and* level-based, procedural *and* streaming, or
-neither.
+neither — and object-lifecycle ownership is orthogonal to both.
 
 ## 6. Output Contract
 
@@ -221,6 +238,12 @@ neither.
    - `non_ludeoable_candidates` — mid-gameplay non-ludeoable segments (shops/dialogue/tutorials/safe
      zones/cutscenes), each `{ kind, enter: {file, line, trigger}, exit: {file, line, trigger} }`.
      Phase 2 maps these to `StartNoneLudeable`/`StopNoneLudeable` boundary actions. Empty if none found.
+   - `networking_layer` — `{ framework: "Fusion"|"Mirror"|"Netcode for GameObjects"|null,
+     scene_transition_owner: "layer"|"plain-loader"|"unresolved", existing_transition_fn: "file:line"|null }`.
+     `null` framework when the networking-layer probe found nothing (the common case) — record it as
+     absent, don't omit the field. **`"plain-loader"` or `"unresolved"` with a non-null framework is a
+     required gate in `11-implement-restoration-flow.md`**, not just a note: the game's netcode/ECS
+     layer will leak objects across restores if the restore scene-load bypasses its own scene API.
    - `object_model` — trackable entity classes, their prefabs, and spawn/despawn sites
    - `event_systems` — pattern type (C# event / `Action` / `UnityEvent` / bus) with examples
    - `input_ai` — input model; whether AI/bots exist, how they spawn, controllability

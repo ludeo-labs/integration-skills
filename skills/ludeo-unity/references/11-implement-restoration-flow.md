@@ -47,6 +47,12 @@ It is the part integrations most often get wrong, so it gets its own task and it
       **Hard prerequisite:** the resume re-uses `phase 2`'s `RoomReady → Begin` chain, not a new path.
 - [ ] **Recommended:** task 1 (`phase 9`) done, so the `objectType` strings and `LudeoKeys` constants the
       entry-identity read touches are real. The bulk of task 1's mirror is task 4's concern.
+- [ ] **Phase 1** → `ludeo-integration-plan/CODE_MAP.json` exists, specifically its `networking_layer`
+      field (`1-map-game-code.md` §5/§6). **Step 1.6's netcode/ECS scene-load gate depends on this file
+      being handed to this task** — the orchestrator must pass its path alongside `RESTORATION_PLAN.md`,
+      not assume it's implicitly available. If it's missing (an integration that predates this field, or
+      an orchestrator that didn't pass it), treat the field as `unresolved` and follow Step 1.6's
+      ambiguous-case branch (ask the human) rather than silently skipping the gate.
 - [ ] Context files read (relative to this brief — the **flow** reading list; two-pass / per-object /
       reconciliation / environment in `07 §4/§5/§6/§8/§9` belong to task 4):
   - `ludeo-integration-docs/07-RESTORATION-PATTERNS.md` — **§2** (the flow + ordering invariants), **§2.2**
@@ -120,6 +126,36 @@ Pick whichever matches where this game loads its gameplay scene. **Also wire the
 selection-time hook** (kicks the scene load before the room opens) and its scene-load completion signal
 (`NotifySceneReadyForRestore()`) — `phase 2` scaffolds them; fill them in. **`ApplyRestoredState()` is a
 stub at this point (the Seam)** — you are wiring *where* it runs, not *what* it does.
+
+### Step 1.6: Netcode/ECS scene-load gate (required, before wiring `onBeginRestore`'s scene load)
+
+Read `CODE_MAP.json`'s `networking_layer` field (`1-map-game-code.md` §5/§6) before writing the
+`onBeginRestore` scene-load call. This gate is as load-bearing as the DOTS/ECS stop-gate elsewhere in
+this skill (`8-map-game-objects.md` Step A2) — do not skip it because "the game already has a scene loader."
+
+- **`framework` is `null`** (no networking/ECS layer found): plain `SceneManager.LoadScene`/
+  `LoadSceneAsync` is correct, as shown in `unity/REFERENCE-ARCHITECTURE.md`. Proceed.
+- **`framework` is non-null and `scene_transition_owner` is `"layer"`**: the game already routes its own
+  scene transitions through that layer's scene API — mirror that call for the restore path; don't
+  introduce a new plain `SceneManager` call alongside it.
+- **`framework` is non-null and `scene_transition_owner` is `"plain-loader"` or `"unresolved"`**: **stop
+  — do not author a fresh `SceneManager.LoadScene`/`LoadSceneAsync` call for `onBeginRestore`.** A plain
+  engine-level scene load never tells the layer the scene changed, so it never despawns the objects the
+  layer owns (`NetworkObject`s, an ECS `World`'s entities) — they survive, orphaned, into the restored
+  scene (`07-RESTORATION-PATTERNS.md` §2.3 is the catch-net for this; getting this step right is the
+  actual fix). Instead, in this order of preference:
+  1. **Reuse the game's existing quit-to-menu / restart-run transition function**
+     (`existing_transition_fn` from the CODE_MAP) if one exists — the game's own multiplayer correctness
+     must already route through the layer's scene API for that path to work at all.
+  2. If no such function exists, route through the layer's own scene API directly (Fusion
+     `Runner.LoadScene`, Mirror `NetworkManager.ServerChangeScene`, NGO
+     `NetworkManager.SceneManager.LoadScene`).
+  3. **If it's ambiguous which existing function applies, or none clearly does** — ask the human (§4)
+     rather than guessing; a wrong guess here silently corrupts every restore after the first, and won't
+     show up until the orchestrator's replay→replay check (GATE 3/GATE 4).
+
+Record which branch applied in this task's hand-back summary — the orchestrator's flow gate should watch
+for it specifically on replay→replay.
 
 ### Step 2: Add the restore-flow `[Layer]` — `LudeoRestoredData` + the apply stub (07 §3.1)
 `phase 2` wired the tracking side; add the **flow-side restore additions**:
@@ -233,6 +269,9 @@ Surface to the orchestrator; don't guess:
   adding it (`NotifySceneReadyForRestore()` awaitable) as a separate named change.
 - **Apply placement ambiguity** the plan didn't resolve (scene-load vs `onRoomReady`).
 - A **freeze-vs-suppress** decision the plan left open for the apply's sync/async shape.
+- **Step 1.6's netcode/ECS scene-load gate is ambiguous** — the CODE_MAP found a networking/ECS layer
+  but no clear existing quit-to-menu/restart-run function to reuse, or it's unclear which one applies.
+  Never guess the scene-load call here; a wrong guess silently leaks objects across restores.
 
 ## 5. Patterns to apply
 
@@ -288,6 +327,10 @@ Surface to the orchestrator; don't guess:
       spawns, re-initializers) **and** flow-blocking (press-start gates, modals/popups, EULA/login, tutorial
       overlays). The Ludeo reaches the captured state *and* is interactive on the first visible frame.
 - [ ] Flows hold `m_data` from construction; no `#if` toggling (CR-001 runtime); backups for edited files.
+- [ ] **Step 1.6's netcode/ECS scene-load gate was run and its result recorded** — if `CODE_MAP.json`'s
+      `networking_layer.framework` is non-null, the restore scene-load call is not a fresh
+      `SceneManager.LoadScene`/`LoadSceneAsync`; it either mirrors the game's own layer-routed transition
+      or was explicitly surfaced to the human as ambiguous. Not silently defaulted.
 
 ## 8. Common Mistakes
 
@@ -299,6 +342,10 @@ Surface to the orchestrator; don't guess:
 - **One shared pause flag** or a bootstrap-only reset — stale flag deadlocks the replay→replay restore.
 - **`async void` scene loader with no completion signal** — `Begin`'s third leg never fires.
 - **Using the C++ `…Request` notification names** or calling `Begin` from a game event.
+- **Wiring a fresh `SceneManager.LoadScene` for the restore transition when the game runs on a
+  networking/ECS layer** (Step 1.6), instead of that layer's own scene API or the game's existing
+  transition function — the layer's objects never get told the scene changed and leak into the next
+  restore (`07-RESTORATION-PATTERNS.md` §2.3).
 
 ## Related / Next
 

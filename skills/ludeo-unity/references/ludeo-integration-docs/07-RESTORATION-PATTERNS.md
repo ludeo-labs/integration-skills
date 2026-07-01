@@ -52,6 +52,7 @@ Phase 10 (plan) leans on §1, §2, §8, §9, §10; phase 11 (flow) on §2, §3.1
 9. [Pre-Existing-Object Reconciliation](#9-pre-existing-object-reconciliation)
 10. [Wait-For-Player, Freeze & Overlay (CR-010/011)](#10-wait-for-player-freeze--overlay-cr-010011)
 11. [Validation Checklist](#11-validation-checklist)
+12. [Acceptance Testing — Re-entry and Race Conditions](#12-acceptance-testing--re-entry-and-race-conditions)
 
 ---
 
@@ -128,6 +129,20 @@ AddNotifyLudeoSelected (player picked a Ludeo in the gallery)        [SDK]
    loading cover up until then; the first frame revealed behind the (paused) overlay must be the **finished
    restored scene**, not a half-built one. Opening the room early to hide SDK latency is fine — but gate the
    *reveal* and the scene-ready leg on settle+freeze, or the player resumes onto a level still popping in (§10.1).
+6. **"Fully assembled" means the game's own last construction-stage signal — not early marker
+   objects.** A modern game world is often brought up in stages by its own bootstrap (a state machine, a
+   chain of coroutines, netcode spawn callbacks), and the player/controller objects frequently exist
+   several stages **before** the subsystem that actually owns the restored state (an objectives
+   controller, a wave/spawn director, a win-condition system). Firing `NotifySceneReadyForRestore()` the
+   instant a few marker objects are non-null is a race, not a fix — it can pass on a cold/slow first run
+   (asset streaming and JIT warmup give the bootstrap enough slack to finish first) and fail on every
+   faster re-entry after. Find the bootstrap's actual **terminal signal** — the state enum reaching its
+   "running" value, an explicit "world constructed" event — and gate on that, not on object presence.
+   **A second, distinct deadlock:** freezing the whole sim (CR-010) *before* that terminal signal fires
+   doesn't just protect the restored state — it can halt the very bring-up the signal was waiting on,
+   turning a race into a guaranteed hang. This is different from the async-apply-freeze deadlock in
+   §10.1 (that one stops `FixedUpdate` mid-apply); this one stops the game's own construction before it
+   ever reaches "ready."
 
 > **Two valid placements for "apply".** The tank applies at **scene-load** (its `ReplayLudeo` path, gated on
 > `IsInLudeoFlow`) and only calls `BeginGameplay` later in the `RoomReady` handler. REFERENCE-ARCHITECTURE's
@@ -162,6 +177,34 @@ unfrozen baseline (§10.3, done in `onBeginRestore`). **Start the new play ONLY 
 callback** — `Abort`/`CloseRoom` are async, so issuing them and then opening the new room synchronously
 stacks a second room over the still-closing one. See the wired `HandleGetLudeoDone` in §3.3 and the
 `AbortGameplay`/`ResetBeginGate` skeleton in [`unity/REFERENCE-ARCHITECTURE.md`](unity/REFERENCE-ARCHITECTURE.md).
+
+### 2.3 Networked/ECS-owned object teardown (catch-net, not the primary fix)
+
+Everything in §2.2 above resets state the **SDK/integration layer itself** owns (session, room,
+tracking, begin-gate, pause flags). It says nothing about the **game's own gameplay runtime** — and on
+a game built on a networking layer (Photon Fusion, Mirror, Netcode for GameObjects) or an ECS/DOTS
+world, that runtime has an object lifecycle of its own, independent of Unity's scene lifecycle.
+
+The primary fix is choosing the right scene-load call in the first place — that decision is a
+**required gate** in [`11-implement-restoration-flow.md`](../11-implement-restoration-flow.md) Step 1.6,
+driven by the `networking_layer` field `phase 1` records (`1-map-game-code.md` §5/§6). This section is
+the **catch-net**: if that gate was skipped, or the game's scene-transition hook doesn't fully cover
+every re-entry path, a partial teardown (§2.2 alone) leaves the netcode/ECS layer's objects — enemies,
+controllers, the player — orphaned and live when the next restore's scene loads on top of them. A
+plain `SceneManager.LoadScene`/`LoadSceneAsync` never tells that layer the scene changed, so it never
+despawns what it owns; the layer's own bookkeeping (a `NetworkRunner`, a DOTS `World`) still thinks
+those objects are live.
+
+**When the CODE_MAP `networking_layer.framework` is non-null:** the re-entrant teardown (§2.2) must
+also explicitly despawn/reset that layer's objects — route the teardown's scene transition through the
+layer's own scene API (so it despawns them as part of the transition), or, if that isn't wired, add an
+explicit despawn-all-owned-objects step before the new restore's scene loads. Verify with the §12
+triple re-entry test: a leak here shows up as duplicate/orphaned objects on the **second or third**
+restore in one process, never the first (no predecessor to leak from) and often not in the Editor if
+local teardown happens to finish before the next restore starts.
+
+When `networking_layer.framework` is `null` (no netcode/ECS layer), this section is a no-op — §2.2
+alone is sufficient.
 
 ---
 
@@ -686,6 +729,50 @@ anything this run set.
 - [ ] Apply is never preceded by an unfreeze (no live frames mid-restore); resume via `RoomReady → Begin`,
       not `ResumeGame`/`PlayerReady`.
 - [ ] CR-010 freeze and CR-011 overlay pause on separate flags (§10.3).
+
+---
+
+## 12. Acceptance Testing — Re-entry and Race Conditions
+
+The obvious test — capture a Ludeo, restore it once, in the editor — passes cleanly on every defect
+this document warns about, because each one lives along an axis that single-restore-in-editor test
+never exercises: **lifecycle** (most only appear on the second or third restore in one process,
+because they depend on state left over from a previous run) and **timing** (a readiness race is won
+by whoever is faster, and a cold editor run is usually fast enough to win it). A restore that "works"
+only because the game happened to win the race, or only on the first run, is not working — it is
+failing intermittently in a way the obvious test is structured not to see.
+
+### 12.1 Triple re-entry test
+
+Extend the replay-twice check already required at the task-4 gate
+(`9-tracking-restore-orchestrator.md`) to **three** restores in one process, without quitting or
+restarting the Editor: (1) capture a Ludeo, (2) restore it, (3) pick a second Ludeo from the overlay
+and restore that, (4) pick a third and restore that. Assert the **third** restore is exactly as clean
+as the first — no stale-flag deadlock (§10.3), no dropped-`Start` defaults (§4), no persistent-singleton
+leak (§4/§9), and, if the game runs on a networking/ECS layer, no orphaned objects from either prior
+run (§2.3). Two restores can look clean by luck (the first leftover gets cleaned up just in time); a
+third restore is where an incomplete teardown compounds and becomes visible.
+
+### 12.2 Induced-latency race test
+
+Most of §2.1's ordering invariants and the M1 staged-readiness trap (§2.1 invariant 6) are races that
+an editor's fast, warm re-entry usually wins — which is exactly why they ship. Force the race to its
+**losing** side deliberately: artificially delay the scene-load-complete signal
+(`NotifySceneReadyForRestore()`) or the game's own construction-terminal signal (invariant 6) by a few
+hundred milliseconds (a `yield return new WaitForSeconds(...)` in the test path, or throttle asset
+loading), so `RoomReady` and `AddGamePlayer` arrive in whichever order the fast path never produces.
+Assert the restore still holds — no empty objectives (M1), no apply racing ahead of construction, no
+deadlock. If it only holds when the delay is zero, it doesn't hold.
+
+### 12.3 Where this runs
+
+Both tests are meant to run wherever the integration is currently tested — today that's the Unity
+Editor (per `9-tracking-restore-orchestrator.md`'s human-gated play tests). **Do not** treat an
+editor pass as sufficient evidence alone if the game has a networking layer or a staged bootstrap —
+call out in the gate report which of §12.1/§12.2 were exercised. `13-upload-build.md` §10 already
+tracks an explicit, unresolved gap that no step verifies a Ludeo actually running in the cloud; once
+that lands, re-run both tests there too, since local/editor teardown timing is exactly what masks
+these defects (§2.3, §2.1 invariant 6).
 
 ---
 

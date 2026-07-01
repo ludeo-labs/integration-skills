@@ -50,6 +50,8 @@ doesn't double-create during a restore.
       and stable-key attribute names you read back are **real and pinned**. **Hard prerequisite** — you
       cannot restore what task 1 didn't capture. If a key was renamed since the plan, reconcile first.
 - [ ] **Task 2** → `ludeo-integration-plan/RESTORATION_PLAN.md` exists and the user **approved** it.
+- [ ] **Phase 3** → `ludeo-integration-plan/OBJECT_TRACKING.md` (this wave's `## Entity` rows) — Step 1
+      reads it directly, alongside `RESTORATION_PLAN.md`, so every read-back mirrors task 1's write.
 - [ ] Context files read (relative to this brief — the **data** reading list; the LudeoSelected-flow /
       freeze / overlay sections `07 §2/§10` belong to task 3):
   - `ludeo-integration-docs/07-RESTORATION-PATTERNS.md` — **§3.2/§3.3** (the restore-read `[Layer]`

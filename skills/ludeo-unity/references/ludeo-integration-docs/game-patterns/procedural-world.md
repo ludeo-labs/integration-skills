@@ -102,6 +102,16 @@ load order are meaningless). Four input kinds:
 | **Sub-roll identity** | the nested rolls the loader **re-rolls** on load | encounter id, enemy-wave-set id, modifier/affix ids | stable asset name (`EncounterSettingsId`) |
 | **Progress cursor** | *how far into* the assembled segment | wave index, room/floor depth, step count | `int` (`WaveIndex`, `Depth`) |
 | **Scaling counter** | run-scaling the reload resets | combat level, difficulty tier, ascension, heat | `int`/`float` (`CombatLevel`) |
+| **Resolved placement transform** | *where* the assembled content sits in world space, when placement is rolled **independently of content identity** | connector/portal offset, room world position/rotation picked at load | `Vector3`/`Quaternion` (`RoomPosition`, `RoomRotation`) |
+
+> **The placement row is easy to miss because it isn't ID-shaped.** The other three rows are all
+> ids/counters the builder looks up by; a resolved placement transform is a *geometric* value, and a
+> game can capture the right chunk/encounter/wave id and still restore wrong if the chunk's own
+> world-space transform is re-rolled independently (unseeded connector choice, a randomized portal
+> offset). Captured **entity** positions are relative to whatever transform the room happens to load
+> at — if that transform differs between capture and restore, correctly-restored entities land
+> mid-air or off-level even though every id matched. Only add this row when placement is actually a
+> separate roll from content selection; a fixed-position room needs no placement capture.
 
 Verify chosen identifiers are **unique among the content a real run can reach** (asset names usually
 are; list indices and `GetInstanceID()` are not). Capture these every tick alongside the player
@@ -152,6 +162,11 @@ level-based restore:
    > at that call — the layout/`ChunkDelta` capture from §2.1 — or capture the seed and re-seed *before*
    > the call (only if §4 says seed-capture is safe). A per-entry override can't reconstruct a
    > floor that was already fully built in one shot.
+   > **If placement is rolled separately from content** (the §3 "resolved placement transform" row),
+   > force the captured world transform on the assembled chunk/room too — not just its id. Re-driving
+   > the generator to the right *chunk* still leaves a wrong *position* if the connector/portal offset
+   > re-rolls independently; captured entity positions are relative to that transform and land mid-air
+   > or off-level if it doesn't match capture.
 2. **Restore the scaling counter before any post-restore spawns.** Set combat level / depth / tier from
    `RunMetadata` *before* the world spawns anything, or waves after the restore point mis-scale (the
    §1 third failure).

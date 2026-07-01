@@ -179,7 +179,7 @@ foreach (var (obj, restore) in created) {
 | Quit app | `OnApplicationQuit()` | ✅ End/Abort |
 | Scene unload | `OnDestroy()` of the gameplay manager / scene teardown | ✅ End/Abort |
 | `ReturnToMainMenu` notification | SDK overlay "exit to menu" | ✅ Abort + close room |
-| `LudeoSelected` while a run is active (mid-capture **or finishing a replay to play another**) | player picks a Ludeo mid-run or a second Ludeo from the overlay | ✅ **Abort session** + stop tracking + close room + **reset begin-gate / both pause flags / gameplay-active** (07 §2.2) |
+| `LudeoSelected` while a run is active (mid-capture **or finishing a replay to play another**) | player picks a Ludeo mid-run or a second Ludeo from the overlay | ✅ **Abort session** + stop tracking + close room + **reset begin-gate / both pause flags / gameplay-active** (07 §2.2/§2.3 — §2.3 also despawns a netcode/ECS layer's own objects if the game has one) |
 
 **Validation:**
 - [ ] Listed every function/scene-exit/notification that leaves gameplay.
@@ -227,7 +227,10 @@ handler — the room/player aren't ready yet. Chain them through the callbacks.
 > AddGamePlayer ∧ sceneLoaded`. **`sceneLoaded` means the scene is *fully assembled* — apply done, async
 > spawns settled, sim frozen-ready — not merely scene-activated; fire `NotifySceneReadyForRestore()` only
 > then, and keep the scene covered until it, so the player never resumes onto a level still assembling
-> (07 §2.1 invariant 5 / §10.1).** See CR-010 and `unity/REFERENCE-ARCHITECTURE.md`.
+> (07 §2.1 invariant 5 / §10.1).** On a game with its own staged bootstrap, "fully assembled" means that
+> **bootstrap's own terminal signal**, not early marker objects (player exists) — see 07 §2.1 invariant 6
+> for the worked failure and the freeze-before-signal deadlock it causes. See CR-010 and
+> `unity/REFERENCE-ARCHITECTURE.md`.
 
 → See [`05-LIFECYCLE-MANAGEMENT.md`](./05-LIFECYCLE-MANAGEMENT.md) for the callback flow.
 

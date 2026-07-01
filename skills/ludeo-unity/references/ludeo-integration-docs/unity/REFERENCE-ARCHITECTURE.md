@@ -589,10 +589,19 @@ m_ludeo = new LudeoController(                                            // [La
     // SYNCHRONOUS apply: apply WHILE frozen, then Begin, then unfreeze (07 §10.1). Never unfreeze before apply.
     onRoomReady:     () => { ApplyRestoredState(); m_ludeo.BeginGameplay(() => Time.timeScale = 1f); }, // [Unity]+[Layer] CR-010
     onStopGame:      () => Time.timeScale = 0f,   // [Unity] CR-011 pause
-    onExitToMainMenu:() => LoadMenuScene(),       // [Unity] SceneManager.LoadScene
+    // Both scene-load call sites below (onExitToMainMenu, onBeginRestore) assume a PLAIN Unity game —
+    // no netcode/ECS layer owns objects across the transition. If CODE_MAP.networking_layer.framework
+    // is non-null, route through THAT layer's own scene API instead (Fusion Runner.LoadScene, Mirror
+    // NetworkManager.ServerChangeScene, NGO NetworkManager.SceneManager.LoadScene), or reuse the game's
+    // existing quit-to-menu/restart-run transition function if one already does this correctly. A plain
+    // SceneManager.LoadScene never tells that layer the scene changed, so it never despawns the objects
+    // it owns — they leak into the next restore (07-RESTORATION-PATTERNS.md §2.3). This decision is a
+    // REQUIRED gate in 11-implement-restoration-flow.md Step 1.6, not optional polish.
+    onExitToMainMenu:() => LoadMenuScene(),       // [Unity] SceneManager.LoadScene — plain-loader case only
     // SELECTION-TIME hook (restore only): kick the async scene load + suppress intros; call
-    // m_ludeo.NotifySceneReadyForRestore() from the loader's completion (begin-gate leg 3).
-    onBeginRestore:  () => { Time.timeScale = 0f; StartCoroutine(LoadRestoreSceneThenNotify()); }); // [Unity]+[Layer]
+    // m_ludeo.NotifySceneReadyForRestore() from the loader's completion (begin-gate leg 3) — and only
+    // once the scene is truly fully assembled (07 §2.1 invariant 6), not merely activated.
+    onBeginRestore:  () => { Time.timeScale = 0f; StartCoroutine(LoadRestoreSceneThenNotify()); }); // [Unity]+[Layer] — plain-loader case only; see the netcode-layer note above
 m_ludeo.SetGameplayerId(localPlayerId);           // [Layer]
 
 // Gameplay MonoBehaviour:

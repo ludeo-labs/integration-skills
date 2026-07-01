@@ -96,7 +96,7 @@ the tracked set, the capture writers, and the `ApplyRestoredState()` data read-b
 | 1 | Implement object tracking (capture) | `references/9-implement-object-tracking.md` | **per wave** (additive) | capture `.cs` for N's types (register + `OnStateDataUpdate` writers + keys) | **recompile clean + play + actually capture a session**, registration fires, no `LudeoResult` errors |
 | 2 | Plan state restoration | `references/10-plan-state-restoration.md` | **per wave** (append) | wave N's rows in `RESTORATION_PLAN.md` | **human reviews & approves the rows** (no code/run) |
 | 3 | Implement restoration flow | `references/11-implement-restoration-flow.md` | **ONCE (wave 1 only)** | flow `.cs` + `LudeoRestoredData` + `ApplyRestoredState()` **stub** | **play a captured Ludeo**: freeze → captured scene loads → stub reached in order → `Begin`; replay→replay tears down clean; overlay pause/resume |
-| 4 | Implement state reconstruction | `references/12-implement-state-reconstruction.md` | **per wave** (additive buckets) | wave N's buckets filled in `ApplyRestoredState()` (two-pass read-back) | **play a captured Ludeo**: wave N's cumulative set restores on first frame, non-zero two-pass counts, cross-ref resolved; replay-twice shows the **second's** state |
+| 4 | Implement state reconstruction | `references/12-implement-state-reconstruction.md` | **per wave** (additive buckets) | wave N's buckets filled in `ApplyRestoredState()` (two-pass read-back) | **play a captured Ludeo**: wave N's cumulative set restores on first frame, non-zero two-pass counts, cross-ref resolved; the triple re-entry test (`07-RESTORATION-PATTERNS.md` §12.1) shows the **third's** state as clean as the first |
 
 **No task here is hands-off** — every one ends in a human gate the orchestrator must run, because the
 agent **cannot see the Unity Editor Console** and the capture/replay gates require the human to actually
@@ -140,8 +140,9 @@ The orchestrator relays whatever a subagent surfaces — it does not invent its 
 - **Task 2 gate:** approve **wave N's** rows in `RESTORATION_PLAN.md`.
 - **Task 3 gate (wave 1):** confirm the flow play-test (freeze → scene load → stub → `Begin`; replay→replay;
   overlay).
-- **Task 4 gate:** confirm wave N's cumulative restored state on the first frame + the replay-twice no-leak
-  test.
+- **Task 4 gate:** confirm wave N's cumulative restored state on the first frame + the triple re-entry
+  no-leak test (`07-RESTORATION-PATTERNS.md` §12.1 — capture once, restore three times in one process,
+  assert the third is as clean as the first).
 - **End of each wave:** "wave N restores — widen to wave N+1?" (confirm-before-widen).
 
 ## 5. Patterns to apply
@@ -195,8 +196,10 @@ green**, and is **fully complete when the last wave in the plan is green**.
       not stale).
 - [ ] **Captured highlight plays back and visibly restores wave N's cumulative set** on the first frame
       (task 4 gate), two-pass counts non-zero, cross-refs resolved.
-- [ ] **Replay→replay** (in one session) tears the prior run down cleanly and shows the **second** Ludeo's
-      state — no stale-flag deadlock, no dropped-`Start` defaults, no persistent-singleton leak (tasks 3–4).
+- [ ] **Replay→replay, three deep** (in one session, `07-RESTORATION-PATTERNS.md` §12.1) tears each prior
+      run down cleanly and shows the **third** Ludeo's state as clean as the first — no stale-flag
+      deadlock, no dropped-`Start` defaults, no persistent-singleton leak, no orphaned netcode/ECS-owned
+      objects if the game has that layer (tasks 3–4).
 
 **Wave 1 additionally (the guideline phase-4 criteria + one-time flow):**
 - [ ] **Flow reaches the restore entry point on a real captured Ludeo** (task 3 gate).
