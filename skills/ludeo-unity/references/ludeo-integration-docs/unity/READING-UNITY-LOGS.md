@@ -49,6 +49,7 @@ you tail the log.)
 | Native layer didn't load | `WrapperDllNotFound` |
 | Auth failure (implicit/Steam or explicit) | `InvalidAuth` |
 | Steam init failure / auth red herrings | `SteamAPI_Init`, `Session auth details not specified`, `GfnGetPartnerSecureData` |
+| AppID / license mismatch (SteamAPI.InitEx) | `FailedGeneric`, `ConnectToGlobalUser` |
 | SDK result codes | `LudeoResult` / `resultCode` |
 | Compile errors | `error CS` |
 | Runtime exceptions | `Exception`, `NullReferenceException` |
@@ -68,12 +69,22 @@ you tail the log.)
    after editing `steam_appid.txt`; or the app's release-state is *Unavailable* / missing default
    packages. Also check the **App-ID-0 landmine** ([`UPM-INSTALL-AND-DEFINES.md §3`](./UPM-INSTALL-AND-DEFINES.md)).
 
+**Fingerprint for the license-mismatch case:** when `SteamAPI.InitEx(out string msg)` returns
+`k_ESteamAPIInitResult_FailedGeneric` and `msg` contains `ConnectToGlobalUser failed`, the logged-in
+account doesn't own the AppID in `steam_appid.txt`. This is not a code or timing problem — it's a
+license problem. Fix: test on an account that owns the exact AppID, or launch through Steam.
+
 **Red-herring logs — don't be misled:**
 - Steamworks.NET prints a **generic multi-cause list** on *any* init failure; don't assume "client not
   running."
 - The SDK's auth fallback chain emits GeForce-NOW noise — `GFN detected`, `GfnGetPartnerSecureData …
   Error -18`, `Session auth details not specified and automatic …` — when the real problem is simply
   that **Steam was never initialized**, not a GeForce-NOW issue.
+- **For `FailedGeneric / ConnectToGlobalUser failed`:** common wrong-turns are (a) *delaying the
+  `SteamAPI.InitEx` call* to "let Steam settle" — it's **synchronous**, so timing is irrelevant;
+  (b) *adding a `SteamAPI.RunCallbacks()` pump* — unnecessary for auth resolution; (c) *suspecting
+  Editor/Steam privilege-level mismatch* — a real cause of some Steam failures but **not** of
+  `ConnectToGlobalUser failed`, which is exclusively a license/ownership problem.
 
 (Exact wording varies by SDK / wrapper version — match loosely.)
 

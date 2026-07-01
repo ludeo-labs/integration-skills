@@ -426,7 +426,14 @@ IEnumerator ActivateWhenSteamReady(Action activate)
     if (settings != null && settings.runWithoutLauncher) { activate(); yield break; }
 
     float deadline = Time.realtimeSinceStartup + AUTH_READY_TIMEOUT_SECONDS;   // e.g. 15s
-    EnsureSteamInitialized();   // MUST be idempotent — Steam may already be up; don't double-init / re-register listeners
+    // Use SteamAPI.InitEx(out string) — not SteamAPI.Init(). InitEx returns ESteamAPIInitResult plus
+    // an English message that names the actual failure; Init() returns a bare bool with no context.
+    // Must be idempotent — Steam may already be up; guard with a ready-check before calling.
+    if (!SteamApiIsReady()) {
+        var initResult = SteamAPI.InitEx(out string initMsg);
+        if (initResult != ESteamAPIInitResult.k_ESteamAPIInitResult_OK)
+            Debug.LogError($"[Ludeo] SteamAPI.InitEx failed: {initResult} — {initMsg}");
+    }
     while (!SteamApiIsReady() && Time.realtimeSinceStartup < deadline) yield return null;
     if (!SteamApiIsReady())
         Debug.LogError("[Ludeo] Steam not ready before timeout; activating anyway — implicit auth will " +
@@ -442,6 +449,13 @@ IEnumerator ActivateWhenSteamReady(Action activate)
   [`UPM-INSTALL-AND-DEFINES.md §4`](./UPM-INSTALL-AND-DEFINES.md).
 - **Editor caveat:** the Editor can confirm auth **succeeds**, but capture won't (the recorder needs a
   real player window) — "implicit auth works" and "capture works locally" are separate verifications.
+- **`steam_appid.txt` resolves the AppID but doesn't grant ownership.** Placing a `steam_appid.txt`
+  next to the executable lets `SteamAPI.InitEx` resolve the AppID for a process not launched through
+  Steam, but the **logged-in Steam account still needs to own that AppID**. If the account owns a
+  different AppID (e.g. the demo, not the full game), `SteamAPI.InitEx` returns `FailedGeneric` and
+  the message contains `ConnectToGlobalUser failed` — this is a license problem, not a code or timing
+  problem. Test on an account that owns the exact AppID in `steam_appid.txt`, or launch through Steam.
+  See `READING-UNITY-LOGS.md` for the full diagnosis.
 
 ---
 

@@ -92,7 +92,7 @@ Fields (`LudeoSDK.UnityScripts.LudeoSettings`):
 | `platformUrl` | Ludeo backend | Default `https://services.ludeo.com` |
 | `ludeoLogLevel`, `ludeoLogCategory` | SDK logging | `Error` / `All` is a sane default |
 | `coreDllReference` | `Release` or `Development` core dll | `Release` for shipping |
-| `betaVersion` | Steam beta branch name | Match your Steam branch if used |
+| `betaVersion` | Steam beta branch name | **Explicit auth only** (`runWithoutLauncher = true`). In implicit mode the SDK reads the branch from the live Steam client; this field is not read. |
 | `runWithoutLauncher` | **The implicit/explicit auth toggle** (see below) | **`false` (implicit) in production** |
 | `launcherUserId` | Explicit-auth (`runWithoutLauncher = true`) user id | Set only in explicit mode |
 | `autoStartInLudeo` + `ludeoToAutoStart` | Dev: force a Ludeo to replay on init | Dev/testing only |
@@ -113,7 +113,8 @@ init.
   **don't call `Activate` inline — gate it on a game-owned "auth ready" signal** with a bounded
   fallback (see [`REFERENCE-ARCHITECTURE.md`](./REFERENCE-ARCHITECTURE.md) → "Implicit auth: gate
   Activate on Steam-ready" and [`../05-LIFECYCLE-MANAGEMENT.md`](../05-LIFECYCLE-MANAGEMENT.md)
-  "Startup sequence").
+  "Startup sequence"). In implicit mode, `betaVersion` in `LudeoSettings` is not read — the SDK picks
+  up the active beta branch from the live Steam client automatically.
 - **`true` = explicit auth — testing / CI / no-Steam.** You supply `launcherUserId` (a Steam user
   id) and the SDK authenticates as that user **without Steam running**. Optionally set `betaVersion`
   to match your Studio Lab environment.
