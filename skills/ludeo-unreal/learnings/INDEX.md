@@ -8,7 +8,7 @@ Regenerate with `node scripts/generate-learnings-index.mjs` after adding a learn
 If you add a learning where you cannot run node (e.g. an installed skill copy),
 append the line by hand in the same format.
 
-Total: 291
+Total: 292
 
 - architecture/additive-action-emission-for-composable-goals.md | universal | p5 | Emit actions on multiple orthogonal axes — additive, not else-if
 - architecture/bind-session-notifications-once-at-subsystem-not-per-room.md | generalizable | p4 | Are the session-level notification delegates (OnRoomReady, OnLudeoSelected, pause/resume, back-to-menu) bound ONCE at session setup on a persistent owner, or rebound per-room on a transient component?
@@ -202,6 +202,7 @@ Total: 291
 - common-mistakes/refresh-project-binaries-after-core-sdk-swap.md | universal | p2 | After swapping the core C SDK, the project's own Binaries/ copy of the DLL is NOT refreshed by an incremental build
 - common-mistakes/registerentity-must-write-initial-attributes.md | universal | p4 | `RegisterEntity` / `CreateObject` must write all readable attributes synchronously — deferring to the next tick crashes on replay
 - common-mistakes/remove-player-uses-string-id-not-handle.md | universal | p2 | FLudeoRoomRemovePlayerParameters uses PlayerID (FString), not PlayerHandle
+- common-mistakes/restore-ai-destroy-trips-death-escalation-mechanic.md | generalizable | p4 | Does this game escalate a GLOBAL alert/phase/reinforcement state as a SIDE EFFECT of AI death or destruction (an alarm on an unanswered kill, a 'call it in' radio, aggro/panic spread, a reinforcement timer)? If yes, you…
 - common-mistakes/reverify-prior-session-blockers.md | universal | p3 | Don't trust prior-session "blockers" without re-verifying — misdiagnoses persist in `knownIssues` notes
 - common-mistakes/room-is-not-highlight.md | universal | p1 | Ludeo Room ≠ Playable Highlight
 - common-mistakes/room-playerid-avoid-unexported-uniquenetid-tostring.md | generalizable | p2 | How is the FLudeoRoomAddPlayerParameters.PlayerID derived? If via APlayerState::GetUniqueId().ToString() it will fail to link from a plugin (FUniqueNetIdWrapper::ToString is not exported). Use APlayerState::GetPlayerId(…
