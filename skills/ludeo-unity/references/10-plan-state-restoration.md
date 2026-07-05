@@ -1,6 +1,6 @@
-# Phase 4 · Task 2 — Plan State Restoration (Unity)
+# Phase 5 · Task 2 — Plan State Restoration (Unity)
 
-> **Single-task subagent brief.** Dispatched by the phase-4 orchestrator
+> **Single-task subagent brief.** Dispatched by the phase-5 orchestrator
 > (`9-tracking-restore-orchestrator.md`) **once per wave**. **Append this wave's rows** to
 > `RESTORATION_PLAN.md` — **analysis only, no code, run nothing** — then return a summary + the artifact
 > path. **You do not run the human review gate** — the orchestrator surfaces the rows to the user for
@@ -21,17 +21,17 @@
 Restoration is the inverse of tracking. Read the already-approved `OBJECT_TRACKING.md` and, row by row,
 specify how each captured GameObject is rebuilt when a Ludeo is selected: spawned from its `objectType`
 bucket, attributes read back with `TryGetAttribute`, references re-linked by **your own stable key**.
-Deliverable: a reviewed `RESTORATION_PLAN.md` that `phase 11`/`phase 12` (tasks 3–4) consume. **No code
+Deliverable: a reviewed `RESTORATION_PLAN.md` that `phase 5` (tasks 3–4) consume. **No code
 is written here.**
 
 ## 2. Inputs (Input Contract)
 
-- [ ] **Phase 3** → `ludeo-integration-plan/OBJECT_TRACKING.md`, **approved** (entity model is fixed).
-- [ ] **Phase 3** per-entity matrix (`OBJECT_TRACKING.md` rows + `CODE_MAP.save_system.per_entity`) +
-      `CODE_MAP.save_system.group`. (Game-level classification originates in `phase 0` `INTAKE.md`.)
-- [ ] **Phase 2** → the `[Layer]` exists (`LudeoController`, `LudeoPlayFlow`, the `onRoomReady` hook) so
+- [ ] **Phase 4** → `ludeo-integration-plan/OBJECT_TRACKING.md`, **approved** (entity model is fixed).
+- [ ] **Phase 4** per-entity matrix (`OBJECT_TRACKING.md` rows + `CODE_MAP.save_system.per_entity`) +
+      `CODE_MAP.save_system.group`. (Game-level classification originates in `phase 1` `INTAKE.md`.)
+- [ ] **Phase 3** → the `[Layer]` exists (`LudeoController`, `LudeoPlayFlow`, the `onRoomReady` hook) so
       the restore flow this plan slots into is real, not hypothetical.
-- [ ] **Recommended:** task 1 (`phase 9`) done, so the capture code (its `objectType` strings,
+- [ ] **Recommended:** task 1 (capture) done, so the capture code (its `objectType` strings,
       `LudeoKeys` constants, stable-key attribute names) exists to mirror against. If not, plan against
       `OBJECT_TRACKING.md` and flag any field the implementation may still rename.
 - [ ] Context files read (relative to this brief):
@@ -70,7 +70,7 @@ From `ludeo-integration-plan/`:
   reconciliation/manual per entity, and the `Structural:` line (level-based vs open-world/streaming).
 - `CODE_MAP.json` → `save_system.group` (1/2/3), `session_boundaries` (and whether it has the
   `{ model, start_sites[], exit_sites[], pause_overlay[] }` open-world sub-structure), the scene-load hook.
-- `CODE_MAP.save_system.per_entity` → per-entity reconciliation-vs-manual matrix (built in `phase 3`;
+- `CODE_MAP.save_system.per_entity` → per-entity reconciliation-vs-manual matrix (built in `phase 4`;
   must agree with the `OBJECT_TRACKING.md` entity rows — if they disagree, **surface it for the user**).
 - `GAME_ANALYSIS_ENVIRONMENT.md` → world-state inventory for Step 9 (produce it there if absent).
 
@@ -126,7 +126,7 @@ notification must work in **any** state (menu, mid-gameplay, loading, cutscene):
 5. The reader is delivered async in `HandleGetLudeoDone`; the `[Layer]` extracts the restore buckets into
    `LudeoIntegrationData.ludeoRestoredData` there and opens the room. **Apply runs later, on `RoomReady`**
    — not in the `GetLudeo` callback.
-6. On **`RoomReady`** (the `onRoomReady` hook from `phase 2`): **apply (two-pass + environment) → unfreeze
+6. On **`RoomReady`** (the `onRoomReady` hook from `phase 3`): **apply (two-pass + environment) → unfreeze
    → `BeginGameplay()`** `[Layer]`, in that order. **Never unfreeze before apply.** A *synchronous* apply
    can fold the unfreeze into `Begin`'s callback; an *async* apply runs the create unfrozen-but-suppressed
    and freezes only the scalar write (`07 §10.1`). `Begin` runs after apply so the SDK records playback
@@ -142,7 +142,7 @@ Also plan four distinct sets of hooks:
   callback exists, flag adding one as an Open Question. **Scene-ready must mean *fully assembled* — apply
   done, async spawns settled, sim frozen-ready — not just scene-activated; plan to keep the loading cover
   up until then so the viewer never watches the level assemble behind the paused overlay (`07 §2.1`/`§10.1`).**
-- **Post-restore resume** — reuse `phase 2`'s `onRoomReady` hook. Apply state inside it, **then** unfreeze,
+- **Post-restore resume** — reuse `phase 3`'s `onRoomReady` hook. Apply state inside it, **then** unfreeze,
   before `BeginGameplay`. **Resume is `RoomReady → Begin`** — *not* a self-built "press to begin" prompt,
   *not* `PlayerReady` (**does not exist in this SDK**), *not* `ResumeGame` (that's the mid-play overlay).
 - **Mid-play overlay open/close** (CONSENT-AND-OVERLAY §3, CR-011) — `AddNotifyPauseGame` →
@@ -182,7 +182,7 @@ from the stable-key attribute you captured:
   `TryGetAttribute` → setter, and resolve reference attributes by looking up the captured target key in
   `keyMap`.
 
-Define the `keyMap`: key = your captured stable key (the `int`/string/world-id from `phase 3` §5), value
+Define the `keyMap`: key = your captured stable key (the `int`/string/world-id from `phase 4` §5), value
 = the spawned/matched runtime GameObject. State that it is **per-Ludeo** and discarded after restoration.
 If the spawn graph has ordering constraints (the player must exist before per-player UI/weapons), split
 Pass 1 into **1a (foundational)** and **1b (dependent)** and record which entities go in each.
@@ -200,10 +200,10 @@ entity, fill one restoration block:
 - **`keyMap` key** — the stable-key attribute; note whether the entity is *created fresh* or *matched to
   a scene-placed instance* (Step 8). Singleton → bucket `[0]`, no key.
 - **Baseline reset (matched / persistent singletons only)** — a matched instance and a persistent player
-  singleton (`phase 3` flagged it) are **not** re-instantiated, so they keep the prior run's state; name
+  singleton (`phase 4` flagged it) are **not** re-instantiated, so they keep the prior run's state; name
   the reset to run **first** in the apply (the game's new-game/respawn path, or the explicit fields to
   clear — inventory, ammo, buffs, score, cooldowns, status flags). A freshly *spawned* entity needs none.
-- **Per-property apply** — for every property `phase 3` captured, name the setter and whether it applies
+- **Per-property apply** — for every property `phase 4` captured, name the setter and whether it applies
   in Pass 2 or is **deferred** (Step 7). Reference properties get a Pass-2 `keyMap` lookup. Each is a
   `TryGetAttribute(K.Name, out value)` `[SDK]` read against the **same `LudeoKeys` constant** capture used.
 - **Approach** — `reconciliation` (route through the game's recreate/load path, §5.1) or `manual`
@@ -229,7 +229,7 @@ For each: why it must defer (which subsystem must be online first) and its posit
 if deferred properties depend on each other — capture the order here, don't infer it at runtime.
 
 ### Step 8: Plan pre-existing-object reconciliation
-Mirror of `phase 3`'s Batch/Stream-in Registration Sites. A freshly loaded scene is **not empty** —
+Mirror of `phase 4`'s Batch/Stream-in Registration Sites. A freshly loaded scene is **not empty** —
 editor-placed objects (and `Awake`/`Start`-spawned content) already exist. They must **not** be
 double-created. For each batch-registered entity type, decide: does restoration *match* the captured
 bucket entry to the scene-placed instance (by stable key, then apply properties), or *spawn* a fresh one?
@@ -243,7 +243,7 @@ Specify the match key and the hook where matching runs relative to scene load.
 to `ludeo-integration-plan/`. Inventory the world-level state a viewer would notice: time-of-day /
 lighting, weather, world/quest flags, audio mix, **the active soundtrack / music track**, camera state,
 spawned-world progress. Model it as a
-**singleton "world" `objectType`** (captured in `phase 9` via `LudeoCreatorFlow.StoreGameDefinitions` or
+**singleton "world" `objectType`** (captured in `phase 5 · task 1` via `LudeoCreatorFlow.StoreGameDefinitions` or
 its own handler) restored with the same bucket discipline (usually no references → Pass 2 is pure property
 application).
 - **Soundtrack presence (required for completeness, every game):** the game's own scene-start music
@@ -268,7 +268,7 @@ application).
 From scene-load until `Begin`, the game **MUST protect restored state** — *not* just input. Pick the
 mechanism by the apply's shape (`07 §10.1`):
 - **Synchronous apply** → `Time.timeScale = 0f` `[Unity]` for the whole apply; on `RoomReady` the
-  `onRoomReady` hook (`phase 2`) **applies state → unfreezes → calls `BeginGameplay()`** `[Layer]`.
+  `onRoomReady` hook (`phase 3`) **applies state → unfreezes → calls `BeginGameplay()`** `[Layer]`.
 - **Async apply** (spawn/reposition awaits a physics step / coroutine / `UniTask` / NavMesh `Warp`) →
   `Time.timeScale = 0f` stops `FixedUpdate` and **deadlocks** the apply. Plan to **suppress** the
   state-mutating systems (input, AI, cinematics) via `IsInLudeoFlow`, and freeze only the narrow scalar
@@ -359,7 +359,7 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 | Selection-time: start scene load + suppress intros AND flow-blocking UI (press-start/modals/popups/EULA) | onBeginRestore (HandleGetLudeoDone, before room opens) | loader calls NotifySceneReadyForRestore() → begin-gate leg 3 |
 | Freeze sim / suppress (CR-010) | Time.timeScale = 0f (sync apply) or IsInLudeoFlow suppression (async apply) | separate flag from CR-011 overlay pause; async → freeze deadlocks |
 | Extract reader buckets | HandleGetLudeoDone [Layer] | cache into ludeoRestoredData; do NOT apply here |
-| On RoomReady (∧ AddGamePlayer ∧ sceneLoaded): apply → unfreeze → Begin | onRoomReady (phase 2) | two-pass + environment; apply before unfreeze; then BeginGameplay |
+| On RoomReady (∧ AddGamePlayer ∧ sceneLoaded): apply → unfreeze → Begin | onRoomReady (phase 3) | two-pass + environment; apply before unfreeze; then BeginGameplay |
 
 ## Two-Pass Algorithm (CR-006 — no SDK id-map)
 - **keyMap:** your stable key (<field>) → spawned/matched GameObject. Per-Ludeo, discarded after restore.
@@ -404,7 +404,7 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 - Pause mechanism: <reuse game pause | build minimal Time.timeScale freeze>
 - **Selection-time hook:** `onBeginRestore` (before room opens) → start async scene load + suppress intros;
   loader calls `NotifySceneReadyForRestore()` (begin-gate leg 3). NOT `onInitDone` (session-boot).
-- **Post-restore resume hook:** `onRoomReady` (phase 2) → ApplyRestoredState → unpause → `BeginGameplay`
+- **Post-restore resume hook:** `onRoomReady` (phase 3) → ApplyRestoredState → unpause → `BeginGameplay`
   (apply before unpause). NOT `ResumeGame`, NOT `PlayerReady` (doesn't exist), NOT a self-built prompt.
 - **Mid-play overlay hooks** (CR-011): `AddNotifyPauseGame` → <file:method>  ·  `AddNotifyResumeGame` →
   <file:method>  ·  `AddNotifyReturnToMainMenu` → <file:method> (CR-007 exit)
@@ -421,7 +421,7 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 
 ## 7. ✅ Success Criteria
 
-**Guideline phase-4 criteria this task feeds** (verified downstream at the human gates):
+**Guideline phase-5 criteria this task feeds** (verified downstream at the human gates):
 - [ ] The plan ensures the **reader does not assert on missing attributes** — every property states a
       `TryGetAttribute` → `false` fallback (keep default / error); only a missing **key** fails loud.
 - [ ] The plan makes **human restore-verification** reachable — every tracked entity has a spawn function +
@@ -456,7 +456,7 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 ## 8. Common Mistakes
 
 - **Writing code / running anything** — this is analysis only; task 3/task 4 write code.
-- **Introducing entities/properties tracking didn't capture** — the fix belongs in `phase 3`/task 1.
+- **Introducing entities/properties tracking didn't capture** — the fix belongs in `phase 4`/task 1.
 - **Planning a timeline replay** instead of a single-value snapshot apply.
 - **Single-pass restoration** — silently corrupts reference graphs by spawn order (CR-006).
 - **One shared pause flag** — a mid-play `ResumeGame` then unfreezes a restore (`07 §10.4`).
@@ -466,7 +466,7 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 
 ## Related / Next
 
-- `phase 3` (`8-map-game-objects.md`) — produces `OBJECT_TRACKING.md`, the spine this plan mirrors.
+- `phase 4` (`8-map-game-objects.md`) — produces `OBJECT_TRACKING.md`, the spine this plan mirrors.
 - Task 1 (`9-implement-object-tracking.md`) — emits the capture code; restoration is its row-for-row inverse.
 - **Next (orchestrator):** surface `RESTORATION_PLAN.md` for human approval, then dispatch task 3
   (`11-implement-restoration-flow.md`) followed by task 4 (`12-implement-state-reconstruction.md`).

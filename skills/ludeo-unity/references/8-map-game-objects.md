@@ -1,9 +1,9 @@
-# Phase 3 — Map Game Objects (Unity)
+# Phase 4 — Map Game Objects (Unity)
 
-> Guideline phase 3 ("map game objects (sub-set)"). This phase does the **up-front CENSUS only** (Part A):
+> Guideline phase 4 ("map game objects (sub-set)"). This phase does the **up-front CENSUS only** (Part A):
 > enumerate every trackable GameObject **type**, flag the **load-bearing** ones, and assign each a **wave**.
 > The **deep per-entity scoping** (properties, stable keys, hook sites, references, reconciliation matrix)
-> lives in **Part B**, which the **phase-4 wave loop invokes once per wave, scoped to that wave's types** —
+> lives in **Part B**, which the **phase-5 wave loop invokes once per wave, scoped to that wave's types** —
 > not all at once here. **No code in either part.**
 >
 > **Why split this way (the iterative model).** Discovering everything *deeply* up front produces one large
@@ -24,18 +24,18 @@ Produce the **census + wave plan** at the top of `OBJECT_TRACKING.md`: how the g
 the full list of GameObject **types** to track (the sub-set), a **load-bearing flag** per type, and a
 **wave assignment** per type — **Wave 1** being the minimal *restorable spine* (world/level identity +
 player singleton + time-base/continuity) **plus the few collection types the moment is visibly wrong
-without**. The **deep-scope detail** for each type (Part B) is filled **per wave by phase 4**, appended to
-the same file. Output (Part A) is human-approved before the phase-4 wave loop begins.
+without**. The **deep-scope detail** for each type (Part B) is filled **per wave by phase 5**, appended to
+the same file. Output (Part A) is human-approved before the phase-5 wave loop begins.
 
 ## 2. Inputs (Input Contract)
 
 - [ ] **Fresh agent session.** If you see prior tool calls or CODE_MAP references, **STOP** and ask the
       user to start a fresh session and continue here.
-- [ ] **Phase 1** → `ludeo-integration-plan/CODE_MAP.json` — classes, `event_systems`,
+- [ ] **Phase 2** → `ludeo-integration-plan/CODE_MAP.json` — classes, `event_systems`,
       `session_boundaries`, `object_model`, `non_ludeoable_candidates`, the **game-level `save_system`
       block** (mechanism/format/group/entry_points, `per_entity: []`), `serialization`.
-- [ ] **Phase 2** → `ludeo-integration-plan/SDK_INTEGRATION_POINTS.json` (boundaries / hook map).
-- [ ] **Phase 0** → `ludeo-integration-plan/INTAKE.md` — the game-level save-system classification
+- [ ] **Phase 3** → `ludeo-integration-plan/SDK_INTEGRATION_POINTS.json` (boundaries / hook map).
+- [ ] **Phase 1** → `ludeo-integration-plan/INTAKE.md` — the game-level save-system classification
       (the narrative source; the structured form is `CODE_MAP.save_system`). **No `phase 2c` /
       `GAME_ANALYSIS_SAVE_SYSTEM.md`** — 2c is retired; the **per-entity** matrix is built in Part B.
 - [ ] Recommended: if `ludeo-integration-plan/TDD_<GameName>.md` exists, read its **State Capture** section.
@@ -52,7 +52,7 @@ the same file. Output (Part A) is human-approved before the phase-4 wave loop be
 ## 3. Steps
 
 The phase is two parts. **Part A runs once, here**, and ends at a human gate. **Part B is a reusable
-procedure the phase-4 orchestrator invokes once per wave** (`references/9a-deep-scope-wave.md` dispatches
+procedure the phase-5 orchestrator invokes once per wave** (`references/9a-deep-scope-wave.md` dispatches
 it, scoped to that wave's types). Run only Part A in this phase.
 
 ---
@@ -122,7 +122,7 @@ spawn pattern (dynamic / scene-placed / both), whether it streams in/out (+ its 
 
 > **⚠️ Identity is not placement — absolute world positions need a deterministic spatial frame.** Before
 > tracking any object's **absolute world position**, ask: is the level geometry **placed** deterministically
-> across runs? **Phase 1 already answered this from the code** — check
+> across runs? **Phase 2 already answered this from the code** — check
 > `CODE_MAP.session_boundaries.world_frame` (and `assembly`); if `world_frame.deterministic == false` (or it
 > wasn't probed), treat absolute positions as unsafe until you confirm the frame. The answer is usually
 > **no** for procedural / streamed / randomized layouts — the world re-assembles at a different
@@ -145,7 +145,7 @@ spawn pattern (dynamic / scene-placed / both), whether it streams in/out (+ its 
 > time-driven, Wave 1**. (Its field-level capture is confirmed in Part B Step B1.)
 
 > **⚠️ Always track soundtrack PRESENCE (which track is playing) — every game, and distinct from the clock
-> above.** Restore **suppresses the game's own scene-start music trigger** (phase-10 Step 3, gated on
+> above.** Restore **suppresses the game's own scene-start music trigger** (phase 5 · task 2 Step 3, gated on
 > `IsInLudeoFlow`), so a replay is **silent** unless restore re-starts the track — the classic "state
 > restores but music doesn't" bug (`07 §8`). Record the **active-track id** as an attribute on the
 > **environment / world-definitions** singleton (not the time-base clock): only *which* track, not its
@@ -179,15 +179,15 @@ wrongly deferred? (Step A5). Walk the restore mentally: with **only Wave 1's typ
 rebuild AND resume (world identity + player + time-base + the must-have collections)? If Wave 1 restarts
 the clock or drops an in-view antagonist, fix the wave plan now.
 
-**Do not proceed to the phase-4 wave loop automatically** — this gate prevents looping against a
+**Do not proceed to the phase-5 wave loop automatically** — this gate prevents looping against a
 misunderstood object model or a wrong wave order. The **deep per-entity detail is intentionally absent
 here**; it is produced per wave in Part B.
 
 ---
 
-## Part B — Deep-Scope Procedure (run PER WAVE — invoked by phase 4's wave loop)
+## Part B — Deep-Scope Procedure (run PER WAVE — invoked by phase 5's wave loop)
 
-> **Do not run this in phase 3.** The phase-4 orchestrator dispatches `references/9a-deep-scope-wave.md`
+> **Do not run this in phase 4.** The phase-5 orchestrator dispatches `references/9a-deep-scope-wave.md`
 > once per wave; that brief runs this procedure **scoped to the current wave's types only** and **appends**
 > the resulting per-entity sections to `OBJECT_TRACKING.md` (the census + wave plan from Part A stays at the
 > top). Each invocation deep-scopes a small set, immediately before that wave's capture/restore is
@@ -212,7 +212,7 @@ Per `06 §4` — **there is no ID map**. Identity is the `objectType` bucket + y
   *persistent* object** — `DontDestroyOnLoad`, `static Instance`, or held on a `ScriptableObject`/manager
   that survives scene loads. If so, restoration *matches* (not spawns) it (`07 §9`), carrying the prior
   run's full state; flag it **"persistent — reset to baseline before restore"** and note the game's
-  new-game/respawn reset (file:method) for `phase 12` to mirror. Without the reset, uncaptured fields
+  new-game/respawn reset (file:method) for `phase 5 · task 4` to mirror. Without the reset, uncaptured fields
   (inventory, buffs, score, cooldowns) leak across Ludeos.
 - **Collection** (enemies, pickups): capture **your own stable key** as an attribute — an int assigned
   per spawn, a content/prefab id, or (streaming) the persistent world id. **Never** `GetInstanceID()` or
@@ -237,7 +237,7 @@ under Open Questions and keep going. Note write cadence:
 
 ### Step B4: Map cross-entity references (within / into the wave)
 For every reference-kind property fill a Cross-Entity References row (From / To / Field / Capture /
-Restoration). Capture the target's stable key; at restore (phase 12, two-pass per CR-006) it's resolved
+Restoration). Capture the target's stable key; at restore (phase 5 · task 4, two-pass per CR-006) it's resolved
 by **matching the captured key against the objects you spawned** — not an ID-map lookup. Missing rows
 silently break reference resolution.
 
@@ -263,7 +263,7 @@ For each entity type, using the game-level classification + the entity's seriali
 > approach is still **manual**. This is often the most consequential call.
 
 Record the approach in each entity row **and** write the structured form back to
-`CODE_MAP.save_system.per_entity` (the array phase 0 left empty), appending this wave's entries:
+`CODE_MAP.save_system.per_entity` (the array phase 1 left empty), appending this wave's entries:
 `{ "entity": "...", "approach": "manual|reconciliation", "reason": "...", "wave": N }`.
 
 ### Step B6: Identify batch + stream-in registration paths (for the wave's types)
@@ -283,7 +283,7 @@ wave's row review before that wave's capture is implemented.
 ## 4. Questions to ask the human
 
 - **Genre**, if the web search fails (Part A).
-- **The Step A6 census gate** — type coverage, load-bearing flags, and the wave plan, before the phase-4
+- **The Step A6 census gate** — type coverage, load-bearing flags, and the wave plan, before the phase-5
   loop.
 - **(Part B, per wave)** A **collection type with no stable key** — adding one is a prerequisite for
   tracking; **reconciliation-vs-manual** where the entity's save format is ambiguous.
@@ -291,7 +291,7 @@ wave's row review before that wave's capture is implemented.
 ## 5. Patterns to apply
 
 - **Iterative wave rollout is the model, not an option** (`06 §1.1`) — census every type once (Part A),
-  then deep-scope + implement + verify **per wave** (Part B + phase 4). Wave 1 = restorable spine + the
+  then deep-scope + implement + verify **per wave** (Part B + phase 5). Wave 1 = restorable spine + the
   must-have set; widen only after a wave's restore gate is green.
 - **The load-bearing guardrail** — widening is for **breadth, not backfilling**. If a later wave reveals
   state an **already-confirmed** wave needed to read correctly, that is a miss in the **earlier** wave: go
@@ -313,8 +313,8 @@ wave's row review before that wave's capture is implemented.
 
 | File | Purpose | Filled by |
 |------|---------|-----------|
-| `ludeo-integration-plan/OBJECT_TRACKING.md` — census + wave plan (top) | Approved plan the phase-4 loop drives off | **Part A** (this phase) |
-| `ludeo-integration-plan/OBJECT_TRACKING.md` — per-entity deep sections | What each wave's capture/restore mirrors | **Part B**, appended **per wave** by phase 4 |
+| `ludeo-integration-plan/OBJECT_TRACKING.md` — census + wave plan (top) | Approved plan the phase-5 loop drives off | **Part A** (this phase) |
+| `ludeo-integration-plan/OBJECT_TRACKING.md` — per-entity deep sections | What each wave's capture/restore mirrors | **Part B**, appended **per wave** by phase 5 |
 | `CODE_MAP.json → save_system.per_entity` | The per-entity matrix in structured form (with `wave`) | **Part B**, appended per wave |
 
 `OBJECT_TRACKING.md` (Part A writes the header + the first three tables; Part B appends one `## Entity`
@@ -343,7 +343,7 @@ block per type as its wave is scoped):
 | Subsystem | Pattern (§2.x) | Register hook | Unregister hook | Notes |
 |---|---|---|---|---|
 
-<!-- ───────── appended PER WAVE by phase 4 (Part B via 9a) ───────── -->
+<!-- ───────── appended PER WAVE by phase 5 (Part B via 9a) ───────── -->
 ## Entity: <ObjectType>   (wave: N)
 - Class / file:line / Pattern (§2.x) / Spawn pattern (dynamic | placed | both | streamed)
 - Stable key: `<attribute>` from `<field/source>` at `<file:line>` (or "singleton — bucket[0]")
@@ -386,10 +386,10 @@ block per type as its wave is scoped):
 
 ## 7. ✅ Success Criteria
 
-**The phase-3 gate is the CENSUS gate** (Part A) — satisfy before the phase-4 wave loop. The deep
-criteria are verified **per wave** in phase 4 (listed here as what each Part-B invocation must meet).
+**The phase-4 gate is the CENSUS gate** (Part A) — satisfy before the phase-5 wave loop. The deep
+criteria are verified **per wave** in phase 5 (listed here as what each Part-B invocation must meet).
 
-**Guideline phase-3 criteria (census level):**
+**Guideline phase-4 criteria (census level):**
 - [ ] **Every trackable object TYPE enumerated** — the `## Object Type Census` table (Step A4).
 - [ ] **Typed attributes are the default** — recorded as the plan's standing rule; no blanket blobs
       (verified per wave in Part B Step B3).
@@ -404,7 +404,7 @@ criteria are verified **per wave** in phase 4 (listed here as what each Part-B i
 - [ ] **Step A6 census gate passed** — type coverage + load-bearing flags + wave plan human-approved;
       Wave 1 confirmed to rebuild **and** resume the moment.
 
-**Per-wave (Part B, verified in phase 4):**
+**Per-wave (Part B, verified in phase 5):**
 - [ ] A **stable key** per collection type (no `GetInstanceID()`/references); singleton persistence flagged.
 - [ ] Per-entity property table (typed attributes) + cadence.
 - [ ] Cross-entity references rowed (target's key, two-pass resolve; cross-wave refs marked deferred).
@@ -422,14 +422,14 @@ criteria are verified **per wave** in phase 4 (listed here as what each Part-B i
   relocated / resumed; the failure only shows at restore. Both are Wave 1.
 - **Defaulting a strong-save game to reconciliation** — check the *format* per entity (Part B Step B5).
 - **Unregistering on stream-out** in a streaming world (presence ≠ existence).
-- **Proceeding to the phase-4 loop without the Step A6 census gate.**
+- **Proceeding to the phase-5 loop without the Step A6 census gate.**
 
 ## Related / Next
 
-- `phase 1` (FIRST), `phase 2` — produce the inputs; `phase 0` `INTAKE.md` holds the game-level save
+- `phase 2` (FIRST), `phase 3` — produce the inputs; `phase 1` `INTAKE.md` holds the game-level save
   classification.
 - `phase 6 actions` — sibling discovery for discrete **actions** (waits for Wave 1's restore gate).
-- **Next:** review the **census + wave plan** with the user (Step A6), then the phase-4 orchestrator
+- **Next:** review the **census + wave plan** with the user (Step A6), then the phase-5 orchestrator
   (`9-tracking-restore-orchestrator.md`) runs the **wave loop** — per wave it invokes Part B
-  (`9a-deep-scope-wave.md`) then implements capture/restore for that wave. `phase 11`/`phase 12` also
+  (`9a-deep-scope-wave.md`) then implements capture/restore for that wave. `phase 5` (tasks 3–4) also
   consume the per-wave rows.

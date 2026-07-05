@@ -1,7 +1,7 @@
 # Classify Save System (Unity) — Group + Per-Entity Matrix
 
 Classify the game's save/load system into one of three groups and record a per-entity restoration
-approach (**reconciliation** vs **manual**). Phases 8–9 (object tracking/restoration) consume these
+approach (**reconciliation** vs **manual**). Phases 4–5 (object tracking/restoration) consume these
 artifacts.
 
 ## 🚦 Fresh Context Check
@@ -21,9 +21,9 @@ Read first (relative to this workflow file):
 
 ## Prerequisites
 
-> **REQUIRED:** `phase 1` → `CODE_MAP.json` (`object_model`, `core_classes`). This phase **creates**
-> the `save_system` block from scratch (phase 1 no longer pre-classifies it) — the per-entity matrix
-> is built from `object_model`. Recommended: `phase 2` and `phase 2b` done. If `TDD_<GameName>.md`
+> **REQUIRED:** `phase 2` → `CODE_MAP.json` (`object_model`, `core_classes`). This phase **creates**
+> the `save_system` block from scratch (phase 2 no longer pre-classifies it) — the per-entity matrix
+> is built from `object_model`. Recommended: `phase 3` and `phase 2b` done. If `TDD_<GameName>.md`
 > exists, its reconstruction section is provisional until this classification — reconcile conflicts here.
 
 ## Why this matters
@@ -77,7 +77,7 @@ phases consume it.
 | File | Purpose |
 | --- | --- |
 | `ludeo-integration-plan/GAME_ANALYSIS_SAVE_SYSTEM.md` | Narrative classification + per-entity matrix |
-| `ludeo-integration-plan/CODE_MAP.json → save_system` | Structured block consumed by phases 8/9 |
+| `ludeo-integration-plan/CODE_MAP.json → save_system` | Structured block consumed by phases 4/5 |
 
 Add the `save_system` block to `CODE_MAP.json`:
 ```json
@@ -116,7 +116,7 @@ Add the `save_system` block to `CODE_MAP.json`:
 
 ## Related / Next
 
-- `phase 1` (FIRST), `phase 2`, `phase 2b`.
-- `phase 8` consumes `save_system.group` + the matrix; `phase 9` uses per-entity to choose
+- `phase 2` (FIRST), `phase 3`, `phase 2b`.
+- `phase 4` consumes `save_system.group` + the matrix; `phase 5 · task 1` uses per-entity to choose
   reconciliation vs manual wiring.
-- **Next:** `phase 3` (plan lifecycle) — classification waits until phase 8 needs it.
+- **Next:** `phase 3` (plan lifecycle) — classification waits until phase 4 needs it.

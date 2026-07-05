@@ -5,7 +5,7 @@
 > Session begins/ends; **this file decides *what* a streaming world captures and how identity survives
 > streaming.**
 >
-> **Load when:** you're mapping/implementing object tracking (phases 8–9) for a game where the world
+> **Load when:** you're mapping/implementing object tracking (phases 4–5) for a game where the world
 > **streams in and out** (terrain, cells, chunks, Addressables) instead of loading discrete levels.
 >
 > **Prerequisites:** [`06-TRACKING-PATTERNS.md`](../06-TRACKING-PATTERNS.md) (the engine-wide data
@@ -109,7 +109,7 @@ is unchanged. Two open-world notes:
 ## 7. Restoration interaction (forward pointer)
 
 On play flow, the world is rebuilt from the Ludeo, then streamed around the restored player. The
-restore (`07`, phase 12) recreates the captured neighborhood and world/cell state from buckets; the
+restore (`07`, phase 5 · task 4) recreates the captured neighborhood and world/cell state from buckets; the
 game's **load-save plumbing** is the natural vehicle (a Ludeo is "a save from elsewhere" —
 [`open-world.md §6`](./open-world.md)). Objects that stream in *after* restore are normal live spawns
 in the play flow → **not** tracked (capture is creator-only, `06 §3` rule box). Capture the

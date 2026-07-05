@@ -50,11 +50,11 @@ native plugins behave differently from the Editor — see below).
 ## Compiling & checking errors
 
 - **Editor:** scripts recompile on focus/save. Watch the **Console** for compile errors; the
-  integration must be error-free with the package present. (Phase 5 drives the fix loop.)
+  integration must be error-free with the package present. (Phase 3 · task 5 drives the fix loop.)
 - **Batch/CI:** a player build can be produced headless, e.g.
   `Unity -batchmode -quit -projectPath <proj> -buildTarget Win64 -executeMethod <YourBuilder.Build>`
   (the project supplies the build method). Use this to confirm IL2CPP builds, not just the Editor.
-- A clean compile with the package installed is the phase-0 gate.
+- A clean compile with the package installed is the phase-1 gate.
 - **The agent can't see the Console** — read compile errors and runtime/SDK output from Unity's log
   files (or a `-logFile` capture). See [`unity/READING-UNITY-LOGS.md`](./unity/READING-UNITY-LOGS.md).
 
@@ -88,7 +88,7 @@ native plugins behave differently from the Editor — see below).
 
 ---
 
-## Phase-0 exit criteria
+## Phase-1 exit criteria
 
 - [ ] Package installed (UPM or `.unitypackage`); `using LudeoSDK;` compiles with no extra wiring.
 - [ ] `LudeoSettings.asset` present with a real `apiKey`; dev-only flags appropriate for the build.
@@ -102,5 +102,5 @@ native plugins behave differently from the Editor — see below).
       `runWithoutLauncher`, and/or a dependency walk of the native dll). The `validate-build` skill is
       the final gate (runs the exe from inside the folder; catches missing-DLL crashes).
 
-→ See `0-build-game-with-sdk.md` (phase 0) for the step-by-step, and `5-compile-and-fix.md` for the
+→ See `0-build-game-with-sdk.md` (phase 1) for the step-by-step, and `5-compile-and-fix.md` for the
 error-fix loop.

@@ -1,9 +1,9 @@
-# Phase 2 · Task 2 — Technical Design Document (Unity)
+# Phase 3 · Task 2 — Technical Design Document (Unity)
 
-> **Single-task subagent brief.** Dispatched by the phase-2 orchestrator
+> **Single-task subagent brief.** Dispatched by the phase-3 orchestrator
 > (`2-lifecycle-orchestrator.md`). Do exactly this one task, produce the §6 artifact, and return a
 > short summary + the artifact path. You run in isolated context — your inputs are the files in §2.
-> **Entry: only via the orchestrator.** This is task 2 of 5 in phase 2 (SDK lifecycle), not a phase of
+> **Entry: only via the orchestrator.** This is task 2 of 5 in phase 3 (SDK lifecycle), not a phase of
 > its own — never open or run it standalone.
 
 ## 1. Goal / Purpose
@@ -14,7 +14,7 @@ integration strategy, and risk analysis — before implementation planning. Outp
 
 ## 2. Inputs (Input Contract)
 
-- [ ] `ludeo-integration-plan/CODE_MAP.json` (phase 1).
+- [ ] `ludeo-integration-plan/CODE_MAP.json` (phase 2).
 - [ ] `ludeo-integration-plan/SDK_INTEGRATION_POINTS.json` (task 1).
 - [ ] Context files read:
   - `ludeo-integration-docs/TDD_TEMPLATE.md` — the output structure (follow it exactly).
@@ -61,8 +61,8 @@ Surface to the orchestrator:
   game-specific ones.
 - **Reconstruction = objectType buckets, spawn-from-data by default** (CR-014); re-bind-to-persistent
   only when justified.
-- The **save-system classification** lives in `INTAKE.md` (phase 0, game-level); the per-entity
-  reconciliation matrix is phase 8 — the reconstruction section here is provisional until then.
+- The **save-system classification** lives in `INTAKE.md` (phase 1, game-level); the per-entity
+  reconciliation matrix is phase 4 — the reconstruction section here is provisional until then.
 
 ## 6. Output Contract
 
@@ -81,7 +81,7 @@ following `TDD_TEMPLATE.md` with game-specific diagrams and no template HTML com
 - **Re-analyzing game code** instead of using the two artifacts.
 - **Fabricating risks** or omitting the CR-007 exit-path check.
 - **Leaving template HTML comments / example diagrams** in the output.
-- **Treating the reconstruction section as final** before phase 8's per-entity matrix.
+- **Treating the reconstruction section as final** before phase 4's per-entity matrix.
 
 ## Related / Next
 

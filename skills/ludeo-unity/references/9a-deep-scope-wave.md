@@ -1,6 +1,6 @@
-# Phase 4 · Task 0 — Deep-Scope This Wave (Unity)
+# Phase 5 · Task 0 — Deep-Scope This Wave (Unity)
 
-> **Single-task subagent brief.** Dispatched by the phase-4 orchestrator
+> **Single-task subagent brief.** Dispatched by the phase-5 orchestrator
 > (`9-tracking-restore-orchestrator.md`) **once per wave**, before that wave's capture is implemented.
 > You **deep-scope only the current wave's object types** and **append** their per-entity rows to
 > `OBJECT_TRACKING.md` (+ the structured save matrix to `CODE_MAP.save_system.per_entity`). This is
@@ -8,7 +8,7 @@
 > Return a summary + the appended rows + any human-questions; the orchestrator runs the wave's row-review
 > gate.
 >
-> **This brief adds no new procedure.** It runs **phase 3 Part B** (`references/8-map-game-objects.md` →
+> **This brief adds no new procedure.** It runs **phase 4 Part B** (`references/8-map-game-objects.md` →
 > "Part B — Deep-Scope Procedure", Steps B1–B7) scoped to this wave. Read that procedure and apply it to
 > exactly the types this wave covers.
 >
@@ -30,13 +30,13 @@ the next wave's types are untouched until their turn.
 
 - [ ] **Which wave** — the integer `N` and the list of `objectType`s tagged `wave: N` in the census
       (passed by the orchestrator).
-- [ ] **Phase 3 census** → `ludeo-integration-plan/OBJECT_TRACKING.md` — the `## Wave Rollout`,
+- [ ] **Phase 4 census** → `ludeo-integration-plan/OBJECT_TRACKING.md` — the `## Wave Rollout`,
       `## Object Type Census`, and `## Spawn/Own Pattern Summary` tables (Part A), **human-approved**.
-- [ ] **Phase 3 Part B procedure** → `references/8-map-game-objects.md` "Part B — Deep-Scope Procedure"
+- [ ] **Phase 4 Part B procedure** → `references/8-map-game-objects.md` "Part B — Deep-Scope Procedure"
       (Steps B1–B7) — **the procedure you execute.**
-- [ ] **Phase 1** → `ludeo-integration-plan/CODE_MAP.json` (`object_model`, `event_systems`,
+- [ ] **Phase 2** → `ludeo-integration-plan/CODE_MAP.json` (`object_model`, `event_systems`,
       `session_boundaries`, the game-level `save_system` block).
-- [ ] **Phase 0** → `ludeo-integration-plan/INTAKE.md` — game-level save classification (for Step B5).
+- [ ] **Phase 1** → `ludeo-integration-plan/INTAKE.md` — game-level save classification (for Step B5).
 - [ ] **Prior waves' rows** already in `OBJECT_TRACKING.md` — read them so cross-wave references resolve
       correctly and you do not duplicate a shared type.
 - [ ] Context files: `ludeo-integration-docs/06-TRACKING-PATTERNS.md` (**§1.4, §3, §4, §6, §9, §11**),
@@ -47,7 +47,7 @@ the next wave's types are untouched until their turn.
 1. **Resolve the wave's type set.** From the census, take the `objectType`s tagged `wave: N`. For **Wave 1**
    this is the restorable spine (world/level identity + player + time-base/continuity) **plus** the
    must-have collection types; for later waves it is that wave's assigned types.
-2. **Run phase 3 Part B, Steps B1–B7, scoped to those types** (`8-map-game-objects.md`):
+2. **Run phase 4 Part B, Steps B1–B7, scoped to those types** (`8-map-game-objects.md`):
    - **B1** time-base/continuity fields — only if this wave owns the `SessionState`/`Continuity` singleton
      (normally Wave 1).
    - **B2** stable key per type · **B3** properties (typed attributes + cadence) · **B4** cross-entity

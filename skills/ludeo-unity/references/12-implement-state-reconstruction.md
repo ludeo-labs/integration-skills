@@ -1,6 +1,6 @@
-# Phase 4 · Task 4 — Implement State Reconstruction (Unity)
+# Phase 5 · Task 4 — Implement State Reconstruction (Unity)
 
-> **Single-task subagent brief.** Dispatched by the phase-4 orchestrator
+> **Single-task subagent brief.** Dispatched by the phase-5 orchestrator
 > (`9-tracking-restore-orchestrator.md`) **once per wave**. Fill **this wave's** buckets in the
 > `ApplyRestoredState()` body (task 3 declared it as a stub on Wave 1) — the two-pass bucket read-back (the
 > inverse of task 1's capture) — then return a summary + the files you created/edited. **You do not run the
@@ -46,7 +46,7 @@ doesn't double-create during a restore.
       exist and are called; the orchestrator's flow gate passed (freeze → scene load → stub reached →
       `Begin`). **Hard prerequisite** — without its apply gate and the populated `LudeoRestoredData`, there
       is nothing to read back into.
-- [ ] **Task 1** (`phase 9`) → the capture code exists, so the `objectType` strings, `LudeoKeys` constants,
+- [ ] **Task 1** (capture) → the capture code exists, so the `objectType` strings, `LudeoKeys` constants,
       and stable-key attribute names you read back are **real and pinned**. **Hard prerequisite** — you
       cannot restore what task 1 didn't capture. If a key was renamed since the plan, reconcile first.
 - [ ] **Task 2** → `ludeo-integration-plan/RESTORATION_PLAN.md` exists and the user **approved** it.
@@ -257,7 +257,7 @@ Surface to the orchestrator; don't guess:
 ## 5. Patterns to apply
 
 - **Restoration mirrors tracking.** Every read inverts a task-1 write — same `LudeoKeys`, same `objectType`
-  buckets. A gap means the fix is in `phase 3`/task 1, not a fabricated attribute here.
+  buckets. A gap means the fix is in `phase 4`/task 1, not a fabricated attribute here.
 - **Don't touch the flow.** The apply gate, freeze, `LudeoSelected` handler, overlay registrations, and
   entry-identity/scene-boot are task 3's. This task only fills `ApplyRestoredState()` and its accessors.
 - **No SDK id-map, no `EnterObject`, no `ObjectId` matching** — identity is bucket + your own stable key
@@ -291,7 +291,7 @@ Surface to the orchestrator; don't guess:
 
 ## 7. ✅ Success Criteria
 
-**Guideline phase-4 criteria this task feeds** (verified at the orchestrator's gate, not here):
+**Guideline phase-5 criteria this task feeds** (verified at the orchestrator's gate, not here):
 - [ ] **Captured highlight plays back and visibly restores positions/state** — restored snapshot present on
       the first visible frame, non-zero two-pass counts, a cross-entity reference resolved correctly.
 - [ ] **Reader does not assert on missing attributes** — `TryGetAttribute` → `false` keeps the spawn
@@ -325,7 +325,7 @@ Surface to the orchestrator; don't guess:
 - **Single-pass apply** — silently corrupts reference graphs by spawn order (CR-006).
 - **Substituting null on a missing reference key** instead of failing loud (Pass-1 bug).
 - **Omitting a persistent-singleton baseline reset** — prior-run inventory/buffs/score leak across Ludeos.
-- **Fabricating an attribute task 1 didn't capture** — the fix belongs in `phase 3`/task 1.
+- **Fabricating an attribute task 1 didn't capture** — the fix belongs in `phase 4`/task 1.
 - **`ObjectId`/`GetInstanceID()` as a match key** (CR-014).
 - **Relying on the game's scene-start logic to start music** — it's suppressed during restore, so the
   replay is silent; the environment restore must (re)start the track itself (Step 7).
@@ -337,5 +337,5 @@ Surface to the orchestrator; don't guess:
 - Task 3 (`11-implement-restoration-flow.md`) — built the apply lifecycle + the `ApplyRestoredState()` stub
   this task fills (hard prerequisite).
 - **Next (orchestrator):** run the task-4 state gate (play a captured Ludeo: first-frame snapshot, non-zero
-  counts, cross-ref resolved; replay-twice no-leak). When it passes, **phase 4 is complete** — the player
-  flow is proven and phase 5 (actions) may begin.
+  counts, cross-ref resolved; replay-twice no-leak). When it passes, **phase 5 is complete** — the player
+  flow is proven and phase 6 (actions) may begin.

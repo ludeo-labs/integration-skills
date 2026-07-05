@@ -34,61 +34,61 @@ If the project is **not** Unity (no `Assets/`, `ProjectSettings/`, `Packages/man
 **Do not apply C++/main-loop assumptions to a Unity project** — they will send you looking for
 things that don't exist (a `main`, a game-authored loop, a build script) and miss the things that
 do (scenes, MonoBehaviour callbacks, prefabs, an installed package). The full Unity structural model
-and the codebase-scan search patterns live in **phase 1** (`references/1-map-game-code.md`); each
+and the codebase-scan search patterns live in **phase 2** (`references/1-map-game-code.md`); each
 later phase bakes in the Unity reality it needs.
 
-Review **`references/ludeo-integration-docs/00-CRITICAL-REQUIREMENTS.md`** before phase 0 — the
+Review **`references/ludeo-integration-docs/00-CRITICAL-REQUIREMENTS.md`** before phase 1 — the
 mandatory rules, recalibrated for the C# wrapper.
 
 ## Workflow
 
 The integration is a sequential workflow, now sequenced by the **8-phase guideline order** (the table's
 **Phase** column), not the legacy file numbers (renumbering is deferred).
-The order is: **0** install + intake → **1** map code → **2** SDK lifecycle → **3** map objects → **4**
+The order is: **1** install + intake → **2** map code → **3** SDK lifecycle → **4** map objects → **5**
 tracking & restore (an **iterative wave loop** that turns a capture into a playable Ludeo — Wave 1 = the
-restorable spine, then widen) → **5** actions → **6** validate + upload. Note **actions (phase 5) run AFTER
-tracking & restore (phase 4)** per the guideline — the player flow is proven (Wave 1 restores) before action
-enrichment. Always start at phase 0 unless the user says they've completed earlier phases.
+restorable spine, then widen) → **6** actions → **7** validate + upload. Note **actions (phase 6) run AFTER
+tracking & restore (phase 5)** per the guideline — the player flow is proven (Wave 1 restores) before action
+enrichment. Always start at phase 1 unless the user says they've completed earlier phases.
 Complete one phase at a time and confirm with the user before advancing.
 
-**Phases 2, 4, and 5 are orchestrated.** Each is one logical guideline phase made of single-task briefs,
+**Phases 3, 5, and 6 are orchestrated.** Each is one logical guideline phase made of single-task briefs,
 run by a thin orchestrator that dispatches one **subagent per task** (Agent tool) and passes artifacts by
 file — so the user experiences each as a single phase.
-- **Phase 2** ("plan & implement the SDK lifecycle") follows `references/2-lifecycle-orchestrator.md`:
+- **Phase 3** ("plan & implement the SDK lifecycle") follows `references/2-lifecycle-orchestrator.md`:
   tasks 1–4 run automatically, the compile+run gate is surfaced to the human.
-- **Phase 4** ("tracking & restore") follows `references/9-tracking-restore-orchestrator.md` and runs as an
-  **iterative wave loop**: phase 3 produces a *census + wave plan*, and phase 4 implements it **one wave at
+- **Phase 5** ("tracking & restore") follows `references/9-tracking-restore-orchestrator.md` and runs as an
+  **iterative wave loop**: phase 4 produces a *census + wave plan*, and phase 5 implements it **one wave at
   a time** — per wave: deep-scope (task 0) → capture (task 1) → restore-plan (task 2) → reconstruction (task
   4), with the restore-**flow** (task 3) built **once in Wave 1**. **Wave 1** proves the full capture→replay
   round-trip on the *restorable spine + must-have set*; each later wave widens the tracked set. **Every**
   sub-task ends in a human gate the orchestrator runs (the agent can't see the Console, and the
   capture/replay gates require the human to capture/play a Ludeo); on a failed gate it re-dispatches a fix
   subagent with the logs — re-opening an **earlier wave** if the failure traces to its state.
-- **Phase 5** ("actions") follows `references/6-actions-orchestrator.md`: map → implement, then one human
+- **Phase 6** ("actions") follows `references/6-actions-orchestrator.md`: map → implement, then one human
   compile+log gate (each action must emit in **both** the Creator and Player flow).
 
 | Phase | File | Purpose |
 | --- | --- | --- |
-| 0 | `references/0-build-game-with-sdk.md` | **Download the latest plugin release** (`github.com/ludeo-labs/unity-plugin-releases`) + install the UPM package, set scripting defines + `LudeoSettings`, baseline + SDK-enabled compile, run **intake** (incl. game-level save-system classification) |
-| 1 | `references/1-map-game-code.md` | Produce CODE_MAP of the Unity project (scenes, MonoBehaviours, prefabs, managers) |
-| **2** | **`references/2-lifecycle-orchestrator.md`** | **SDK lifecycle (orchestrated) — dispatches the five briefs below as subagents; plans the restoration entry point + Non-Gameplay Handling** |
-| 2 · task 1 | `references/2-find-sdk-integration-points.md` | Map each game-event → `[SDK]`/`[Layer]` call site |
-| 2 · task 2 | `references/2b-create-tdd.md` | Produce Technical Design Document (architecture, strategy, risks) |
-| 2 · task 3 | `references/3-plan-sdk-lifecycle.md` | Plan the LudeoController layer + notification registration + non-gameplay emissions |
-| 2 · task 4 | `references/4-implement-sdk-lifecycle.md` | Implement the LudeoController/Flow/SessionManager layer + wire hooks |
-| 2 · task 5 | `references/5-compile-and-fix.md` | Compile in the Editor (defines on and off), fix, confirm the capture overlay — **human-gated** |
-| 2c | `references/2c-classify-save-system.md` | *Superseded:* game-level save classification moved to phase 0 intake; per-entity matrix to phase 8. Pending retirement. |
-| **3** | `references/8-map-game-objects.md` | **Guideline phase 3 — CENSUS + wave plan (Part A):** enumerate every trackable object **type**, flag load-bearing ones, assign **waves** (Wave 1 = restorable spine + must-have set). Holds the **Part B** deep-scope procedure phase 4 runs per wave. No deep detail or code here |
-| **4** | **`references/9-tracking-restore-orchestrator.md`** | **Tracking & restore (orchestrated, iterative WAVE LOOP) — implements the wave plan one wave at a time; dispatches the briefs below as subagents; owns a human gate per sub-task, per wave** |
-| 4 · task 0 | `references/9a-deep-scope-wave.md` | **Per wave:** deep-scope this wave's types (runs phase-3 Part B) → append `## Entity` rows to `OBJECT_TRACKING.md` |
-| 4 · task 1 | `references/9-implement-object-tracking.md` | **Per wave (additive):** wire `ILudeoStateHandler` registration & per-tick attribute capture for this wave's types |
-| 4 · task 2 | `references/10-plan-state-restoration.md` | **Per wave (append):** plan the restoration (objectType buckets, two-pass) for this wave → `RESTORATION_PLAN.md` |
-| 4 · task 3 | `references/11-implement-restoration-flow.md` | **ONCE (Wave 1 only):** implement the restore **flow**: `LudeoSelected`→`GetLudeo`→play flow, freeze/overlay, `RoomReady`→`Begin`, the `ApplyRestoredState()` stub |
-| 4 · task 4 | `references/12-implement-state-reconstruction.md` | **Per wave (additive buckets):** fill `ApplyRestoredState()` for this wave — two-pass spawn-from-bucket apply, references, deferred props, environment |
-| **5** | **`references/6-actions-orchestrator.md`** | **Actions (orchestrated) — dispatches the two briefs below as subagents; runs after phase 4 (player flow proven); one human compile+log gate** |
-| 5 · task 1 | `references/6-map-game-actions.md` | Find action points in game code (player-perspective; incl. the non-gameplay standard actions planned in phase 2) |
-| 5 · task 2 | `references/7-implement-game-actions.md` | Insert `SendAction` calls (gameplay + non-gameplay) + document the one-time platform global-trigger mapping |
-| **6** | `references/13-upload-build.md` | **Guideline phase 6** — validate the release build (`validate-build`) + prep & upload it to the Ludeo platform with the `ludeo` CLI, then poll status until `ready` |
+| 1 | `references/0-build-game-with-sdk.md` | **Download the latest plugin release** (`github.com/ludeo-labs/unity-plugin-releases`) + install the UPM package, set scripting defines + `LudeoSettings`, baseline + SDK-enabled compile, run **intake** (incl. game-level save-system classification) |
+| 2 | `references/1-map-game-code.md` | Produce CODE_MAP of the Unity project (scenes, MonoBehaviours, prefabs, managers) |
+| **3** | **`references/2-lifecycle-orchestrator.md`** | **SDK lifecycle (orchestrated) — dispatches the five briefs below as subagents; plans the restoration entry point + Non-Gameplay Handling** |
+| 3 · task 1 | `references/2-find-sdk-integration-points.md` | Map each game-event → `[SDK]`/`[Layer]` call site |
+| 3 · task 2 | `references/2b-create-tdd.md` | Produce Technical Design Document (architecture, strategy, risks) |
+| 3 · task 3 | `references/3-plan-sdk-lifecycle.md` | Plan the LudeoController layer + notification registration + non-gameplay emissions |
+| 3 · task 4 | `references/4-implement-sdk-lifecycle.md` | Implement the LudeoController/Flow/SessionManager layer + wire hooks |
+| 3 · task 5 | `references/5-compile-and-fix.md` | Compile in the Editor (defines on and off), fix, confirm the capture overlay — **human-gated** |
+| 2c | `references/2c-classify-save-system.md` | *Superseded:* game-level save classification moved to phase 1 intake; per-entity matrix to phase 4. Pending retirement. |
+| **4** | `references/8-map-game-objects.md` | **Guideline phase 4 — CENSUS + wave plan (Part A):** enumerate every trackable object **type**, flag load-bearing ones, assign **waves** (Wave 1 = restorable spine + must-have set). Holds the **Part B** deep-scope procedure phase 5 runs per wave. No deep detail or code here |
+| **5** | **`references/9-tracking-restore-orchestrator.md`** | **Tracking & restore (orchestrated, iterative WAVE LOOP) — implements the wave plan one wave at a time; dispatches the briefs below as subagents; owns a human gate per sub-task, per wave** |
+| 5 · task 0 | `references/9a-deep-scope-wave.md` | **Per wave:** deep-scope this wave's types (runs phase-4 Part B) → append `## Entity` rows to `OBJECT_TRACKING.md` |
+| 5 · task 1 | `references/9-implement-object-tracking.md` | **Per wave (additive):** wire `ILudeoStateHandler` registration & per-tick attribute capture for this wave's types |
+| 5 · task 2 | `references/10-plan-state-restoration.md` | **Per wave (append):** plan the restoration (objectType buckets, two-pass) for this wave → `RESTORATION_PLAN.md` |
+| 5 · task 3 | `references/11-implement-restoration-flow.md` | **ONCE (Wave 1 only):** implement the restore **flow**: `LudeoSelected`→`GetLudeo`→play flow, freeze/overlay, `RoomReady`→`Begin`, the `ApplyRestoredState()` stub |
+| 5 · task 4 | `references/12-implement-state-reconstruction.md` | **Per wave (additive buckets):** fill `ApplyRestoredState()` for this wave — two-pass spawn-from-bucket apply, references, deferred props, environment |
+| **6** | **`references/6-actions-orchestrator.md`** | **Actions (orchestrated) — dispatches the two briefs below as subagents; runs after phase 5 (player flow proven); one human compile+log gate** |
+| 6 · task 1 | `references/6-map-game-actions.md` | Find action points in game code (player-perspective; incl. the non-gameplay standard actions planned in phase 3) |
+| 6 · task 2 | `references/7-implement-game-actions.md` | Insert `SendAction` calls (gameplay + non-gameplay) + document the one-time platform global-trigger mapping |
+| **7** | `references/13-upload-build.md` | **Guideline phase 7** — validate the release build (`validate-build`) + prep & upload it to the Ludeo platform with the `ludeo` CLI, then poll status until `ready` |
 
 ## Important rules
 
@@ -96,16 +96,16 @@ file — so the user experiences each as a single phase.
 - **Every code-writing phase ends with a recompile + run gate (hard requirement).** The files that edit
   `.cs` (`4`, `7`, `9`, `11`, `12`) each end by requiring the integrator to (1) focus the Editor to
   recompile clean and (2) play the game to confirm it still runs. Unity recompiles on focus, so "compile"
-  is a per-phase reality, not a one-time milestone. **For the orchestrated phases (2, 4, and 5) the
+  is a per-phase reality, not a one-time milestone. **For the orchestrated phases (3, 5, and 6) the
   orchestrator runs these gates** — it dispatches the codegen subagent (which does not compile), then
   surfaces the recompile/play gate to the human and re-dispatches a fix subagent with the logs on failure.
   The agent reads `Editor.log`/`Player.log` where it can but cannot truly verify either step — beyond the
   log it relies on the integrator's word. Do not advance until they confirm both (or explicitly skip). The
-  compile-and-fix loop + `error CS` table live in `phase 5`; the gate cites it rather than repeating it.
-- **Unity mental model first.** Internalize the "Read this first" model above (and phase 1's "How a
-  Unity game is structured") before phase 0, and treat every search/instruction through it.
+  compile-and-fix loop + `error CS` table live in `phase 3 · task 5`; the gate cites it rather than repeating it.
+- **Unity mental model first.** Internalize the "Read this first" model above (and phase 2's "How a
+  Unity game is structured") before phase 1, and treat every search/instruction through it.
 - **Track objects as attributes by default, not blobs.** The SDK supports both; Ludeo strongly
-  prefers attribute integrations. When mapping and tracking objects (phases 3–4), capture discrete
+  prefers attribute integrations. When mapping and tracking objects (phases 4–5), capture discrete
   typed attributes (`SetAttribute(name, int/float/bool/string/Vector3/Quaternion)`) by default and
   do **not** ask the user which to use. Use blob/`byte[]` storage only when the user explicitly asks
   or an entity is genuinely opaque — see `06-TRACKING-PATTERNS.md`.
@@ -164,6 +164,6 @@ machine. Set it up once, before doing any SDK work.
 
 ## Start here
 
-Read `references/0-build-game-with-sdk.md` and follow it. (Phase 1 establishes the full Unity
+Read `references/0-build-game-with-sdk.md` and follow it. (Phase 2 establishes the full Unity
 structural model and search patterns once you reach codebase mapping.)
 

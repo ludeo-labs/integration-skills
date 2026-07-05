@@ -1,6 +1,6 @@
-# Phase 4 · Task 1 — Implement Object Tracking (Unity)
+# Phase 5 · Task 1 — Implement Object Tracking (Unity)
 
-> **Single-task subagent brief.** Dispatched by the phase-4 orchestrator
+> **Single-task subagent brief.** Dispatched by the phase-5 orchestrator
 > (`9-tracking-restore-orchestrator.md`) **once per wave**. Wire the `[Layer]` handler calls for **this
 > wave's** entities (the `## Entity` rows task 0 just appended for `wave: N`), then return a summary + the
 > files you created/edited. **You do not run the human-gated compile/play** — the orchestrator runs it (it
@@ -33,7 +33,7 @@ batch pass. Produces the capture code the orchestrator then verifies at runtime 
       sites, cross-entity references, per-entity reconciliation/manual matrix; for Wave 1, the
       world-identity + time-base objects). The orchestrator tells you **which wave `N`**. Wire **only**
       those types.
-- [ ] **Phase 2** → the `[Layer]` exists (`LudeoController` + flow switch + `DefaultLudeoStateHandler` +
+- [ ] **Phase 3** → the `[Layer]` exists (`LudeoController` + flow switch + `DefaultLudeoStateHandler` +
       a `LudeoKeys` scaffold) and the SDK lifecycle compiles/runs.
 - [ ] Context files read (relative to this brief):
   - `ludeo-integration-docs/06-TRACKING-PATTERNS.md` — **§1.4** (attributes vs blobs), **§3** (the
@@ -87,10 +87,10 @@ local-fields for the first two and the serializer's stable id for the sweep.
 
 ### Step 3: Ensure the keys class exists (no macros, no adapter)
 Unity needs **no** `LudeoCaptureMacros.h` and **no** `LudeoStateAdapter`/ID-map — the `[Layer]` from
-`phase 2` already provides `DefaultLudeoStateHandler` and the tracked-handler registry. The one piece to
+`phase 3` already provides `DefaultLudeoStateHandler` and the tracked-handler registry. The one piece to
 complete is the **constants class(es)**: one `LudeoKeys`-style class per tracked objectType (the
 `OBJECT_NAME` objectType string + one `const string` per attribute name), so capture and restore
-(`phase 12`/task 4) read the **same** constants (`06 §10`, REFERENCE-ARCHITECTURE "Keys"). Phase 2
+(`phase 5`/task 4) read the **same** constants (`06 §10`, REFERENCE-ARCHITECTURE "Keys"). Phase 3
 scaffolded this — fill it from the plan's property names. Propose the class(es), confirm, then proceed.
 
 ### Step 4: Wire the register call + the `OnStateDataUpdate` writer
@@ -138,7 +138,7 @@ objects that die **during** a run.
 
 ### Step 6: Per-tick sampling + cadence
 Capture is **per-tick sampling**, not per-setter (the lambda re-reads live state each tick). Confirm the
-sampler driver exists (from `phase 2`'s gameplay MonoBehaviour) and is gated correctly:
+sampler driver exists (from `phase 3`'s gameplay MonoBehaviour) and is gated correctly:
 
 ```csharp
 void Update() { if (m_gameplayActive && !LudeoController.Instance.IsInLudeoFlow) LudeoController.Instance.UpdateStateObjects(); } // [Unity]→[Layer]
@@ -168,7 +168,7 @@ void OnGameplayBegan()
 don't invent an ad-hoc "is this a replay" check. Streaming worlds: register stream-in newcomers at their
 stream-in hook, not in a one-shot whole-world pass (`open-world-tracking.md §6`).
 
-> **⚠️ The world/level identity key is a capture requirement, not a restore-time afterthought.** Phase 11's
+> **⚠️ The world/level identity key is a capture requirement, not a restore-time afterthought.** Phase 5 · task 3's
 > first action is to rebuild the captured world, and it can only restore what *this* task wrote — a Ludeo
 > captured before the identity attribute existed comes back with an empty key and "chunk '' not found"
 > (`07 §8`). Capture it here, sampled every tick. **Corollary:** adding *or renaming* any capture attribute
@@ -176,7 +176,7 @@ stream-in hook, not in a one-shot whole-world pass (`open-world-tracking.md §6`
 > migration. After any capture-schema change, tell the orchestrator the human must **re-capture** before
 > testing restore; a fresh run re-samples valid data.
 
-> **Time-base / continuity (`phase 3` Step 4.5):** implement the singleton `SessionState`/`Continuity`
+> **Time-base / continuity (`phase 4` Step 4.5):** implement the singleton `SessionState`/`Continuity`
 > objectType the plan defined — master/session clock (`AudioSource.time`/`dspTime`, beat/bar), **remaining**
 > timers & cooldowns, in-progress sequence/wave/combo index — sampled per-tick. Without it the moment
 > rebuilds but replays from the top (a rhythm moment restarts its music).
@@ -189,14 +189,14 @@ stream-in hook, not in a one-shot whole-world pass (`open-world-tracking.md §6`
 
 ### Step 8: Reconciliation wiring (only where the matrix says so)
 For entities marked **reconciliation** in the per-entity matrix (`OBJECT_TRACKING.md` entity rows /
-`CODE_MAP.save_system.per_entity`, built in `phase 3`): have the `OnStateDataUpdate` lambda mirror the
+`CODE_MAP.save_system.per_entity`, built in `phase 4`): have the `OnStateDataUpdate` lambda mirror the
 named fields the game's own serializer writes. For **manual** entities, all writes are the explicit
 `SetAttribute` calls from Step 4.
 
 > ⚠️ **Reconciliation only applies when the save writes named fields.** If the serializer produces an
 > opaque/packed blob, you cannot mirror it into Ludeo's named-attribute API — capture discrete
 > attributes instead and treat the entity as manual, regardless of the matrix. Surface any
-> "reconciliation" entry that actually serializes a blob to the orchestrator (`phase 3` Step 8, `06 §1.4`).
+> "reconciliation" entry that actually serializes a blob to the orchestrator (`phase 4` Step 8, `06 §1.4`).
 
 ### Step 9: Self-check, then hand back (no compile here)
 You do **not** run the human-gated compile/play — the orchestrator does. Before returning, statically
@@ -241,7 +241,7 @@ Surface to the orchestrator; don't guess:
 
 ## 7. ✅ Success Criteria
 
-**Guideline phase-4 criteria this task feeds** (verified at the orchestrator's gate, not here):
+**Guideline phase-5 criteria this task feeds** (verified at the orchestrator's gate, not here):
 - [ ] Capture runs at runtime — registration fires and ≥1 Ludeo can be captured with **no**
       `LudeoResult`/dropped-attribute errors in the log (orchestrator's task-1 gate; the precondition for
       any restore test).
@@ -273,6 +273,6 @@ Surface to the orchestrator; don't guess:
 
 ## Related / Next
 
-- `phase 3` (`8-map-game-objects.md`) — produces `OBJECT_TRACKING.md`, the plan this task consumes.
+- `phase 4` (`8-map-game-objects.md`) — produces `OBJECT_TRACKING.md`, the plan this task consumes.
 - **Next (orchestrator):** run the task-1 human gate (recompile + capture a session), then dispatch task 2
   (`10-plan-state-restoration.md`) — restoration is the row-for-row inverse of this capture.

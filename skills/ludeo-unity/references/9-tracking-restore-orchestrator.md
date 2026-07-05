@@ -1,7 +1,7 @@
-# Phase 4 — Tracking & Restore (Orchestrated, Iterative Wave Loop)
+# Phase 5 — Tracking & Restore (Orchestrated, Iterative Wave Loop)
 
-> **This is the phase-4 entry point.** Guideline phase 4 ("Tracking & restore (game objects)") is one
-> logical phase, run as an **iterative wave loop**: the census + wave plan from phase 3 is implemented
+> **This is the phase-5 entry point.** Guideline phase 5 ("Tracking & restore (game objects)") is one
+> logical phase, run as an **iterative wave loop**: the census + wave plan from phase 4 is implemented
 > **one wave at a time**, each wave proven by a human at its own restore gate before the next widens scope.
 > Within a wave the work is single-task briefs: **deep-scope** (task 0) → **capture** (task 1) → **restore
 > plan** (task 2) → **restore flow** (task 3, **wave 1 only**) → **state reconstruction** (task 4). The
@@ -29,11 +29,11 @@ for each widened wave.
 ## 2. Inputs (Input Contract)
 
 - [ ] **Fresh agent session** for the orchestrator (its context stays lean — subagents carry the heavy
-      per-task context). If this chat already has phase-4 work in it, start fresh.
-- [ ] **Phase 2 complete** — the `[Layer]` exists (`LudeoController` + flow switch +
+      per-task context). If this chat already has phase-5 work in it, start fresh.
+- [ ] **Phase 3 complete** — the `[Layer]` exists (`LudeoController` + flow switch +
       `DefaultLudeoStateHandler` + `LudeoKeys` scaffold + the `onRoomReady`/`onBeginRestore` hooks + the
       `Begin`-gate) and the SDK lifecycle compiles and runs with the capture overlay live.
-- [ ] **Phase 3 census complete** — `ludeo-integration-plan/OBJECT_TRACKING.md` exists with the **Part-A
+- [ ] **Phase 4 census complete** — `ludeo-integration-plan/OBJECT_TRACKING.md` exists with the **Part-A
       census + wave plan** (`## Wave Rollout`, `## Object Type Census`, `## Spawn/Own Pattern Summary`) and
       the user **approved** it (type coverage, load-bearing flags, wave order, Wave 1 = restorable spine +
       must-have set). The **per-entity deep detail is NOT in it yet** — task 0 appends it per wave.
@@ -61,7 +61,7 @@ subagent that's gone.
 > **re-dispatches a fix subagent** pointed at the **same brief**, with the **failing log text / the
 > human's report passed by file** plus the list of files the prior subagent touched. The orchestrator
 > holds the iteration state across as many human round-trips as it takes. Root-cause every fix
-> (no try/catch or symptom-masking, `phase 5`); propose-confirm-execute each change.
+> (no try/catch or symptom-masking, `phase 3 · task 5`); propose-confirm-execute each change.
 >
 > **Guardrail escalation (cross-wave):** if a wave-`N` gate fails because state **owned by an earlier,
 > already-confirmed wave** is wrong or missing, that is **not** a wave-`N` fix. Re-open the **earlier**
@@ -87,7 +87,7 @@ for N in waves:                                  # OUTER LOOP
 
 **Wave 1 runs the full pipeline** (it builds the one-time restore flow). **Waves ≥ 2 are data-only**
 (`deep-scope → capture → restore-plan → reconstruct`) and **skip task 3** — the flow already exists; only
-the tracked set, the capture writers, and the `ApplyRestoredState()` data read-back grow. **Phase 5
+the tracked set, the capture writers, and the `ApplyRestoredState()` data read-back grow. **Phase 6
 (actions) may start once Wave 1 is green** — it does not wait for every wave.
 
 | # | Task | Brief | Cadence | Produces | Human gate (orchestrator-run) |
@@ -123,14 +123,14 @@ explicit at every wave's task-1 gate.
 >    through the floor, or appear far from the geometry?"* A **yes** is a displaced-frame bug — the
 >    captured world frame wasn't reconstructed (`CODE_MAP.session_boundaries.world_frame`;
 >    [`game-patterns/procedural-world.md`](ludeo-integration-docs/game-patterns/procedural-world.md) §3/§5).
->    This is a **symptom-level** check: it catches the failure even when phase 1's up-front detection
+>    This is a **symptom-level** check: it catches the failure even when phase 2's up-front detection
 >    missed the cause, and it doubles as a general "is the restore visually coherent" gate, not a
 >    genre-specific one.
 
 ### Re-capture every wave (schema invalidation)
 
 Each wave's `capture(N)` **adds attributes** to the capture schema, which **invalidates Ludeos captured in
-prior waves** (`06 §6` / `phase 9`). So at **every** wave's task-1 gate the human must **re-capture** — the
+prior waves** (`06 §6` / `phase 5 · task 1`). So at **every** wave's task-1 gate the human must **re-capture** — the
 Ludeo used for that wave's task-4 (GATE 4) must contain wave N's new attributes, not a stale prior-wave
 capture. The same applies after any in-wave capture-schema fix.
 
@@ -140,14 +140,14 @@ The orchestrator runs the gates but still **cannot see the Console** — it conf
 **Unity's log files** per
 [`unity/READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md), and beyond the log
 relies on the integrator's word (a clean compile never proves capture/restore works). The compile-and-fix
-loop + `error CS` table live in [`phase 5`](5-compile-and-fix.md) — cite it, don't repeat it.
+loop + `error CS` table live in [`phase 3 · task 5`](5-compile-and-fix.md) — cite it, don't repeat it.
 
 ## 4. Questions to ask the human
 
 The orchestrator relays whatever a subagent surfaces — it does not invent its own. Expected ones:
 - **Task 0 (deep-scope):** a collection type whose stable key is unresolved; an entity whose
   "reconciliation" row actually serializes an opaque blob (treat as manual); a **load-bearing cross-wave
-  reference** that should reshape the wave plan (takes it back to the phase-3 census gate).
+  reference** that should reshape the wave plan (takes it back to the phase-4 census gate).
 - **Task 2 (plan):** the apply's sync/async shape (freeze vs suppress); missing scene-loader completion
   signal; disagreements between this wave's `OBJECT_TRACKING.md` rows and `CODE_MAP.save_system.per_entity`.
 - **Task 0 gate:** approve **wave N's** appended rows.
@@ -174,7 +174,7 @@ The orchestrator relays whatever a subagent surfaces — it does not invent its 
   re-wire the flow or edit a confirmed wave's writers/buckets for a later wave.
 - **The load-bearing guardrail** — widening is for **breadth, not backfilling**. If a later wave needs
   state an already-confirmed wave should have carried, fix the **earlier** wave and re-verify its gate
-  (guardrail escalation, §3). A gap belongs back in `phase 3`/task 0, not papered over downstream.
+  (guardrail escalation, §3). A gap belongs back in `phase 4`/task 0, not papered over downstream.
 - **Orchestrator / single-task-subagent dispatch** — each brief is written to be run by a subagent in
   isolation; the orchestrator is thin and owns the human gates + the fix loop + the wave counter.
 - **The mirror principle** — restoration (tasks 2/4) is the **row-for-row inverse** of capture (task 1)
@@ -185,8 +185,8 @@ The orchestrator relays whatever a subagent surfaces — it does not invent its 
   (CR-014).
 - **Capture is creator-only; restore is play-only.** Guard capture on `!IsInLudeoFlow`; the restore path
   runs because `IsInLudeoFlow` is `true` (CR-001).
-- **Player flow proven before actions.** Phase 4 reaches the actions prerequisite the moment **Wave 1**
-  restores for a human — that is the guideline's gate for proceeding to phase 5 (actions).
+- **Player flow proven before actions.** Phase 5 reaches the actions prerequisite the moment **Wave 1**
+  restores for a human — that is the guideline's gate for proceeding to phase 6 (actions).
 
 ## 6. Output Contract
 
@@ -202,7 +202,7 @@ Produced across the subagent tasks (each brief owns its own contract); the per-w
   buckets growing per wave** (task 4, additive).
 - **A human-verified captured highlight that plays back and restores state — per wave** (each wave's gate).
 
-## 7. ✅ Success Criteria (the guideline phase-4 gate)
+## 7. ✅ Success Criteria (the guideline phase-5 gate)
 
 Per wave, the orchestrator confirms the wave's gates; the **phase advances to actions once Wave 1 is
 green**, and is **fully complete when the last wave in the plan is green**.
@@ -220,7 +220,7 @@ green**, and is **fully complete when the last wave in the plan is green**.
 - [ ] **Replay→replay** (in one session) tears the prior run down cleanly and shows the **second** Ludeo's
       state — no stale-flag deadlock, no dropped-`Start` defaults, no persistent-singleton leak (tasks 3–4).
 
-**Wave 1 additionally (the guideline phase-4 criteria + one-time flow):**
+**Wave 1 additionally (the guideline phase-5 criteria + one-time flow):**
 - [ ] **Flow reaches the restore entry point on a real captured Ludeo** (task 3 gate).
 - [ ] **Pause/overlay behavior correct** — overlay open freezes the sim, close resumes (CR-011; task 3 gate).
 - [ ] CR-010 restore freeze and CR-011 overlay pause on **two separate flags**, reset every restore.
@@ -229,7 +229,7 @@ green**, and is **fully complete when the last wave in the plan is green**.
 - [ ] Two-pass restoration (CR-006) with a per-Ludeo `keyMap`; references resolved, **fail loud** on a
       missing key (task 4).
 - [ ] **Player Flow proven working before actions/enrichment proceed** — Wave 1's restore gate is the gate
-      for phase 5.
+      for phase 6.
 
 **Phase complete:**
 - [ ] Every wave in the `## Wave Rollout` plan has passed its restore gate (or a remaining wave is
@@ -257,7 +257,7 @@ green**, and is **fully complete when the last wave in the plan is green**.
 - Briefs: `9a-deep-scope-wave.md` (task 0, per wave), `9-implement-object-tracking.md` (task 1),
   `10-plan-state-restoration.md` (task 2), `11-implement-restoration-flow.md` (task 3, once),
   `12-implement-state-reconstruction.md` (task 4).
-- Phase 3 (`8-map-game-objects.md`) — produces the **census + wave plan** (Part A) and the **Part B
+- Phase 4 (`8-map-game-objects.md`) — produces the **census + wave plan** (Part A) and the **Part B
   deep-scope procedure** that task 0 runs per wave.
-- **Next:** phase 5 (actions) — wire `SendAction`/`ReportAction` in both flows, now that the player flow
-  is proven (Wave 1 green). Includes emitting the non-gameplay standard actions planned in phase 2.
+- **Next:** phase 6 (actions) — wire `SendAction`/`ReportAction` in both flows, now that the player flow
+  is proven (Wave 1 green). Includes emitting the non-gameplay standard actions planned in phase 3.
