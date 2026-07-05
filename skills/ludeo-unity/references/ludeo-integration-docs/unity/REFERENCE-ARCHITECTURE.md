@@ -169,18 +169,20 @@ public class LudeoController
     private readonly Action<bool> m_onInitDone;       // arg: starting in Ludeo (play) flow?
     private readonly Action m_onBeginRestore;         // fires at Ludeo-SELECTION, before the room opens (see HandleGetLudeoDone)
     private readonly Action m_onRoomReady, m_onStopGame, m_onExitToMainMenu;
+    private readonly Action<Action> m_activateWhenReady;   // implicit-auth gate: game fires the supplied Activate once Steam is ready (null = activate inline)
     private bool m_gameplayStarted;
     private bool m_roomReady;              // leg 1 of the begin gate (see HandleRoomReady)
     private bool m_sceneReadyForRestore;   // leg 3 (restore only): the gameplay scene the apply writes into has finished loading
 
     public LudeoController(Action<bool> onInitDone, Action onRoomReady,
                            Action onStopGame, Action onExitToMainMenu,
-                           Action onBeginRestore = null)
+                           Action onBeginRestore = null, Action<Action> activateWhenReady = null)
     {
         Instance = this;
         m_onInitDone = onInitDone; m_onRoomReady = onRoomReady;
         m_onStopGame = onStopGame; m_onExitToMainMenu = onExitToMainMenu;
         m_onBeginRestore = onBeginRestore;   // restore-only; null in create-only games
+        m_activateWhenReady = activateWhenReady;   // implicit-auth (Steam) gate; null → Activate inline (explicit / cloud / Steam already up)
         m_switch = new LudeoFlowSwitch(m_data);
         LudeoManager.InitLudeoSession(HandleInitSessionDone);
     }
@@ -257,10 +259,16 @@ public class LudeoController
         s.AddNotifyMuteRequest(d => { /* mute audio = d.isMuted */ });
         s.AddNotifyLocalizationChanged(d => { /* set language = d.language */ });
 
-        // Activate authenticates. With implicit auth (runWithoutLauncher = false, the Steam default),
-        // the SDK auto-detects Steam but does NOT init it — the game must have Steam running BEFORE
-        // this call or the callback returns InvalidAuth (UPM-INSTALL-AND-DEFINES.md §3).
-        s.Activate(HandleActivateDone);
+        // Activate authenticates, and auth resolves HERE (not at init). With implicit auth
+        // (runWithoutLauncher = false, the Steam default) the SDK auto-detects Steam but does NOT init
+        // it — Steam must already be running or Activate's callback returns InvalidAuth. Steam usually
+        // comes up LATE/async (e.g. a login scene) while this controller bootstraps EARLY, so calling
+        // Activate inline here races ahead of Steam. The game injects an optional auth-ready gate so it
+        // can defer Activate until Steam is up; the controller itself holds NO Steam dependency. No gate
+        // (explicit auth / cloud token / Steam already up) → Activate inline. See "Implicit auth: gate
+        // Activate on Steam-ready" below and UPM-INSTALL-AND-DEFINES.md §3.
+        if (m_activateWhenReady != null) m_activateWhenReady(() => s.Activate(HandleActivateDone));
+        else s.Activate(HandleActivateDone);
     }
 
     private void HandleActivateDone(LudeoSessionActivateCallbackData data)
@@ -438,6 +446,71 @@ private void TryReleaseCreatorGate()
 > unconditional `m_onInitDone(data.isLudeoSelected)`); the menu is the wait. Add the gate only when the
 > launch model is boot-straight — or when a classic menu is fast/skippable enough to race consent
 > ([`LAUNCH-AND-READINESS.md`](./LAUNCH-AND-READINESS.md) §6).
+
+---
+
+## Implicit auth: gate `Activate` on Steam-ready (don't call it inline)
+
+Implicit (Steam) auth is a **code-ordering** problem, not just the `runWithoutLauncher` toggle. Auth
+resolves at `Activate`, and the SDK does **not** initialize Steam — so Steam must be up *first*. But the
+controller bootstraps **early** (a bootstrap `Awake` / base scene) while Steam typically initializes
+**late and async** (a login scene, via a Steam wrapper). Calling `Activate` inline in
+`HandleInitSessionDone` therefore races ahead of Steam → the callback returns `InvalidAuth`.
+
+The fix is the injected `activateWhenReady` gate above: the **game** decides when auth is ready and
+fires the supplied `Activate`; the controller stays Steam-agnostic. The gate is **bounded** — on
+timeout it activates anyway (and logs) so a no-Steam machine is never blocked forever.
+
+```csharp
+// GAME bootstrap — owns Steam; the controller does not. Pass a gate ONLY when implicit/Steam auth is in
+// play; otherwise pass null so Activate fires inline. The Steam-wrapper defines are ILLUSTRATIVE — use
+// whatever your project / wrapper (Steamworks.NET, Facepunch, …) actually defines.
+#if STEAMWORKS_NET && !STEAMWORKS_OFF        // real player-facing Steam build
+    Action<Action> authGate = activate => CoroutineRunner.Start(ActivateWhenSteamReady(activate));
+#else                                        // cloud token build / no Steam compiled in
+    Action<Action> authGate = null;          // nothing to wait for — Activate immediately
+#endif
+    m_controller = new LudeoController(onInitDone, onRoomReady, onStopGame, onExitToMainMenu,
+                                       onBeginRestore, authGate);
+
+#if STEAMWORKS_NET && !STEAMWORKS_OFF
+IEnumerator ActivateWhenSteamReady(Action activate)
+{
+    // Explicit auth (a launcherUserId, incl. a LUDEO_DEV runtime override) needs no Steam — go now.
+    var settings = Resources.Load<LudeoSettings>("LudeoSettings");
+    if (settings != null && settings.runWithoutLauncher) { activate(); yield break; }
+
+    float deadline = Time.realtimeSinceStartup + AUTH_READY_TIMEOUT_SECONDS;   // e.g. 15s
+    // Use SteamAPI.InitEx(out string) — not SteamAPI.Init(). InitEx returns ESteamAPIInitResult plus
+    // an English message that names the actual failure; Init() returns a bare bool with no context.
+    // Must be idempotent — Steam may already be up; guard with a ready-check before calling.
+    if (!SteamApiIsReady()) {
+        var initResult = SteamAPI.InitEx(out string initMsg);
+        if (initResult != ESteamAPIInitResult.k_ESteamAPIInitResult_OK)
+            Debug.LogError($"[Ludeo] SteamAPI.InitEx failed: {initResult} — {initMsg}");
+    }
+    while (!SteamApiIsReady() && Time.realtimeSinceStartup < deadline) yield return null;
+    if (!SteamApiIsReady())
+        Debug.LogError("[Ludeo] Steam not ready before timeout; activating anyway — implicit auth will " +
+                       "likely return InvalidAuth. See UPM-INSTALL-AND-DEFINES.md §3 / READING-UNITY-LOGS.md.");
+    activate();   // fire Activate EXACTLY ONCE, ready or timed-out — never leave the game unauthenticated forever
+}
+#endif
+```
+
+- **Cloud / no-Steam builds pass `null`** (or take the `#else`) and `Activate` immediately — the cloud
+  supplies the token. The three auth modes (implicit/Steam, explicit/`launcherUserId`, cloud-token), the
+  conditional-compilation axis, and why implicit auth **can't be validated from a cloud build** are in
+  [`UPM-INSTALL-AND-DEFINES.md §4`](./UPM-INSTALL-AND-DEFINES.md).
+- **Editor caveat:** the Editor can confirm auth **succeeds**, but capture won't (the recorder needs a
+  real player window) — "implicit auth works" and "capture works locally" are separate verifications.
+- **`steam_appid.txt` resolves the AppID but doesn't grant ownership.** Placing a `steam_appid.txt`
+  next to the executable lets `SteamAPI.InitEx` resolve the AppID for a process not launched through
+  Steam, but the **logged-in Steam account still needs to own that AppID**. If the account owns a
+  different AppID (e.g. the demo, not the full game), `SteamAPI.InitEx` returns `FailedGeneric` and
+  the message contains `ConnectToGlobalUser failed` — this is a license problem, not a code or timing
+  problem. Test on an account that owns the exact AppID in `steam_appid.txt`, or launch through Steam.
+  See `READING-UNITY-LOGS.md` for the full diagnosis.
 
 ---
 

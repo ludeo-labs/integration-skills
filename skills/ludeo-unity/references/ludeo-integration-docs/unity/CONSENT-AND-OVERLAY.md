@@ -34,6 +34,17 @@ Rules:
   already return `false` and stay disabled when the matching flag is off).
 - **Both false ⇒ treat the SDK as disabled this run** — no gallery, no rooms, dummies everywhere.
 
+> **⚠️ Consent arrives *async* — an `OpenRoom` at run-start can fire before it and silently no-op.**
+> `Activate` and the **first** `ConsentUpdated` complete on the SDK's schedule, which can be **after** the
+> gameplay scene has loaded and your "run started" signal has fired. If `OpenRoom` (via `SwitchToCreate()`)
+> runs in that window, the flow switch is **still disabled** (flags not yet set) → it returns `false` and
+> **no-ops**: no room, no `RoomReady`, no overlay, **and no error** (disabled-flow is a no-op by design).
+> This is **not** the consent-off case — consent *would* allow it; the call was just too early.
+> **Fix — record intent, fire from the callback:** when the run starts, set a `wantCapture` flag and
+> attempt `OpenRoom`; if the switch is still disabled, do nothing yet. Then in `AddNotifyConsentUpdated`,
+> after `SetFlags`, if `wantCapture && canCreateLudeo` and no room is open, fire `OpenRoom` there — the
+> first point `canCreateLudeo` is known. (Keep it idempotent: guard on room-already-open.)
+
 ## 2. The gallery (entry to the play flow)
 
 The gallery is the Ludeo UI where the player picks a Ludeo to play. Open it through the façade:
@@ -109,6 +120,7 @@ notifications" and [`REFERENCE-ARCHITECTURE.md`](./REFERENCE-ARCHITECTURE.md) `H
 | Restored Ludeo loads but player can't move/act ("dead input") | A persistent-singleton pause/freeze flag left `true` by a prior playmode session keeps `timeScale = 0` | Reset all mutable runtime state at the start/bootstrap hook; never assume zero-init (§3) |
 | **Second replay** (in one session) hangs / double room / suppression off | First play's run not torn down — stale pause flag (deadlock), unclosed room+session, un-reset gameplay-active | Make `HandleGetLudeoDone` re-entrant: `AbortGameplay` + `ResetBeginGate` + per-restore pause reset, new play in the teardown callback (07 §2.2) |
 | Never enters create/play despite consent | `SetFlags` not wired to `AddNotifyConsentUpdated` | Feed the flow switch from the consent callback |
+| Run starts but no room/overlay (no error) | `OpenRoom` fired before the first `ConsentUpdated` landed — switch still disabled, call no-ops | Record `wantCapture`; (re)fire `OpenRoom` from the consent callback once `canCreateLudeo` is true (§1) |
 | "Back to menu" leaves player stuck in the Ludeo | `ReturnToMainMenu` not handled | Treat as a CR-007 exit: stop tracking + `CloseRoom` + load menu |
 
 ---
