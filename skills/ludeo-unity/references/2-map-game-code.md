@@ -16,7 +16,7 @@ Required artifacts / pre-flight:
       this conversation, **STOP** and tell the user: *"This chat has prior context. For best results,
       start a fresh agent session and continue with phase 2 there."*
 - [ ] **Phase 1 complete** — integration branch (`feature/ludeo-integration-#N`) exists, the Ludeo
-      package is installed (`using LudeoSDK;` resolves), and `ludeo-integration-plan/INTAKE.md` is
+      package is installed (`using LudeoSDK;` resolves), and `ludeo-integration-plan/KYG.md` is
       recorded (incl. the game-level save-system classification).
 - [ ] **Read the Unity structural model (§5) before searching** — it tells you what to look for and
       what does not exist in a Unity project.
@@ -132,7 +132,7 @@ window. Probe for the **enter/exit sites**:
 
 > **Save/serialization is not classified here.** A `SaveManager`-style class surfaces under
 > `core_classes` (§5 of the checklist) — enough for the structural map. The save system's **game-level**
-> mechanism/format/group is classified in **phase 1 intake** (`INTAKE.md`); the **per-entity
+> mechanism/format/group is classified in **phase 1 KYG** (`KYG.md`); the **per-entity
 > reconciliation-vs-manual matrix** is built in **phase 4** once the object model exists. Don't
 > (re-)classify it here.
 
@@ -281,7 +281,7 @@ The gate — satisfy all before advancing to phase 3.
   load-different-save; each is a required `End`/`Abort` later (CR-007).
 - **Treating a transition/streaming cache as the save** (`CacheScene`/`Persist*`, interior↔exterior,
   Addressables hand-off) — these hold partial deltas, not the canonical save.
-- **(Re-)classifying the save system here** — game-level classification is phase 1 intake; the
+- **(Re-)classifying the save system here** — game-level classification is phase 1 KYG; the
   per-entity matrix is phase 4.
 - **Enumerating every prefab/scene exhaustively** — sample to identify entity *types*; don't dump the
   whole asset tree.

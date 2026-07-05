@@ -28,7 +28,7 @@ is written here.**
 
 - [ ] **Phase 4** → `ludeo-integration-plan/OBJECT_TRACKING.md`, **approved** (entity model is fixed).
 - [ ] **Phase 4** per-entity matrix (`OBJECT_TRACKING.md` rows + `CODE_MAP.save_system.per_entity`) +
-      `CODE_MAP.save_system.group`. (Game-level classification originates in `phase 1` `INTAKE.md`.)
+      `CODE_MAP.save_system.group`. (Game-level classification originates in `phase 1` `KYG.md`.)
 - [ ] **Phase 3** → the `[Layer]` exists (`LudeoController`, `LudeoPlayFlow`, the `onRoomReady` hook) so
       the restore flow this plan slots into is real, not hypothetical.
 - [ ] **Recommended:** task 1 (capture) done, so the capture code (its `objectType` strings,
