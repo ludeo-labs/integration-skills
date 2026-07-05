@@ -8,7 +8,7 @@
       "path": "skills/ludeo-unity",
       "engine": "unity",
       "version": "2.0.0",
-      "description": "Integrate the Ludeo SDK into a Unity (C#) game using the Ludeo Unity plugin. Sets up the package install + scripting defines, wires the SDK lifecycle through MonoBehaviour/scene flow, maps and implements game actions, maps and tracks GameObjects as attributes, restores state for playable Ludeos, and verifies the integration. Use when the user asks to integrate, install, add, set up, or wire up Ludeo into their Unity game.",
+      "description": "Integrate the Ludeo SDK into a Unity (C#) game using the Ludeo Unity plugin. Sets up the package install + scripting defines, wires the SDK lifecycle through MonoBehaviour/scene flow, maps and implements game actions, maps and tracks GameObjects as attributes, restores state for playable Ludeos, verifies the integration, then widens capture/restore coverage and finalizes. Use when the user asks to integrate, install, add, set up, or wire up Ludeo into their Unity game.",
       "status": "released"
     },
     {
