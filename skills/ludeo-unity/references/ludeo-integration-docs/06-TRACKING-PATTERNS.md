@@ -98,9 +98,9 @@ When in doubt, track it — and put it in the earliest wave its load-bearing-nes
 | **NPCs / Enemies** | AI entities, health, state, transform | CRITICAL |
 | **Interactive objects** | Pickups, doors, switches, vehicles | CRITICAL |
 | **Projectiles** | Bullets, grenades (if persistent/visible) | IMPORTANT |
-| **Environment state** | Destructibles, lighting, weather | IMPORTANT |
-| **Time-base / continuity** | Session/music clock (`AudioSource.time`), scheduler/beat index, active timers & cooldowns (remaining), in-progress sequence/wave index | **CRITICAL when the moment is time-driven** (rhythm/timed/scheduler games — without it the replay restarts the clock); otherwise IMPORTANT |
-| **UI/Audio state** | HUD mode, music **intensity** (the cosmetic layer, not the clock above) | OPTIONAL |
+| **Environment state** | Destructibles, lighting, weather, **active soundtrack / music track id** (*which* track is playing — restore re-starts it; §8, §9.4) | IMPORTANT |
+| **Time-base / continuity** | Session/music clock **position** (`AudioSource.time`), scheduler/beat index, active timers & cooldowns (remaining), in-progress sequence/wave index | **CRITICAL when the moment is time-driven** (rhythm/timed/scheduler games — without it the replay restarts the clock); otherwise IMPORTANT |
+| **UI/Audio state** | HUD mode, music **intensity** (the cosmetic mixing layer — *not* which track is playing (environment, above) nor the clock position (time-base, above)) | OPTIONAL |
 
 ### 1.3 Tracking vs actions
 
@@ -476,7 +476,7 @@ Track if (1) AND (2 OR 3-not-derivable) AND (4-has-meaning).
 | Static decorative prop | Skip | Check for hidden physics/destructibility first |
 | Destructible | Track | "Destroyed" is a **state flag**, not an unregister — *when the wreckage stays in the world* (§3.4); if it's removed/replaced, drop it |
 | Door / switch / lever | Track | Mid-animation progress matters if replay can pause |
-| Particle / VFX / audio / HUD | Skip the visual | Track the **underlying state** it shows — and for music that state is the **clock/position** (`AudioSource.time`), not the waveform: track it (§10.5) |
+| Particle / VFX / audio / HUD | Skip the visual | Track the **underlying state** it shows. For music that is **two separate things**: *which track is playing* (environment — **every game**, so restore can re-start it; §8) and, **only for time-driven moments**, its *clock/position* (`AudioSource.time`, §10.5). Not the waveform. |
 
 | Property kind | Typical | Caveat |
 |---|---|---|

@@ -477,7 +477,7 @@ layout, spawn definitions, world/environment state (time-of-day, weather, audio,
 // play-flow spawn driver (inverse of the creator's level-start):                  [Layer]
 LudeoTrackedDefinitions defs = LudeoController.Instance.GetLudeoTrackedDefinitions();
 SpawnLevel(defs.gameConfig, defs.levelIdx);   // rebuild obstacles/level from restored config
-SetMusic(defs.gameMusic);
+SetMusic(defs.gameMusic);                     // (RE)START the captured track — the game's own scene-start music is suppressed during restore (callout below)
 // then spawn + restore entities (§4) into that rebuilt world
 ```
 
@@ -485,6 +485,21 @@ SetMusic(defs.gameMusic);
 just-spawned entity; restore **level/spawn definitions before** entities (you need them to know *what* to
 spawn). State the order in the plan. **Exclusion list:** UI history, local prefs/settings, graphics options —
 don't restore them; record why.
+
+> **⚠️ Restore the soundtrack explicitly — the game won't start it for you.** Games normally kick off level
+> music from scene-start / `Start()` / `OnEnable`, and restore **suppresses exactly that class of
+> start-of-run logic** (`10-plan-state-restoration.md` Step 3, gated on `IsInLudeoFlow`) so it can't clobber
+> restored state. The side effect: the classic state restores perfectly but **the soundtrack never starts**
+> — the reported "state restores but music doesn't" bug. So the world/definitions restore must **(re)start
+> the captured track itself** (`SetMusic(defs.gameMusic)` above), reading the **active-track id** captured
+> on the definitions/world singleton (§8 capture). Make it **idempotent** — don't stack a second track if
+> one is already playing.
+> - **Presence, not position.** Perfect reconstruction here only needs the *right track playing* —
+>   restarting it **from the top is fine**. Resuming at the captured `AudioSource.time` is a **separate,
+>   time-driven-only** concern (§10.5 / time-base-continuity, `06 §1.2`); don't conflate the two.
+> - **Required for completeness on every integration, but NOT load-bearing.** The moment isn't *visibly*
+>   wrong without it on the first frame, so assign its capture to a **later wave (2+)**, never Wave 1
+>   (`8-map-game-objects.md` Step A5) — and do **not** drop it just because it's deferred.
 
 > **⚠️ The world-identity key is restore step 1 — fail loud, and distinguish two failures.** Rebuilding the
 > world needs the captured **world/level identity** (scene name, level index, chunk/room/seed — `phase 9`'s

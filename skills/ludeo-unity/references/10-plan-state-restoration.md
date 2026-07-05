@@ -241,10 +241,19 @@ Specify the match key and the hook where matching runs relative to scene load.
 ### Step 9: Plan environment restoration
 **If `GAME_ANALYSIS_ENVIRONMENT.md` does not exist, build it now** — a light world-state inventory written
 to `ludeo-integration-plan/`. Inventory the world-level state a viewer would notice: time-of-day /
-lighting, weather, world/quest flags, audio mix, camera state, spawned-world progress. Model it as a
+lighting, weather, world/quest flags, audio mix, **the active soundtrack / music track**, camera state,
+spawned-world progress. Model it as a
 **singleton "world" `objectType`** (captured in `phase 9` via `LudeoCreatorFlow.StoreGameDefinitions` or
 its own handler) restored with the same bucket discipline (usually no references → Pass 2 is pure property
 application).
+- **Soundtrack presence (required for completeness, every game):** the game's own scene-start music
+  trigger is suppressed during restore (Step 3, gated on `IsInLudeoFlow`), so the replay is **silent**
+  unless restore **(re)starts the captured track itself** — the classic "state restores but music doesn't"
+  bug (`07 §8`). Plan an **idempotent** `SetMusic(<active-track id>)` in the environment restore, reading
+  the track id captured on the world/definitions singleton. **Presence, not position:** restarting from the
+  top is fine; mid-song resume (`AudioSource.time`) is a separate time-driven-only concern (time-base /
+  continuity). **Not load-bearing** → it lands in the **later wave (2+)** that captured the track id, not
+  Wave 1.
 - **Ordering:** environment restoration runs **after** entity restoration — world flags can despawn
   entities you just spawned, or fire logic for entities not yet present. State the order explicitly.
 - **Procedural-assembly exception:** the `RunMetadata` **generation inputs** (selection/seed, sub-roll,

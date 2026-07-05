@@ -144,6 +144,17 @@ spawn pattern (dynamic / scene-placed / both), whether it streams in/out (+ its 
 > a singleton **`SessionState`/`Continuity`** objectType, **load-bearing = yes when the moment is
 > time-driven, Wave 1**. (Its field-level capture is confirmed in Part B Step B1.)
 
+> **⚠️ Always track soundtrack PRESENCE (which track is playing) — every game, and distinct from the clock
+> above.** Restore **suppresses the game's own scene-start music trigger** (phase-10 Step 3, gated on
+> `IsInLudeoFlow`), so a replay is **silent** unless restore re-starts the track — the classic "state
+> restores but music doesn't" bug (`07 §8`). Record the **active-track id** as an attribute on the
+> **environment / world-definitions** singleton (not the time-base clock): only *which* track, not its
+> position — restarting from the top is fine. This is **required for completeness on every integration but
+> NOT load-bearing** (the moment isn't *visibly* wrong without it on frame 1). Per the guardrail (§5),
+> non-load-bearing state belongs in a **later wave (2+)** — assign it there in Step A5, and do **not** drop
+> it just because it's deferred. (The mid-song *position* clock is the separate, time-driven-only Wave-1
+> concern above.)
+
 ### Step A5: Assign a wave to every type (NEW — the iterative plan)
 Tag each type `wave: 1 | 2 | 3 | …`:
 - **Wave 1 — the restorable spine + the must-have set.** Auto-include: the **world/level identity**, the
@@ -152,7 +163,8 @@ Tag each type `wave: 1 | 2 | 3 | …`:
   from the genre §3 checklist). Wave 1 is the smallest set that produces a *coherent* replay — not just the
   singletons, and not the whole game.
 - **Later waves (2, 3, …)** — every remaining type, **ordered by load-bearing-ness** (most-load-bearing
-  next). Background populations, cosmetic systems, secondary modes come last.
+  next). Background populations, cosmetic systems, secondary modes, and the **soundtrack-presence
+  attribute** (required for completeness, not load-bearing — the callout above) come last.
 - **Rule:** a type flagged **load-bearing = yes** may **not** sit in a late wave behind non-load-bearing
   types. If you find yourself deferring load-bearing state, it belongs in Wave 1 (this is the guardrail —
   see §5).
