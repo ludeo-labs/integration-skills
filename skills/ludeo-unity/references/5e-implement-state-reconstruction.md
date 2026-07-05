@@ -1,7 +1,7 @@
 # Phase 5 · Task 4 — Implement State Reconstruction (Unity)
 
 > **Single-task subagent brief.** Dispatched by the phase-5 orchestrator
-> (`9-tracking-restore-orchestrator.md`) **once per wave**. Fill **this wave's** buckets in the
+> (`5-tracking-restore-orchestrator.md`) **once per wave**. Fill **this wave's** buckets in the
 > `ApplyRestoredState()` body (task 3 declared it as a stub on Wave 1) — the two-pass bucket read-back (the
 > inverse of task 1's capture) — then return a summary + the files you created/edited. **You do not run the
 > human-gated play test** — the orchestrator plays a captured Ludeo and reads the log. Finishing **Wave 1**
@@ -216,7 +216,7 @@ entities when a world flag could despawn/alter a just-spawned entity. Honor the 
 > second track if one is already playing. **Presence, not position:** starting the right track **from the
 > top is enough**; resuming at the captured `AudioSource.time` is the separate time-driven-only concern
 > (Step 6 deferred / time-base). This is a **later-wave (2+) additive bucket, not Wave 1** — implement it in
-> the wave that captured the track id (`8-map-game-objects.md` Step A5).
+> the wave that captured the track id (`4-map-game-objects.md` Step A5).
 
 > **Procedural / non-deterministic assembly (`game-patterns/procedural-world.md §5`, `07 §8`):** "load the
 > scene" is not restoration — it yields an empty container and the generator re-rolls. Read the captured
@@ -332,9 +332,9 @@ Surface to the orchestrator; don't guess:
 
 ## Related / Next
 
-- Task 1 (`9-implement-object-tracking.md`) — emits the capture code; this is its row-for-row inverse.
-- Task 2 (`10-plan-state-restoration.md`) — produces `RESTORATION_PLAN.md`, the plan this task implements.
-- Task 3 (`11-implement-restoration-flow.md`) — built the apply lifecycle + the `ApplyRestoredState()` stub
+- Task 1 (`5b-implement-object-tracking.md`) — emits the capture code; this is its row-for-row inverse.
+- Task 2 (`5c-plan-state-restoration.md`) — produces `RESTORATION_PLAN.md`, the plan this task implements.
+- Task 3 (`5d-implement-restoration-flow.md`) — built the apply lifecycle + the `ApplyRestoredState()` stub
   this task fills (hard prerequisite).
 - **Next (orchestrator):** run the task-4 state gate (play a captured Ludeo: first-frame snapshot, non-zero
   counts, cross-ref resolved; replay-twice no-leak). When it passes, **phase 5 is complete** — the player

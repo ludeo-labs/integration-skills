@@ -1,7 +1,7 @@
 # Phase 5 · Task 2 — Plan State Restoration (Unity)
 
 > **Single-task subagent brief.** Dispatched by the phase-5 orchestrator
-> (`9-tracking-restore-orchestrator.md`) **once per wave**. **Append this wave's rows** to
+> (`5-tracking-restore-orchestrator.md`) **once per wave**. **Append this wave's rows** to
 > `RESTORATION_PLAN.md` — **analysis only, no code, run nothing** — then return a summary + the artifact
 > path. **You do not run the human review gate** — the orchestrator surfaces the rows to the user for
 > approval. You run in isolated context — your inputs are the files in §2.
@@ -466,7 +466,7 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 
 ## Related / Next
 
-- `phase 4` (`8-map-game-objects.md`) — produces `OBJECT_TRACKING.md`, the spine this plan mirrors.
-- Task 1 (`9-implement-object-tracking.md`) — emits the capture code; restoration is its row-for-row inverse.
+- `phase 4` (`4-map-game-objects.md`) — produces `OBJECT_TRACKING.md`, the spine this plan mirrors.
+- Task 1 (`5b-implement-object-tracking.md`) — emits the capture code; restoration is its row-for-row inverse.
 - **Next (orchestrator):** surface `RESTORATION_PLAN.md` for human approval, then dispatch task 3
-  (`11-implement-restoration-flow.md`) followed by task 4 (`12-implement-state-reconstruction.md`).
+  (`5d-implement-restoration-flow.md`) followed by task 4 (`5e-implement-state-reconstruction.md`).

@@ -1,7 +1,7 @@
 # Phase 5 · Task 3 — Implement Restoration Flow (Unity)
 
 > **Single-task subagent brief.** Dispatched by the phase-5 orchestrator
-> (`9-tracking-restore-orchestrator.md`) **once — in Wave 1 only.** Wire the restore-side **flow** (the
+> (`5-tracking-restore-orchestrator.md`) **once — in Wave 1 only.** Wire the restore-side **flow** (the
 > inverse of `phase 3`'s session lifecycle), declare `ApplyRestoredState()` as a **stub**, then return a
 > summary + the files you created/edited. **You do not run the human-gated play test** — the orchestrator
 > plays a captured Ludeo and reads the log (you can see neither the Console nor a live replay). You run in
@@ -321,7 +321,7 @@ Surface to the orchestrator; don't guess:
 
 ## Related / Next
 
-- Task 2 (`10-plan-state-restoration.md`) — produces `RESTORATION_PLAN.md`, the plan this task implements.
+- Task 2 (`5c-plan-state-restoration.md`) — produces `RESTORATION_PLAN.md`, the plan this task implements.
 - `phase 3` — wired the `RoomReady → Begin` chain this task reuses for the post-restore resume.
 - **Next (orchestrator):** run the task-3 flow gate (play a captured Ludeo: freeze → scene → stub → `Begin`;
-  replay→replay; overlay), then dispatch task 4 (`12-implement-state-reconstruction.md`) to fill the stub.
+  replay→replay; overlay), then dispatch task 4 (`5e-implement-state-reconstruction.md`) to fill the stub.

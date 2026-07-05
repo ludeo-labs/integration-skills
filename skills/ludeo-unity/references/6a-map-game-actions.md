@@ -240,6 +240,6 @@ The Dropped table makes the filter **reviewable** — the integrator can promote
 
 ## Related / Next
 
-- Phase 2 (`1-map-game-code.md`) — produces `CODE_MAP.json`. Phase 3 — produced the non-ludeoable mappings.
+- Phase 2 (`2-map-game-code.md`) — produces `CODE_MAP.json`. Phase 3 — produced the non-ludeoable mappings.
 - **Next (orchestrator):** surface `GAME_ACTIONS_MAP.md` for human approval, then dispatch task 2
-  (`7-implement-game-actions.md`) to insert the `SendAction` calls.
+  (`6b-implement-game-actions.md`) to insert the `SendAction` calls.

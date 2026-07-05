@@ -260,4 +260,4 @@ OpenLudeoGallery}` · `LudeoFlowSwitch.{SetFlags, SwitchToCreate, SwitchToPlay}`
 **`[Unity]`:** `Time.timeScale` · `SceneManager.LoadScene` · MonoBehaviour `Awake`/`Start`/`Update`/
 `OnApplicationQuit`.
 
-→ Implementation: phases `3-plan-sdk-lifecycle.md` and `4-implement-sdk-lifecycle.md`.
+→ Implementation: phases `3c-plan-sdk-lifecycle.md` and `3d-implement-sdk-lifecycle.md`.

@@ -54,12 +54,12 @@ keeps each task in isolated context and lets the user experience one continuous 
 > When the human gate fails (compile error, or an action doesn't emit in a flow), the orchestrator
 > **re-dispatches a fix subagent** pointed at the **implement** brief with the failing log text / the
 > human's report **by file** + the files the prior subagent touched. Root-cause every fix
-> (no try/catch or symptom-masking, `phase 3 · task 5`/`5-compile-and-fix.md`); propose-confirm-execute each change.
+> (no try/catch or symptom-masking, `phase 3 · task 5`/`3e-compile-and-fix.md`); propose-confirm-execute each change.
 
 | # | Task | Brief | Reads | Produces |
 | --- | --- | --- | --- | --- |
-| 1 | Map game actions | `references/6-map-game-actions.md` | `CODE_MAP.json`, `SDK_INTEGRATION_POINTS.json`, genre files | `ludeo-integration-plan/GAME_ACTIONS_MAP.md` (gameplay actions + the non-gameplay boundary actions) |
-| 2 | Implement `SendAction` | `references/7-implement-game-actions.md` | `GAME_ACTIONS_MAP.md`, `SDK_INTEGRATION_POINTS.json` | filled `LudeoActionKeys` + `SendAction` call sites (gameplay + non-gameplay) + the platform global-trigger mapping note |
+| 1 | Map game actions | `references/6a-map-game-actions.md` | `CODE_MAP.json`, `SDK_INTEGRATION_POINTS.json`, genre files | `ludeo-integration-plan/GAME_ACTIONS_MAP.md` (gameplay actions + the non-gameplay boundary actions) |
+| 2 | Implement `SendAction` | `references/6b-implement-game-actions.md` | `GAME_ACTIONS_MAP.md`, `SDK_INTEGRATION_POINTS.json` | filled `LudeoActionKeys` + `SendAction` call sites (gameplay + non-gameplay) + the platform global-trigger mapping note |
 
 **Task 1 runs automatically as a subagent**, then the orchestrator **surfaces the action map to the human
 for approval** (the action list is a judgment call — naming, keep/drop, scope). **Task 2 runs after
@@ -72,7 +72,7 @@ unavoidable human touch-point in phase 6 (the agent can't see the Console; emiss
 The orchestrator runs the gate but **cannot see the Console** — it confirms emission by reading **Unity's
 log files** per [`unity/READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md), and
 beyond the log relies on the integrator's word. The compile-and-fix loop + `error CS` table live in
-[`phase 3 · task 5`](5-compile-and-fix.md).
+[`phase 3 · task 5`](3e-compile-and-fix.md).
 
 ## 4. Questions to ask the human
 
@@ -149,7 +149,7 @@ The orchestrator confirms **all** of these before advancing to phase 7:
 
 ## Related / Next
 
-- Briefs: `6-map-game-actions.md`, `7-implement-game-actions.md`.
-- Phase 3 (`2-lifecycle-orchestrator.md`) — planned the non-gameplay standard actions emitted here.
-- Phase 5 (`9-tracking-restore-orchestrator.md`) — the player flow this phase enriches (run FIRST).
+- Briefs: `6a-map-game-actions.md`, `6b-implement-game-actions.md`.
+- Phase 3 (`3-lifecycle-orchestrator.md`) — planned the non-gameplay standard actions emitted here.
+- Phase 5 (`5-tracking-restore-orchestrator.md`) — the player flow this phase enriches (run FIRST).
 - **Next:** phase 7 (verification & cloud) — validate the release build and upload it to the Ludeo platform.

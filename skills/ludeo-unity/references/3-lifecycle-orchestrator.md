@@ -40,11 +40,11 @@ task in isolated context (no bloat) and lets the user experience one continuous 
 
 | # | Task | Brief | Reads | Produces |
 | --- | --- | --- | --- | --- |
-| 1 | Map integration points | `references/2-find-sdk-integration-points.md` | `CODE_MAP.json` | `SDK_INTEGRATION_POINTS.json` |
-| 2 | Technical Design Document | `references/2b-create-tdd.md` | `CODE_MAP.json`, `SDK_INTEGRATION_POINTS.json`, `TDD_TEMPLATE.md` | `TDD_<Game>.md` |
-| 3 | Plan the layer | `references/3-plan-sdk-lifecycle.md` | the three above | `SDK_LIFECYCLE_PLAN_<Game>.md` |
-| 4 | Implement layer + hooks | `references/4-implement-sdk-lifecycle.md` | TDD + plan | layer `.cs` files + edited game hooks |
-| 5 | **Compile + run gate** | `references/5-compile-and-fix.md` | the edited project | clean compile + live capture overlay |
+| 1 | Map integration points | `references/3a-find-sdk-integration-points.md` | `CODE_MAP.json` | `SDK_INTEGRATION_POINTS.json` |
+| 2 | Technical Design Document | `references/3b-create-tdd.md` | `CODE_MAP.json`, `SDK_INTEGRATION_POINTS.json`, `TDD_TEMPLATE.md` | `TDD_<Game>.md` |
+| 3 | Plan the layer | `references/3c-plan-sdk-lifecycle.md` | the three above | `SDK_LIFECYCLE_PLAN_<Game>.md` |
+| 4 | Implement layer + hooks | `references/3d-implement-sdk-lifecycle.md` | TDD + plan | layer `.cs` files + edited game hooks |
+| 5 | **Compile + run gate** | `references/3e-compile-and-fix.md` | the edited project | clean compile + live capture overlay |
 
 **Tasks 1–4 run automatically as subagents. Task 5 does NOT** — the agent cannot see the Unity Editor
 Console, and the gate needs the human to focus the Editor (recompile) and play the game (overlay). The
@@ -142,8 +142,8 @@ The orchestrator confirms **all** of these before advancing — they are produce
 
 ## Related / Next
 
-- Briefs: `2-find-sdk-integration-points.md`, `2b-create-tdd.md`, `3-plan-sdk-lifecycle.md`,
-  `4-implement-sdk-lifecycle.md`, `5-compile-and-fix.md`.
-- **Next:** phase 4 (map game objects) — `8-map-game-objects.md` (census + wave plan), then phase 5
+- Briefs: `3a-find-sdk-integration-points.md`, `3b-create-tdd.md`, `3c-plan-sdk-lifecycle.md`,
+  `3d-implement-sdk-lifecycle.md`, `3e-compile-and-fix.md`.
+- **Next:** phase 4 (map game objects) — `4-map-game-objects.md` (census + wave plan), then phase 5
   (tracking & restore). Actions are phase 6 (after the player flow is proven); the non-gameplay standard
   actions planned here are emitted there.

@@ -1,7 +1,7 @@
 # Phase 3 · Task 1 — Map SDK Integration Points (Unity)
 
 > **Single-task subagent brief.** Dispatched by the phase-3 orchestrator
-> (`2-lifecycle-orchestrator.md`). Do exactly this one task, produce the §6 artifact, and return a
+> (`3-lifecycle-orchestrator.md`). Do exactly this one task, produce the §6 artifact, and return a
 > short summary + the artifact path. You run in isolated context — your inputs are the files in §2.
 > **Entry: only via the orchestrator.** This is task 1 of 5 in phase 3 (SDK lifecycle), not a phase of
 > its own — never open or run it standalone.
@@ -125,4 +125,4 @@ they are not call sites picked from game code:
 
 ## Related / Next
 
-- **Next (orchestrator):** task 2 — `2b-create-tdd.md` (TDD from `CODE_MAP` + this artifact).
+- **Next (orchestrator):** task 2 — `3b-create-tdd.md` (TDD from `CODE_MAP` + this artifact).

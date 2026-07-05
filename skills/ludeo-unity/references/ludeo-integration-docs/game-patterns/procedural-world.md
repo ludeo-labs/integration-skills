@@ -231,9 +231,9 @@ projectiles, pickups) are captured/restored normally per `06`/`07`; `RunMetadata
 ## 7. After this file
 
 Capture the generation inputs as a `RunMetadata` objectType in
-[`phase 4`](../../8-map-game-objects.md)/[`phase 5 · task 1`](../../9-implement-object-tracking.md) (data model:
+[`phase 4`](../../4-map-game-objects.md)/[`phase 5 · task 1`](../../5b-implement-object-tracking.md) (data model:
 [`06-TRACKING-PATTERNS.md`](../06-TRACKING-PATTERNS.md)); plan + implement the re-drive-the-generator
-restore in [`phase 5 · task 2`](../../10-plan-state-restoration.md)/[`phase 5 · task 4`](../../12-implement-state-reconstruction.md)
+restore in [`phase 5 · task 2`](../../5c-plan-state-restoration.md)/[`phase 5 · task 4`](../../5e-implement-state-reconstruction.md)
 on top of [`07 §8`](../07-RESTORATION-PATTERNS.md). You still need the **action catalog** and **tracking
 checklist** for whichever genre(s) the run blends (combat → `shooter.md`/`rpg.md`), via
 [`INDEX.md`](./INDEX.md). If the world also streams, load the [`open-world*.md`](./open-world.md) pair too.

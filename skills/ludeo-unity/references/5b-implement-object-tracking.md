@@ -1,7 +1,7 @@
 # Phase 5 · Task 1 — Implement Object Tracking (Unity)
 
 > **Single-task subagent brief.** Dispatched by the phase-5 orchestrator
-> (`9-tracking-restore-orchestrator.md`) **once per wave**. Wire the `[Layer]` handler calls for **this
+> (`5-tracking-restore-orchestrator.md`) **once per wave**. Wire the `[Layer]` handler calls for **this
 > wave's** entities (the `## Entity` rows task 0 just appended for `wave: N`), then return a summary + the
 > files you created/edited. **You do not run the human-gated compile/play** — the orchestrator runs it (it
 > can see neither the Editor Console nor a captured session). You run in isolated context — your inputs are
@@ -28,7 +28,7 @@ batch pass. Produces the capture code the orchestrator then verifies at runtime 
 ## 2. Inputs (Input Contract)
 
 - [ ] **This wave's rows** in `ludeo-integration-plan/OBJECT_TRACKING.md` — the `## Entity` blocks tagged
-      `wave: N` that **task 0** (`9a-deep-scope-wave.md`) appended and the user **approved** at the task-0
+      `wave: N` that **task 0** (`5a-deep-scope-wave.md`) appended and the user **approved** at the task-0
       gate (entity model, `objectType` strings, stable keys, property kinds + cadence, batch/stream-in
       sites, cross-entity references, per-entity reconciliation/manual matrix; for Wave 1, the
       world-identity + time-base objects). The orchestrator tells you **which wave `N`**. Wire **only**
@@ -273,6 +273,6 @@ Surface to the orchestrator; don't guess:
 
 ## Related / Next
 
-- `phase 4` (`8-map-game-objects.md`) — produces `OBJECT_TRACKING.md`, the plan this task consumes.
+- `phase 4` (`4-map-game-objects.md`) — produces `OBJECT_TRACKING.md`, the plan this task consumes.
 - **Next (orchestrator):** run the task-1 human gate (recompile + capture a session), then dispatch task 2
-  (`10-plan-state-restoration.md`) — restoration is the row-for-row inverse of this capture.
+  (`5c-plan-state-restoration.md`) — restoration is the row-for-row inverse of this capture.

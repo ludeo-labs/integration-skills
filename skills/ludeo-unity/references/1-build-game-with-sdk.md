@@ -168,7 +168,7 @@ private static void LudeoSmokeTest()
 - **Delete the throwaway entirely once both legs pass** — the real init lives in the layer (phase 3).
 
 ### Step 5 — (moved to phase 7) Verify the player build is self-contained
-> **Moved to guideline phase 7 (verification & cloud)** — `references/13-upload-build.md` Step 3–4. The
+> **Moved to guideline phase 7 (verification & cloud)** — `references/7-upload-build.md` Step 3–4. The
 > self-contained check (native plugins shipped, 3rd-party deps resolved durably) + the `validate-build`
 > gate run at upload time, not at install. Phase 1's job ends at a **clean Editor + player-build smoke test**
 > (Step 4 above): an `InitLudeoSession` callback with a `resultCode` (not `WrapperDllNotFound`). Upload
@@ -267,7 +267,7 @@ The gate — satisfy all before advancing to phase 2.
 - [ ] `LudeoSettings.asset` present with a real `apiKey`; dev flags appropriate for the build.
 - [ ] `InitLudeoSession` reaches its callback with a `resultCode` (not `WrapperDllNotFound`), in the
       **Editor and a player build**.
-- [ ] _(Self-contained build + `validate-build` — **moved to phase 7**, `13-upload-build.md` Step 3–4.)_
+- [ ] _(Self-contained build + `validate-build` — **moved to phase 7**, `7-upload-build.md` Step 3–4.)_
 
 ## 8. Common Mistakes
 

@@ -257,4 +257,4 @@ Add a define **only** to support a build configuration that **excludes the SDK p
 - [ ] A trivial `LudeoManager.InitLudeoSession(cb)` call reaches its callback with a `resultCode`
       (even a failure code proves the native layer loaded — `WrapperDllNotFound` means it didn't).
 
-→ Next: `0-build-game-with-sdk.md` (phase 1) drives this end-to-end and confirms baseline + SDK builds.
+→ Next: `1-build-game-with-sdk.md` (phase 1) drives this end-to-end and confirms baseline + SDK builds.

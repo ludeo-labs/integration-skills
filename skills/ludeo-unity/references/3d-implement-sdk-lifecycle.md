@@ -1,7 +1,7 @@
 # Phase 3 · Task 4 — Implement the SDK Lifecycle (Unity)
 
 > **Single-task subagent brief.** Dispatched by the phase-3 orchestrator
-> (`2-lifecycle-orchestrator.md`). Create the layer + wire the hooks, then return a summary + the list
+> (`3-lifecycle-orchestrator.md`). Create the layer + wire the hooks, then return a summary + the list
 > of files created/edited. **You do not compile** — the orchestrator runs task 5 (the human-gated
 > compile+run) after you return. You run in isolated context — inputs are the files in §2.
 > **Entry: only via the orchestrator.** This is task 4 of 5 in phase 3 (SDK lifecycle), not a phase of
@@ -147,4 +147,4 @@ artifacts don't resolve it. Otherwise implement the plan as written.
 
 ## Related / Next
 
-- **Next (orchestrator):** task 5 — `5-compile-and-fix.md`, the **human-gated** compile+run gate.
+- **Next (orchestrator):** task 5 — `3e-compile-and-fix.md`, the **human-gated** compile+run gate.

@@ -8,7 +8,7 @@ artifacts.
 
 **Before proceeding, verify this is a fresh agent session:**
 - If you see prior tool calls or CODE_MAP references in this conversation, **STOP** and ask the user
-  to start a fresh session and continue with phase 2c there.
+  to start a fresh session and continue with phase 3f there.
 - If fresh, proceed.
 
 > **This is the Unity guide** (the C++ skill defers Unity here). Everything below is Unity/C#.
@@ -23,7 +23,7 @@ Read first (relative to this workflow file):
 
 > **REQUIRED:** `phase 2` → `CODE_MAP.json` (`object_model`, `core_classes`). This phase **creates**
 > the `save_system` block from scratch (phase 2 no longer pre-classifies it) — the per-entity matrix
-> is built from `object_model`. Recommended: `phase 3` and `phase 2b` done. If `TDD_<GameName>.md`
+> is built from `object_model`. Recommended: `phase 3` and `phase 3b` done. If `TDD_<GameName>.md`
 > exists, its reconstruction section is provisional until this classification — reconcile conflicts here.
 
 ## Why this matters
@@ -116,7 +116,7 @@ Add the `save_system` block to `CODE_MAP.json`:
 
 ## Related / Next
 
-- `phase 2` (FIRST), `phase 3`, `phase 2b`.
+- `phase 2` (FIRST), `phase 3`, `phase 3b`.
 - `phase 4` consumes `save_system.group` + the matrix; `phase 5 · task 1` uses per-entity to choose
   reconciliation vs manual wiring.
 - **Next:** `phase 3` (plan lifecycle) — classification waits until phase 4 needs it.

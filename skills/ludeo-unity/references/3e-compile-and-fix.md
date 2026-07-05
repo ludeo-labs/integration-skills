@@ -1,6 +1,6 @@
 # Phase 3 · Task 5 — Compile & Run Gate (Unity)
 
-> **Human-gated task — NOT a subagent.** The orchestrator (`2-lifecycle-orchestrator.md`) drives this
+> **Human-gated task — NOT a subagent.** The orchestrator (`3-lifecycle-orchestrator.md`) drives this
 > directly **with the user**, because the agent cannot see the Unity Editor Console and the gate needs
 > the human to focus the Editor (recompile) and play the game (overlay). This is the single
 > human touch-point of phase 3.
@@ -121,5 +121,5 @@ Report to the orchestrator: (1) compile status (package-on ✅/❌, define-off �
 ## Related / Next
 
 - This closes phase 3. The capture pipeline is now live. **Next:** phase 4 (map game objects) —
-  `8-map-game-objects.md` (census + wave plan), then phase 5 (tracking & restore). Actions come **later**,
+  `4-map-game-objects.md` (census + wave plan), then phase 5 (tracking & restore). Actions come **later**,
   in phase 6, after the player flow is proven — they are no longer the next step after lifecycle.

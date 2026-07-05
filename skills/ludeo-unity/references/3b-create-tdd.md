@@ -1,7 +1,7 @@
 # Phase 3 · Task 2 — Technical Design Document (Unity)
 
 > **Single-task subagent brief.** Dispatched by the phase-3 orchestrator
-> (`2-lifecycle-orchestrator.md`). Do exactly this one task, produce the §6 artifact, and return a
+> (`3-lifecycle-orchestrator.md`). Do exactly this one task, produce the §6 artifact, and return a
 > short summary + the artifact path. You run in isolated context — your inputs are the files in §2.
 > **Entry: only via the orchestrator.** This is task 2 of 5 in phase 3 (SDK lifecycle), not a phase of
 > its own — never open or run it standalone.
@@ -85,4 +85,4 @@ following `TDD_TEMPLATE.md` with game-specific diagrams and no template HTML com
 
 ## Related / Next
 
-- **Next (orchestrator):** task 3 — `3-plan-sdk-lifecycle.md` (plan the layer from this TDD + the artifacts).
+- **Next (orchestrator):** task 3 — `3c-plan-sdk-lifecycle.md` (plan the layer from this TDD + the artifacts).

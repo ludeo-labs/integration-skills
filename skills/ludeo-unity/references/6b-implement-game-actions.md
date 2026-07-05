@@ -216,8 +216,8 @@ Surface to the orchestrator; don't guess:
 
 ## Related / Next
 
-- Task 1 (`6-map-game-actions.md`) — produces `GAME_ACTIONS_MAP.md`, the map this task implements.
-- Phase 3 (`2-lifecycle-orchestrator.md`) — planned the non-gameplay standard actions emitted here; wired
+- Task 1 (`6a-map-game-actions.md`) — produces `GAME_ACTIONS_MAP.md`, the map this task implements.
+- Phase 3 (`3-lifecycle-orchestrator.md`) — planned the non-gameplay standard actions emitted here; wired
   `SetGameplayerId` + the overlay pause (distinct from `PauseLudeo`).
 - **Next (orchestrator):** run the phase-6 gate (recompile clean + each action emits in the log in **both**
   flows + correct attribution). When it passes, proceed to **phase 7** (validate the release build + upload

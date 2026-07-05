@@ -291,7 +291,7 @@ The gate — satisfy all before advancing to phase 3.
 ## Related / Next
 
 - Patterns: `ludeo-integration-docs/game-patterns/open-world.md`, `.../procedural-world.md`.
-- **Next:** `phase 3` (SDK lifecycle) — enter via the orchestrator `2-lifecycle-orchestrator.md` and
+- **Next:** `phase 3` (SDK lifecycle) — enter via the orchestrator `3-lifecycle-orchestrator.md` and
   run it as a **single phase**. Do not treat "map SDK integration points" as a standalone phase: it is
   only task 1 of five (map points → TDD → plan → implement → human compile gate) the orchestrator
   dispatches as subagents.

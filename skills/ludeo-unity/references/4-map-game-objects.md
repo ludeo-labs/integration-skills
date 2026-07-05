@@ -36,8 +36,8 @@ the same file. Output (Part A) is human-approved before the phase-5 wave loop be
       block** (mechanism/format/group/entry_points, `per_entity: []`), `serialization`.
 - [ ] **Phase 3** → `ludeo-integration-plan/SDK_INTEGRATION_POINTS.json` (boundaries / hook map).
 - [ ] **Phase 1** → `ludeo-integration-plan/INTAKE.md` — the game-level save-system classification
-      (the narrative source; the structured form is `CODE_MAP.save_system`). **No `phase 2c` /
-      `GAME_ANALYSIS_SAVE_SYSTEM.md`** — 2c is retired; the **per-entity** matrix is built in Part B.
+      (the narrative source; the structured form is `CODE_MAP.save_system`). **No `phase 3f` /
+      `GAME_ANALYSIS_SAVE_SYSTEM.md`** — 3f is retired; the **per-entity** matrix is built in Part B.
 - [ ] Recommended: if `ludeo-integration-plan/TDD_<GameName>.md` exists, read its **State Capture** section.
 - [ ] Context files read:
   - `ludeo-integration-docs/06-TRACKING-PATTERNS.md` — **§1.1** (iterative wave rollout — the model this
@@ -52,7 +52,7 @@ the same file. Output (Part A) is human-approved before the phase-5 wave loop be
 ## 3. Steps
 
 The phase is two parts. **Part A runs once, here**, and ends at a human gate. **Part B is a reusable
-procedure the phase-5 orchestrator invokes once per wave** (`references/9a-deep-scope-wave.md` dispatches
+procedure the phase-5 orchestrator invokes once per wave** (`references/5a-deep-scope-wave.md` dispatches
 it, scoped to that wave's types). Run only Part A in this phase.
 
 ---
@@ -135,7 +135,7 @@ spawn pattern (dynamic / scene-placed / both), whether it streams in/out (+ its 
 > capture positions relative to a stable reconstructed frame (`06 §9.4`; for procedural,
 > `game-patterns/procedural-world.md` §3 Placement + §5). The tell is partial success — a capture in the
 > run's first room (still at origin) restores perfectly while deeper ones break, which is why a quick
-> start-of-level smoke test misses it (verify from a deep state — `9-tracking-restore-orchestrator.md`).
+> start-of-level smoke test misses it (verify from a deep state — `5-tracking-restore-orchestrator.md`).
 
 > **⚠️ Always identify a time-base / continuity singleton — resume the moment, don't restart it.** A
 > viewer-centric sweep (§9.2) misses it because it lives on a **manager/singleton**, not a visible
@@ -187,7 +187,7 @@ here**; it is produced per wave in Part B.
 
 ## Part B — Deep-Scope Procedure (run PER WAVE — invoked by phase 5's wave loop)
 
-> **Do not run this in phase 4.** The phase-5 orchestrator dispatches `references/9a-deep-scope-wave.md`
+> **Do not run this in phase 4.** The phase-5 orchestrator dispatches `references/5a-deep-scope-wave.md`
 > once per wave; that brief runs this procedure **scoped to the current wave's types only** and **appends**
 > the resulting per-entity sections to `OBJECT_TRACKING.md` (the census + wave plan from Part A stays at the
 > top). Each invocation deep-scopes a small set, immediately before that wave's capture/restore is
@@ -430,6 +430,6 @@ criteria are verified **per wave** in phase 5 (listed here as what each Part-B i
   classification.
 - `phase 6 actions` — sibling discovery for discrete **actions** (waits for Wave 1's restore gate).
 - **Next:** review the **census + wave plan** with the user (Step A6), then the phase-5 orchestrator
-  (`9-tracking-restore-orchestrator.md`) runs the **wave loop** — per wave it invokes Part B
-  (`9a-deep-scope-wave.md`) then implements capture/restore for that wave. `phase 5` (tasks 3–4) also
+  (`5-tracking-restore-orchestrator.md`) runs the **wave loop** — per wave it invokes Part B
+  (`5a-deep-scope-wave.md`) then implements capture/restore for that wave. `phase 5` (tasks 3–4) also
   consume the per-wave rows.

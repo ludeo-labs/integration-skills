@@ -488,7 +488,7 @@ don't restore them; record why.
 
 > **⚠️ Restore the soundtrack explicitly — the game won't start it for you.** Games normally kick off level
 > music from scene-start / `Start()` / `OnEnable`, and restore **suppresses exactly that class of
-> start-of-run logic** (`10-plan-state-restoration.md` Step 3, gated on `IsInLudeoFlow`) so it can't clobber
+> start-of-run logic** (`5c-plan-state-restoration.md` Step 3, gated on `IsInLudeoFlow`) so it can't clobber
 > restored state. The side effect: the classic state restores perfectly but **the soundtrack never starts**
 > — the reported "state restores but music doesn't" bug. So the world/definitions restore must **(re)start
 > the captured track itself** (`SetMusic(defs.gameMusic)` above), reading the **active-track id** captured
@@ -499,7 +499,7 @@ don't restore them; record why.
 >   time-driven-only** concern (§10.5 / time-base-continuity, `06 §1.2`); don't conflate the two.
 > - **Required for completeness on every integration, but NOT load-bearing.** The moment isn't *visibly*
 >   wrong without it on the first frame, so assign its capture to a **later wave (2+)**, never Wave 1
->   (`8-map-game-objects.md` Step A5) — and do **not** drop it just because it's deferred.
+>   (`4-map-game-objects.md` Step A5) — and do **not** drop it just because it's deferred.
 
 > **⚠️ The world-identity key is restore step 1 — fail loud, and distinguish two failures.** Rebuilding the
 > world needs the captured **world/level identity** (scene name, level index, chunk/room/seed — `phase 5 · task 1`'s
@@ -731,9 +731,9 @@ TryGetAllLudeoStateObjectByType, StoreGameDefinitions}` · `LudeoRestoredData` (
 
 ---
 
-**Next steps:** plan the restore with [`../10-plan-state-restoration.md`](../10-plan-state-restoration.md)
+**Next steps:** plan the restore with [`../5c-plan-state-restoration.md`](../5c-plan-state-restoration.md)
 (mirror `OBJECT_TRACKING.md` → `RESTORATION_PLAN.md`), then wire the flow with
-[`../11-implement-restoration-flow.md`](../11-implement-restoration-flow.md) (the SDK-orchestration half) and
+[`../5d-implement-restoration-flow.md`](../5d-implement-restoration-flow.md) (the SDK-orchestration half) and
 fill the data read-back with
-[`../12-implement-state-reconstruction.md`](../12-implement-state-reconstruction.md) (the row-for-row inverse
+[`../5e-implement-state-reconstruction.md`](../5e-implement-state-reconstruction.md) (the row-for-row inverse
 of the `phase 5 · task 1` capture).

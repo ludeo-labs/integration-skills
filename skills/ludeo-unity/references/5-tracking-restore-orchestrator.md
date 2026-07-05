@@ -66,7 +66,7 @@ subagent that's gone.
 > **Guardrail escalation (cross-wave):** if a wave-`N` gate fails because state **owned by an earlier,
 > already-confirmed wave** is wrong or missing, that is **not** a wave-`N` fix. Re-open the **earlier**
 > wave — re-dispatch its task 0 / task 1 for the missing state, re-verify **its** gate — then resume wave
-> `N`. Never patch the symptom forward into the current wave (`8-map-game-objects.md` §5; the mirror
+> `N`. Never patch the symptom forward into the current wave (`4-map-game-objects.md` §5; the mirror
 > principle, §5 below).
 
 ### The wave loop (outer structure)
@@ -92,11 +92,11 @@ the tracked set, the capture writers, and the `ApplyRestoredState()` data read-b
 
 | # | Task | Brief | Cadence | Produces | Human gate (orchestrator-run) |
 | --- | --- | --- | --- | --- | --- |
-| 0 | Deep-scope this wave | `references/9a-deep-scope-wave.md` | **per wave** | wave N's `## Entity` rows appended to `OBJECT_TRACKING.md` (+ `save_system.per_entity`) | **human reviews & approves wave N's rows** (no code/run) |
-| 1 | Implement object tracking (capture) | `references/9-implement-object-tracking.md` | **per wave** (additive) | capture `.cs` for N's types (register + `OnStateDataUpdate` writers + keys) | **recompile clean + play + actually capture a session**, registration fires, no `LudeoResult` errors |
-| 2 | Plan state restoration | `references/10-plan-state-restoration.md` | **per wave** (append) | wave N's rows in `RESTORATION_PLAN.md` | **human reviews & approves the rows** (no code/run) |
-| 3 | Implement restoration flow | `references/11-implement-restoration-flow.md` | **ONCE (wave 1 only)** | flow `.cs` + `LudeoRestoredData` + `ApplyRestoredState()` **stub** | **play a captured Ludeo**: freeze → captured scene loads → stub reached in order → `Begin`; replay→replay tears down clean; overlay pause/resume |
-| 4 | Implement state reconstruction | `references/12-implement-state-reconstruction.md` | **per wave** (additive buckets) | wave N's buckets filled in `ApplyRestoredState()` (two-pass read-back) | **play a captured Ludeo**: wave N's cumulative set restores on first frame, non-zero two-pass counts, cross-ref resolved; **placement sanity — no restored entity sits in empty space / far from the geometry** (§ below); replay-twice shows the **second's** state |
+| 0 | Deep-scope this wave | `references/5a-deep-scope-wave.md` | **per wave** | wave N's `## Entity` rows appended to `OBJECT_TRACKING.md` (+ `save_system.per_entity`) | **human reviews & approves wave N's rows** (no code/run) |
+| 1 | Implement object tracking (capture) | `references/5b-implement-object-tracking.md` | **per wave** (additive) | capture `.cs` for N's types (register + `OnStateDataUpdate` writers + keys) | **recompile clean + play + actually capture a session**, registration fires, no `LudeoResult` errors |
+| 2 | Plan state restoration | `references/5c-plan-state-restoration.md` | **per wave** (append) | wave N's rows in `RESTORATION_PLAN.md` | **human reviews & approves the rows** (no code/run) |
+| 3 | Implement restoration flow | `references/5d-implement-restoration-flow.md` | **ONCE (wave 1 only)** | flow `.cs` + `LudeoRestoredData` + `ApplyRestoredState()` **stub** | **play a captured Ludeo**: freeze → captured scene loads → stub reached in order → `Begin`; replay→replay tears down clean; overlay pause/resume |
+| 4 | Implement state reconstruction | `references/5e-implement-state-reconstruction.md` | **per wave** (additive buckets) | wave N's buckets filled in `ApplyRestoredState()` (two-pass read-back) | **play a captured Ludeo**: wave N's cumulative set restores on first frame, non-zero two-pass counts, cross-ref resolved; **placement sanity — no restored entity sits in empty space / far from the geometry** (§ below); replay-twice shows the **second's** state |
 
 **No task here is hands-off** — every one ends in a human gate the orchestrator must run, because the
 agent **cannot see the Unity Editor Console** and the capture/replay gates require the human to actually
@@ -140,7 +140,7 @@ The orchestrator runs the gates but still **cannot see the Console** — it conf
 **Unity's log files** per
 [`unity/READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md), and beyond the log
 relies on the integrator's word (a clean compile never proves capture/restore works). The compile-and-fix
-loop + `error CS` table live in [`phase 3 · task 5`](5-compile-and-fix.md) — cite it, don't repeat it.
+loop + `error CS` table live in [`phase 3 · task 5`](3e-compile-and-fix.md) — cite it, don't repeat it.
 
 ## 4. Questions to ask the human
 
@@ -254,10 +254,10 @@ green**, and is **fully complete when the last wave in the plan is green**.
 
 ## Related / Next
 
-- Briefs: `9a-deep-scope-wave.md` (task 0, per wave), `9-implement-object-tracking.md` (task 1),
-  `10-plan-state-restoration.md` (task 2), `11-implement-restoration-flow.md` (task 3, once),
-  `12-implement-state-reconstruction.md` (task 4).
-- Phase 4 (`8-map-game-objects.md`) — produces the **census + wave plan** (Part A) and the **Part B
+- Briefs: `5a-deep-scope-wave.md` (task 0, per wave), `5b-implement-object-tracking.md` (task 1),
+  `5c-plan-state-restoration.md` (task 2), `5d-implement-restoration-flow.md` (task 3, once),
+  `5e-implement-state-reconstruction.md` (task 4).
+- Phase 4 (`4-map-game-objects.md`) — produces the **census + wave plan** (Part A) and the **Part B
   deep-scope procedure** that task 0 runs per wave.
 - **Next:** phase 6 (actions) — wire `SendAction`/`ReportAction` in both flows, now that the player flow
   is proven (Wave 1 green). Includes emitting the non-gameplay standard actions planned in phase 3.

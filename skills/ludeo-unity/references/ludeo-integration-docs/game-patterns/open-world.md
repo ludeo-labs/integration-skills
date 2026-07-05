@@ -159,7 +159,7 @@ state** — the moments the game itself considers safe to persist or close.
 | Ludeo overlay opened | `AddNotifyPauseGame` `[SDK]` | `GameManager.PauseGame()` / `Time.timeScale = 0f` `[Unity]` (CR-011) |
 | Application quit | `Application.Quit` `[Unity]` | `End`/`Abort` `[SDK]` if mid-run, then **`Dispose()` the owned `LudeoSession`** in `Shutdown()` (the plugin does **not** dispose it — required for Editor re-init; see `05` "Shutdown") |
 
-The `CODE_MAP.session_boundaries` block produced in [`phase 2`](../../1-map-game-code.md) §6 is the
+The `CODE_MAP.session_boundaries` block produced in [`phase 2`](../../2-map-game-code.md) §6 is the
 input for this mapping.
 
 ## 9. After This File
@@ -169,7 +169,7 @@ existence, world/cell objectTypes, identity across stream cycles, scope-to-the-m
 tracking companion [`open-world-tracking.md`](./open-world-tracking.md) alongside
 [`06-TRACKING-PATTERNS.md`](../06-TRACKING-PATTERNS.md). You also still need the **action catalog** and
 genre **tracking checklist** for whichever genre(s) the game blends, produced in
-[`phase 6`](../../6-map-game-actions.md) (actions) and [`phase 4`](../../8-map-game-objects.md)
+[`phase 6`](../../6a-map-game-actions.md) (actions) and [`phase 4`](../../4-map-game-objects.md)
 (objects) with the genre files in [`INDEX.md`](./INDEX.md).
 
 ---
