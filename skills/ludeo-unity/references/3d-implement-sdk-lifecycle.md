@@ -1,10 +1,10 @@
-# Phase 2 · Task 4 — Implement the SDK Lifecycle (Unity)
+# Phase 3 · Task 4 — Implement the SDK Lifecycle (Unity)
 
-> **Single-task subagent brief.** Dispatched by the phase-2 orchestrator
-> (`2-lifecycle-orchestrator.md`). Create the layer + wire the hooks, then return a summary + the list
+> **Single-task subagent brief.** Dispatched by the phase-3 orchestrator
+> (`3-lifecycle-orchestrator.md`). Create the layer + wire the hooks, then return a summary + the list
 > of files created/edited. **You do not compile** — the orchestrator runs task 5 (the human-gated
 > compile+run) after you return. You run in isolated context — inputs are the files in §2.
-> **Entry: only via the orchestrator.** This is task 4 of 5 in phase 2 (SDK lifecycle), not a phase of
+> **Entry: only via the orchestrator.** This is task 4 of 5 in phase 3 (SDK lifecycle), not a phase of
 > its own — never open or run it standalone.
 >
 > **Legend:** `[SDK]` = Ludeo package API · `[Layer]` = prescribed façade · `[Unity]` = engine API.
@@ -19,7 +19,7 @@ task-5 compile+run gate.
 
 - [ ] `ludeo-integration-plan/SDK_LIFECYCLE_PLAN_<GameName>.md` (task 3) — layer files, hook table, order.
 - [ ] `ludeo-integration-plan/TDD_<GameName>.md` (task 2) — architecture decisions, risks.
-- [ ] **Phase 0 done** — package installed, `using LudeoSDK;` compiles, `LudeoSettings.asset` configured.
+- [ ] **Phase 1 done** — package installed, `using LudeoSDK;` compiles, `LudeoSettings.asset` configured.
 - [ ] Context files read:
   - `ludeo-integration-docs/00-CRITICAL-REQUIREMENTS.md` — CR-001/003/007/009/010/011/012/013.
   - `ludeo-integration-docs/05-LIFECYCLE-MANAGEMENT.md` — the flow to reproduce.
@@ -27,9 +27,9 @@ task-5 compile+run gate.
   - `ludeo-integration-docs/12-SDK-API-REFERENCE.md` — exact `[SDK]` signatures (reproduce verbatim).
 
 > **No config step here.** No `LudeoConfig.h`/`ludeo.ini`/auth questionnaire — the package reads
-> `LudeoSettings.asset` (phase 0). If the apiKey is a placeholder, point the user back to
+> `LudeoSettings.asset` (phase 1). If the apiKey is a placeholder, point the user back to
 > **Ludeo → Setup and Show LudeoSettings**; don't add a config class.
-> **Exception (dev/QA only):** if phase 0 set up the `LUDEO_DEV`-gated dev-override shim
+> **Exception (dev/QA only):** if phase 1 set up the `LUDEO_DEV`-gated dev-override shim
 > (`LudeoDevConfig.ApplyOverrides`, see `unity/UPM-INSTALL-AND-DEFINES.md` → *Dev/QA runtime overrides*),
 > call it as the **first line before `InitLudeoSession`**, inside the `#if LUDEO_DEV` guard. That is **not**
 > the config class this rule forbids — it's a build-gated test affordance that compiles out of production.
@@ -47,14 +47,14 @@ objectTypes/attributes/actions to the game. Each gets its own `.cs` (game assemb
 
 | File `[Layer]` | Purpose |
 | --- | --- |
-| `LudeoController.cs` | Façade: `InitLudeoSession`, register **all** notifications before `Activate`, route begin/end/abort/track/action through the flow switch, expose the game-facing API (incl. `StartNoneLudeable`/`StopNoneLudeable` wrappers — scaffold; call sites are phases 6–7). |
+| `LudeoController.cs` | Façade: `InitLudeoSession`, register **all** notifications before `Activate`, route begin/end/abort/track/action through the flow switch, expose the game-facing API (incl. `StartNoneLudeable`/`StopNoneLudeable` wrappers — scaffold; call sites are phase 6). |
 | `LudeoIntegrationData.cs` | Shared state: session/room/gameplay-session, ids, flags, restored data, `OpenRoomData` factories. |
 | `LudeoFlowSwitch.cs` | CR-001 + CR-012: defaults to Disabled+Dummy; `SetFlags` enables on consent; `SwitchToCreate`/`SwitchToPlay`. |
 | `ILudeoFlow.cs` + `LudeoCreatorFlow` / `LudeoPlayFlow` / `DisabledLudeoFlow` | Room open + add-player; play restores by objectType bucket. |
 | `LudeoInitRoomHandler.cs` | The `OpenRoom` → `AddGamePlayer` callback chain (CR-009). |
 | `ILudeoGameplaySessionManager.cs` + `LudeoGameplaySessionManager` + `DummyLudeoGameplaySessionManager` | Begin/End/Abort, `SendAction`, the tracked-handler registry, `UpdateStateObjects`. |
-| `ILudeoStateHandler.cs` + `DefaultLudeoStateHandler` | Per-object capture context (writers land in phase 9). |
-| `LudeoKeys.cs` / `LudeoActionKeys.cs` | objectType / attribute / action string constants. **Scaffold only** — real keys discovered in phases 6 (actions) & 8 (objects). Seed the standard non-gameplay action names (`StartNoneLudeable`/`StopNoneLudeable`/`PauseLudeo`/`ResumeLudeo`) + what the layer needs now. |
+| `ILudeoStateHandler.cs` + `DefaultLudeoStateHandler` | Per-object capture context (writers land in phase 5 · task 1). |
+| `LudeoKeys.cs` / `LudeoActionKeys.cs` | objectType / attribute / action string constants. **Scaffold only** — real keys discovered in phase 6 (actions) & phase 4 (objects). Seed the standard non-gameplay action names (`StartNoneLudeable`/`StopNoneLudeable`/`PauseLudeo`/`ResumeLudeo`) + what the layer needs now. |
 
 > **CR-001 is interfaces + dummies, not `#if`.** Add a `#if LUDEO_SDK … #else … #endif` only if you
 > must ship a build that **excludes** the package (rare — `unity/UPM-INSTALL-AND-DEFINES.md §4`).
@@ -70,8 +70,8 @@ m_ludeo = new LudeoController(                                              // [
     onBeginRestore:   () => { Time.timeScale = 0f; StartCoroutine(LoadRestoreSceneThenNotify()); });    // [Unity]+[Layer]
 m_ludeo.SetGameplayerId(localPlayerId);
 ```
-`ApplyRestoredState()` / `LoadRestoreSceneThenNotify()` are stubs — scene-load wiring is phase 11, the
-two-pass body is phase 12. A **create-only** game may omit `onBeginRestore`.
+`ApplyRestoredState()` / `LoadRestoreSceneThenNotify()` are stubs — scene-load wiring is phase 5 · task 3, the
+two-pass body is phase 5 · task 4. A **create-only** game may omit `onBeginRestore`.
 
 ### 4. Edit the game hook points (🎮 game-initiated only)
 From the plan's hook table. **Back up edited files first** (`.bak` or rely on the branch). Route
@@ -85,7 +85,7 @@ through the `[Layer]` façade — never raw `[SDK]`:
 | `OnApplicationQuit` | `m_ludeo.Shutdown()` — end/abort any active run **and `Dispose()` the owned `LudeoSession`** | CR-007 |
 
 > The non-gameplay `SendAction` **call sites** (`StartNoneLudeable` etc.) are **not** edited here —
-> they land in phases 6–7. Task 4 only scaffolds the façade methods. **Do NOT wire an SDK tick** (CR-005).
+> they land in phase 6. Task 4 only scaffolds the façade methods. **Do NOT wire an SDK tick** (CR-005).
 
 ### 4.5 Required: notification registration (enforce, even if the plan is silent)
 In `LudeoController`, **after** `InitLudeoSession` succeeds and **before** `Activate`, register these
@@ -140,11 +140,11 @@ artifacts don't resolve it. Otherwise implement the plan as written.
 ## 8. Common Mistakes
 
 - **Compiling here** — task 5 owns the (human-gated) compile.
-- **Wiring an SDK tick** (CR-005) or editing the non-gameplay `SendAction` call sites (phases 6–7).
+- **Wiring an SDK tick** (CR-005) or editing the non-gameplay `SendAction` call sites (phase 6).
 - **Skipping the `LudeoSession.Dispose()`** in `Shutdown()` — 2nd Editor Play returns `WrongState`.
 - **Registering notifications after `Activate`**, or using the C++ `…Request` names.
 - **Scattering raw `[SDK]` calls** instead of routing through the façade.
 
 ## Related / Next
 
-- **Next (orchestrator):** task 5 — `5-compile-and-fix.md`, the **human-gated** compile+run gate.
+- **Next (orchestrator):** task 5 — `3e-compile-and-fix.md`, the **human-gated** compile+run gate.

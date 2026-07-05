@@ -1,6 +1,6 @@
-# Phase 5 · Task 2 — Implement Game Actions (Unity)
+# Phase 6 · Task 2 — Implement Game Actions (Unity)
 
-> **Single-task subagent brief.** Dispatched by the phase-5 orchestrator (`6-actions-orchestrator.md`).
+> **Single-task subagent brief.** Dispatched by the phase-6 orchestrator (`6-actions-orchestrator.md`).
 > Insert `SendAction` calls (gameplay + non-gameplay) at the mapped sites, routed through the `[Layer]`
 > façade, and document the one-time platform global-trigger mapping — then return a summary + the files
 > you created/edited. **You do not run the human-gated compile/play** — the orchestrator plays the game
@@ -24,9 +24,9 @@ mapping**. Every call fires in **both** the Creator (capture) and Player (restor
 
 - [ ] **Task 1** → `ludeo-integration-plan/GAME_ACTIONS_MAP.md`, **approved** by the user (kept actions +
       Dropped table + Non-Gameplay Actions section).
-- [ ] **Phase 2** → `ludeo-integration-plan/SDK_INTEGRATION_POINTS.json` — the non-ludeoable boundary-action
+- [ ] **Phase 3** → `ludeo-integration-plan/SDK_INTEGRATION_POINTS.json` — the non-ludeoable boundary-action
       sites (enter/exit file:line) to emit `StartNoneLudeable`/`StopNoneLudeable` at.
-- [ ] **Phase 2** → the `[Layer]` exists (`LudeoController.SendAction` façade + the `LudeoActionKeys`
+- [ ] **Phase 3** → the `[Layer]` exists (`LudeoController.SendAction` façade + the `LudeoActionKeys`
       scaffold, seeded with the standard non-gameplay names) and `SetGameplayerId` is wired.
 - [ ] Context files read (relative to this brief):
   - `ludeo-integration-docs/unity/REFERENCE-ARCHITECTURE.md` — the `[Layer]` `LudeoController.SendAction` +
@@ -40,10 +40,10 @@ mapping**. Every call fires in **both** the Creator (capture) and Player (restor
 - **One argument, no `playerId`.** `[SDK]` `LudeoGameplaySession.SendAction(string action)` is bound to the
   room's player already — there is **no** `playerId` parameter and no DataWriter handle (unlike the C++
   API). Call sites pass only the action name. **The player binding is set once via `SetGameplayerId`
-  `[Layer]` (phase 2), whose id MUST match the id passed to `AddGamePlayer`** — that is the guideline's
+  `[Layer]` (phase 3), whose id MUST match the id passed to `AddGamePlayer`** — that is the guideline's
   "player-id matches the id passed to AddPlayer." If they diverge, actions attribute to the wrong player.
 - **Actions fire in BOTH flows — never gate on `IsInLudeoFlow`.** The play flow re-fires the same sites so
-  the SDK can score the Ludeo's win/fail during playback. Only **state writes** (`SetAttribute`, phase 4)
+  the SDK can score the Ludeo's win/fail during playback. Only **state writes** (`SetAttribute`, phase 5)
   are creator-only; **action writes are not.** The façade's `isGameplayActive` gate is the *only* gate.
 - **Guard player-scoped actions; fire global ones as-is.** A **player-scoped** action (`Kill`, `Death`) at a
   site that triggers for *any* actor (a shared `OnEnemyKilled`, an NPC-vs-NPC kill) **credits the player
@@ -66,13 +66,13 @@ manual review. **Do not implement anything from the Dropped table** — those we
 if the user wants one back, they promote it in the map first.
 
 ### Step 2: Add the action-name constants
-Open `LudeoActionKeys` (scaffolded in phase 2, seeded with the standard non-gameplay names). Add a
+Open `LudeoActionKeys` (scaffolded in phase 3, seeded with the standard non-gameplay names). Add a
 `const string` per mapped gameplay action (PascalCase value); confirm the non-gameplay names are present:
 ```csharp
 public static class LudeoActionKeys
 {
     public const string Kill = "Kill", Headshot = "Headshot", CollectCoin = "CollectCoin";
-    // standard non-gameplay (seeded in phase 2 — confirm present):
+    // standard non-gameplay (seeded in phase 3 — confirm present):
     public const string StartNoneLudeable = "StartNoneLudeable", StopNoneLudeable = "StopNoneLudeable";
     public const string PauseLudeo = "PauseLudeo", ResumeLudeo = "ResumeLudeo";
 }
@@ -107,7 +107,7 @@ void OnEnemyKilled(GameObject killer, GameObject victim, bool headshot)
 }
 ```
 (`m_localPlayer` is whatever the site already has to identify the captured player — the player object, its
-id matched against the `SetGameplayerId` value from phase 2, a `CompareTag("Player")`, etc.)
+id matched against the `SetGameplayerId` value from phase 3, a `CompareTag("Player")`, etc.)
 
 **Inside a switch/case** (e.g. pickup type):
 ```csharp
@@ -126,7 +126,7 @@ From the map's **Non-Gameplay Actions** section + `SDK_INTEGRATION_POINTS.json`:
   rest of the run (mirror of the CR-007 "no dangling on EndGameplay" rule).
 - **Capture-hygiene pause** — at a game-initiated cutscene/pause begin emit `PauseLudeo`, at its end emit
   `ResumeLudeo`. This is **distinct from the SDK overlay pause** (`AddNotifyPauseGame`/`ResumeGame`, wired in
-  phase 2/4 — that's the Ludeo overlay covering the game, not a game-initiated capture-hygiene pause).
+  phase 3/5 — that's the Ludeo overlay covering the game, not a game-initiated capture-hygiene pause).
 
 ```csharp
 // non-ludeoable area boundary (e.g. shop):
@@ -166,7 +166,7 @@ Surface to the orchestrator; don't guess:
 - **Actions fire in BOTH the creator AND play flows.** Never gate `SendAction` behind `IsInLudeoFlow` / an
   "are we replaying?" check — the #1 actions bug. Only **state writes** are creator-only.
 - **Attribute to the player.** Where the map says `⚠ needs player-guard`, wrap the `SendAction` in the
-  player-actor/subject check; the guard surrounds only the Ludeo call. `SetGameplayerId` (phase 2) must
+  player-actor/subject check; the guard surrounds only the Ludeo call. `SetGameplayerId` (phase 3) must
   match the `AddGamePlayer` id.
 - **Global/match-scoped actions fire once, unguarded.**
 - **Route through the façade**, not raw `[SDK]` — keeps CR-001/CR-007 satisfiable; no per-site session check.
@@ -188,7 +188,7 @@ Surface to the orchestrator; don't guess:
 
 ## 7. ✅ Success Criteria
 
-**Guideline phase-5 criteria this task feeds** (verified at the orchestrator's gate, not here):
+**Guideline phase-6 criteria this task feeds** (verified at the orchestrator's gate, not here):
 - [ ] **Actions emit at runtime in Creator flow** and **in Player flow** — confirmed in the log.
 - [ ] **player-id matches the id passed to `AddGamePlayer`** (via `SetGameplayerId`) — correct attribution.
 - [ ] **Emission verified in logs.**
@@ -209,16 +209,16 @@ Surface to the orchestrator; don't guess:
 - **Compiling / playing here** — the orchestrator owns the (human-gated) compile + emission verification.
 - **Gating `SendAction` on `IsInLudeoFlow`** — actions must fire in **both** flows.
 - **Crediting the player with non-player actions** — missing the player-guard on a shared kill handler.
-- **Implementing Dropped-table candidates** — re-introduces the bloat phase-5 task 1 filtered out.
+- **Implementing Dropped-table candidates** — re-introduces the bloat phase-6 task 1 filtered out.
 - **Forgetting the non-gameplay emissions** or the **platform global-trigger** step.
 - **A `StartNoneLudeable` with no `StopNoneLudeable`** on some exit path — capture stays suppressed.
 - **Calling raw `[SDK]` `SendAction`** instead of the façade, or adding a `#if` guard at call sites.
 
 ## Related / Next
 
-- Task 1 (`6-map-game-actions.md`) — produces `GAME_ACTIONS_MAP.md`, the map this task implements.
-- Phase 2 (`2-lifecycle-orchestrator.md`) — planned the non-gameplay standard actions emitted here; wired
+- Task 1 (`6a-map-game-actions.md`) — produces `GAME_ACTIONS_MAP.md`, the map this task implements.
+- Phase 3 (`3-lifecycle-orchestrator.md`) — planned the non-gameplay standard actions emitted here; wired
   `SetGameplayerId` + the overlay pause (distinct from `PauseLudeo`).
-- **Next (orchestrator):** run the phase-5 gate (recompile clean + each action emits in the log in **both**
-  flows + correct attribution). When it passes, proceed to **phase 6** (validate the release build + upload
+- **Next (orchestrator):** run the phase-6 gate (recompile clean + each action emits in the log in **both**
+  flows + correct attribution). When it passes, proceed to **phase 7** (validate the release build + upload
   it to the Ludeo platform).

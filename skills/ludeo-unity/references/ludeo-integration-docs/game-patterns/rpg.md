@@ -11,7 +11,7 @@
 > file — this file is the genre catalog; those are the structural shape.
 >
 > Action names below map to `[SDK]` `LudeoGameplaySession.SendAction(string)` via the `[Layer]`
-> `LudeoController.SendAction` (see `phase 7`).
+> `LudeoController.SendAction` (see `phase 6`).
 
 ---
 
@@ -123,7 +123,7 @@ time, weather, day, night, schedule, AI, NavMeshAgent
 
 ## 3. Tracking Checklist
 
-After object tracking is implemented (phase 9), verify these are covered. Types map to `[SDK]`
+After object tracking is implemented (phase 5 · task 1), verify these are covered. Types map to `[SDK]`
 `SetAttribute` overloads (see `12-SDK-API-REFERENCE.md`). For streaming worlds, also apply
 [open-world-tracking.md](./open-world-tracking.md) (track the loaded neighborhood + world/cell state,
 not the whole save). Sections are tiered by restoration priority:

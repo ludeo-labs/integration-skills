@@ -1,9 +1,9 @@
-# Phase 2 · Task 1 — Map SDK Integration Points (Unity)
+# Phase 3 · Task 1 — Map SDK Integration Points (Unity)
 
-> **Single-task subagent brief.** Dispatched by the phase-2 orchestrator
-> (`2-lifecycle-orchestrator.md`). Do exactly this one task, produce the §6 artifact, and return a
+> **Single-task subagent brief.** Dispatched by the phase-3 orchestrator
+> (`3-lifecycle-orchestrator.md`). Do exactly this one task, produce the §6 artifact, and return a
 > short summary + the artifact path. You run in isolated context — your inputs are the files in §2.
-> **Entry: only via the orchestrator.** This is task 1 of 5 in phase 2 (SDK lifecycle), not a phase of
+> **Entry: only via the orchestrator.** This is task 1 of 5 in phase 3 (SDK lifecycle), not a phase of
 > its own — never open or run it standalone.
 >
 > **Legend:** `[SDK]` = Ludeo package API (signatures in
@@ -21,7 +21,7 @@ boundary actions will go.
 
 ## 2. Inputs (Input Contract)
 
-- [ ] `ludeo-integration-plan/CODE_MAP.json` (phase 1) — the **only** source; do **not** re-scan game code.
+- [ ] `ludeo-integration-plan/CODE_MAP.json` (phase 2) — the **only** source; do **not** re-scan game code.
 - [ ] Context files read:
   - `ludeo-integration-docs/00-CRITICAL-REQUIREMENTS.md` — CR-003 (callbacks), CR-005 (no SDK tick),
     CR-007 (all exit paths), CR-009 (callback-driven ops).
@@ -40,7 +40,7 @@ boundary actions will go.
 3. **Map the non-ludeoable areas.** For each entry in `CODE_MAP.non_ludeoable_candidates`, emit a
    boundary-action mapping: enter site → `StartNoneLudeable`, exit site → `StopNoneLudeable`
    (`[SDK]` `SendAction`). These fire in-session (tracking keeps running); the backend excludes the
-   window via a one-time platform global-trigger mapping (noted for phases 6–7). Flag any candidate
+   window via a one-time platform global-trigger mapping (noted for phase 6). Flag any candidate
    missing a clear exit (a dangling non-ludeoable never re-enables capture).
 4. Write `ludeo-integration-plan/SDK_INTEGRATION_POINTS.json` (§6) — locations only, no code.
 
@@ -93,7 +93,7 @@ they are not call sites picked from game code:
     { "call": "LudeoGameplaySession.End|Abort", "scene_or_file": "...", "class_method": "...", "line": "...", "trigger": "level complete | death | quit-to-menu | restart | OnApplicationQuit | ReturnToMainMenu" }
   ],
   "non_ludeoable": [
-    { "kind": "shop|dialogue|tutorial|safezone|cutscene", "enter": { "action": "StartNoneLudeable", "file": "...", "line": "...", "trigger": "..." }, "exit": { "action": "StopNoneLudeable", "file": "...", "line": "...", "trigger": "..." }, "platform_trigger_mapping": "one-time, out-of-code (phases 6-7)" }
+    { "kind": "shop|dialogue|tutorial|safezone|cutscene", "enter": { "action": "StartNoneLudeable", "file": "...", "line": "...", "trigger": "..." }, "exit": { "action": "StopNoneLudeable", "file": "...", "line": "...", "trigger": "..." }, "platform_trigger_mapping": "one-time, out-of-code (phase 6)" }
   ],
   "callback_driven": {
     "note": "wired by the LudeoController façade, NOT picked from game code (CR-009)",
@@ -125,4 +125,4 @@ they are not call sites picked from game code:
 
 ## Related / Next
 
-- **Next (orchestrator):** task 2 — `2b-create-tdd.md` (TDD from `CODE_MAP` + this artifact).
+- **Next (orchestrator):** task 2 — `3b-create-tdd.md` (TDD from `CODE_MAP` + this artifact).

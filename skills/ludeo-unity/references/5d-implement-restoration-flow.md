@@ -1,8 +1,8 @@
-# Phase 4 · Task 3 — Implement Restoration Flow (Unity)
+# Phase 5 · Task 3 — Implement Restoration Flow (Unity)
 
-> **Single-task subagent brief.** Dispatched by the phase-4 orchestrator
-> (`9-tracking-restore-orchestrator.md`) **once — in Wave 1 only.** Wire the restore-side **flow** (the
-> inverse of `phase 2`'s session lifecycle), declare `ApplyRestoredState()` as a **stub**, then return a
+> **Single-task subagent brief.** Dispatched by the phase-5 orchestrator
+> (`5-tracking-restore-orchestrator.md`) **once — in Wave 1 only.** Wire the restore-side **flow** (the
+> inverse of `phase 3`'s session lifecycle), declare `ApplyRestoredState()` as a **stub**, then return a
 > summary + the files you created/edited. **You do not run the human-gated play test** — the orchestrator
 > plays a captured Ludeo and reads the log (you can see neither the Console nor a live replay). You run in
 > isolated context — your inputs are the files in §2. Follow propose-confirm-execute.
@@ -31,7 +31,7 @@ log-only body); task 4 fills it.
 ## Why this is its own task
 
 Restoration fuses two inverses. The **data** half (inverse of task 1: the two-pass attribute read-back)
-is mechanical and lives in task 4. **This** half is the inverse of `phase 2`'s lifecycle — the
+is mechanical and lives in task 4. **This** half is the inverse of `phase 3`'s lifecycle — the
 `LudeoSelected` interrupt, freeze timing, the `GetLudeo`/`OpenRoom` chain, the single-fire apply gate, the
 begin-gate's three legs, `RoomReady`-withheld-until-Play, replay→replay re-entrancy, overlay pause/resume.
 It is the part integrations most often get wrong, so it gets its own task and its own runnable smoke test
@@ -42,10 +42,10 @@ It is the part integrations most often get wrong, so it gets its own task and it
 - [ ] **Task 2** → `ludeo-integration-plan/RESTORATION_PLAN.md` exists and the user **approved** it — the
       **flow** rows especially: interrupt-flow hook table, freeze/overlay hooks, apply placement,
       pre-match suppression list.
-- [ ] **Phase 2** → the `[Layer]` exists (`LudeoController` + flow switch + the `onRoomReady`/
+- [ ] **Phase 3** → the `[Layer]` exists (`LudeoController` + flow switch + the `onRoomReady`/
       `onBeginRestore` hooks + the `Begin`-gate). The play flow may be scaffolded but no-op; you fill it in.
-      **Hard prerequisite:** the resume re-uses `phase 2`'s `RoomReady → Begin` chain, not a new path.
-- [ ] **Recommended:** task 1 (`phase 9`) done, so the `objectType` strings and `LudeoKeys` constants the
+      **Hard prerequisite:** the resume re-uses `phase 3`'s `RoomReady → Begin` chain, not a new path.
+- [ ] **Recommended:** task 1 (capture) done, so the `objectType` strings and `LudeoKeys` constants the
       entry-identity read touches are real. The bulk of task 1's mirror is task 4's concern.
 - [ ] Context files read (relative to this brief — the **flow** reading list; two-pass / per-object /
       reconciliation / environment in `07 §4/§5/§6/§8/§9` belong to task 4):
@@ -72,7 +72,7 @@ It is the part integrations most often get wrong, so it gets its own task and it
 This task and task 4 meet at exactly one interface. **Build the lifecycle scaffold here with the data
 read-back stubbed:**
 - Declare **`ApplyRestoredState()` with a stub body** — log a line (`"[Ludeo] ApplyRestoredState STUB —
-  filled in phase 12"`) and return. Do **not** build the two-pass, the `keyMap`, the per-entity
+  filled in phase 5 · task 4"`) and return. Do **not** build the two-pass, the `keyMap`, the per-entity
   `RestoreLudeoState` callbacks, the deferred queue, or the bucket accessors (`RestoreLudeoStateOfObject` /
   `TryGetAllLudeoStateObjectByType` / `GetAndRestoreLudeoStateOfObject` / `GetLudeoTrackedDefinitions`) —
   those are task 4.
@@ -118,11 +118,11 @@ unfreeze → `Begin`** on `RoomReady`* — apply is never preceded by an unfreez
 
 Pick whichever matches where this game loads its gameplay scene. **Also wire the `onBeginRestore`
 selection-time hook** (kicks the scene load before the room opens) and its scene-load completion signal
-(`NotifySceneReadyForRestore()`) — `phase 2` scaffolds them; fill them in. **`ApplyRestoredState()` is a
+(`NotifySceneReadyForRestore()`) — `phase 3` scaffolds them; fill them in. **`ApplyRestoredState()` is a
 stub at this point (the Seam)** — you are wiring *where* it runs, not *what* it does.
 
 ### Step 2: Add the restore-flow `[Layer]` — `LudeoRestoredData` + the apply stub (07 §3.1)
-`phase 2` wired the tracking side; add the **flow-side restore additions**:
+`phase 3` wired the tracking side; add the **flow-side restore additions**:
 - **`LudeoRestoredData`** (`07 §3.1`) — constructed in `HandleGetLudeoDone`; calls `GetStateObjects` `[SDK]`
   **once**, groups the flat `LudeoStateObjectRestore[]` into `LudeoStateObjectsLookup`
   (`Dictionary<string, List<LudeoStateObjectRestore>>`), and **validates it is populated** (non-empty — an
@@ -134,7 +134,7 @@ stub at this point (the Seam)** — you are wiring *where* it runs, not *what* i
 
 **The flows must hold `m_data` from construction** (REFERENCE-ARCHITECTURE's `LudeoFlowSwitch` ctor),
 because `onBeginRestore` (and game code it triggers) can run *before* `InitRoom`; a lazy `m_data = data`
-inside `InitRoom` makes that first read a `NullReferenceException`. **Do not duplicate** members `phase 2`
+inside `InitRoom` makes that first read a `NullReferenceException`. **Do not duplicate** members `phase 3`
 already created.
 
 ### Step 3: Wire the entry chain + tear-down (07 §3.3, §2.2)
@@ -190,7 +190,7 @@ Map `m_onStopGame` onto this game's "freeze the active run" hook. The gallery en
     (silent hang).** Run the create unfrozen with state-mutating systems **suppressed via `IsInLudeoFlow`**
     (input, AI, cinematics), and freeze only the narrow synchronous scalar write. *(Which side the apply
     lands on is a task-4 detail; here you wire the freeze/suppress mechanism the plan chose.)*
-- **Resume = `RoomReady → Begin`:** in the `onRoomReady` hook (`phase 2`), **apply (if applying here,
+- **Resume = `RoomReady → Begin`:** in the `onRoomReady` hook (`phase 3`), **apply (if applying here,
   Step 1.5) → unfreeze → `BeginGameplay()`** `[Layer]` — **never unfreeze before the apply runs**. **Not**
   `ResumeGame`, **not** `PlayerReady` (does not exist in this SDK), **not** a self-built prompt. `Begin` is
   gated on **`RoomReady` ∧ `AddGamePlayer` ∧ `sceneLoaded`** (CR-009 + the restore scene-load leg,
@@ -255,7 +255,7 @@ Surface to the orchestrator; don't guess:
 
 ## 5. Patterns to apply
 
-- **This is the inverse of `phase 2`, not task 1.** Every piece mirrors the session lifecycle `phase 2`
+- **This is the inverse of `phase 3`, not task 1.** Every piece mirrors the session lifecycle `phase 3`
   wired (`OpenRoom → AddGamePlayer → RoomReady → Begin`). If you find yourself reading entity attributes
   back into the world, stop — that's task 4; leave the stub.
 - **Read-then-load.** No scene loads in the `LudeoSelected` handler directly — `onBeginRestore` starts the
@@ -285,7 +285,7 @@ Surface to the orchestrator; don't guess:
 
 ## 7. ✅ Success Criteria
 
-**Guideline phase-4 criteria this task feeds** (verified at the orchestrator's gate, not here):
+**Guideline phase-5 criteria this task feeds** (verified at the orchestrator's gate, not here):
 - [ ] **Flow reaches the restore entry point on a real captured Ludeo** — freeze on select → captured scene
       loads on Play → `ApplyRestoredState()` stub reached in order → `Begin`.
 - [ ] **Pause/overlay behavior correct** — overlay open freezes the sim, close resumes (CR-011).
@@ -321,7 +321,7 @@ Surface to the orchestrator; don't guess:
 
 ## Related / Next
 
-- Task 2 (`10-plan-state-restoration.md`) — produces `RESTORATION_PLAN.md`, the plan this task implements.
-- `phase 2` — wired the `RoomReady → Begin` chain this task reuses for the post-restore resume.
+- Task 2 (`5c-plan-state-restoration.md`) — produces `RESTORATION_PLAN.md`, the plan this task implements.
+- `phase 3` — wired the `RoomReady → Begin` chain this task reuses for the post-restore resume.
 - **Next (orchestrator):** run the task-3 flow gate (play a captured Ludeo: freeze → scene → stub → `Begin`;
-  replay→replay; overlay), then dispatch task 4 (`12-implement-state-reconstruction.md`) to fill the stub.
+  replay→replay; overlay), then dispatch task 4 (`5e-implement-state-reconstruction.md`) to fill the stub.

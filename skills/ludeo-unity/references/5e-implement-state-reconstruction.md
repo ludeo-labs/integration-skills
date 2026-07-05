@@ -1,7 +1,7 @@
-# Phase 4 · Task 4 — Implement State Reconstruction (Unity)
+# Phase 5 · Task 4 — Implement State Reconstruction (Unity)
 
-> **Single-task subagent brief.** Dispatched by the phase-4 orchestrator
-> (`9-tracking-restore-orchestrator.md`) **once per wave**. Fill **this wave's** buckets in the
+> **Single-task subagent brief.** Dispatched by the phase-5 orchestrator
+> (`5-tracking-restore-orchestrator.md`) **once per wave**. Fill **this wave's** buckets in the
 > `ApplyRestoredState()` body (task 3 declared it as a stub on Wave 1) — the two-pass bucket read-back (the
 > inverse of task 1's capture) — then return a summary + the files you created/edited. **You do not run the
 > human-gated play test** — the orchestrator plays a captured Ludeo and reads the log. Finishing **Wave 1**
@@ -46,7 +46,7 @@ doesn't double-create during a restore.
       exist and are called; the orchestrator's flow gate passed (freeze → scene load → stub reached →
       `Begin`). **Hard prerequisite** — without its apply gate and the populated `LudeoRestoredData`, there
       is nothing to read back into.
-- [ ] **Task 1** (`phase 9`) → the capture code exists, so the `objectType` strings, `LudeoKeys` constants,
+- [ ] **Task 1** (capture) → the capture code exists, so the `objectType` strings, `LudeoKeys` constants,
       and stable-key attribute names you read back are **real and pinned**. **Hard prerequisite** — you
       cannot restore what task 1 didn't capture. If a key was renamed since the plan, reconcile first.
 - [ ] **Task 2** → `ludeo-integration-plan/RESTORATION_PLAN.md` exists and the user **approved** it.
@@ -216,7 +216,7 @@ entities when a world flag could despawn/alter a just-spawned entity. Honor the 
 > second track if one is already playing. **Presence, not position:** starting the right track **from the
 > top is enough**; resuming at the captured `AudioSource.time` is the separate time-driven-only concern
 > (Step 6 deferred / time-base). This is a **later-wave (2+) additive bucket, not Wave 1** — implement it in
-> the wave that captured the track id (`8-map-game-objects.md` Step A5).
+> the wave that captured the track id (`4-map-game-objects.md` Step A5).
 
 > **Procedural / non-deterministic assembly (`game-patterns/procedural-world.md §5`, `07 §8`):** "load the
 > scene" is not restoration — it yields an empty container and the generator re-rolls. Read the captured
@@ -257,7 +257,7 @@ Surface to the orchestrator; don't guess:
 ## 5. Patterns to apply
 
 - **Restoration mirrors tracking.** Every read inverts a task-1 write — same `LudeoKeys`, same `objectType`
-  buckets. A gap means the fix is in `phase 3`/task 1, not a fabricated attribute here.
+  buckets. A gap means the fix is in `phase 4`/task 1, not a fabricated attribute here.
 - **Don't touch the flow.** The apply gate, freeze, `LudeoSelected` handler, overlay registrations, and
   entry-identity/scene-boot are task 3's. This task only fills `ApplyRestoredState()` and its accessors.
 - **No SDK id-map, no `EnterObject`, no `ObjectId` matching** — identity is bucket + your own stable key
@@ -291,7 +291,7 @@ Surface to the orchestrator; don't guess:
 
 ## 7. ✅ Success Criteria
 
-**Guideline phase-4 criteria this task feeds** (verified at the orchestrator's gate, not here):
+**Guideline phase-5 criteria this task feeds** (verified at the orchestrator's gate, not here):
 - [ ] **Captured highlight plays back and visibly restores positions/state** — restored snapshot present on
       the first visible frame, non-zero two-pass counts, a cross-entity reference resolved correctly.
 - [ ] **Reader does not assert on missing attributes** — `TryGetAttribute` → `false` keeps the spawn
@@ -325,17 +325,17 @@ Surface to the orchestrator; don't guess:
 - **Single-pass apply** — silently corrupts reference graphs by spawn order (CR-006).
 - **Substituting null on a missing reference key** instead of failing loud (Pass-1 bug).
 - **Omitting a persistent-singleton baseline reset** — prior-run inventory/buffs/score leak across Ludeos.
-- **Fabricating an attribute task 1 didn't capture** — the fix belongs in `phase 3`/task 1.
+- **Fabricating an attribute task 1 didn't capture** — the fix belongs in `phase 4`/task 1.
 - **`ObjectId`/`GetInstanceID()` as a match key** (CR-014).
 - **Relying on the game's scene-start logic to start music** — it's suppressed during restore, so the
   replay is silent; the environment restore must (re)start the track itself (Step 7).
 
 ## Related / Next
 
-- Task 1 (`9-implement-object-tracking.md`) — emits the capture code; this is its row-for-row inverse.
-- Task 2 (`10-plan-state-restoration.md`) — produces `RESTORATION_PLAN.md`, the plan this task implements.
-- Task 3 (`11-implement-restoration-flow.md`) — built the apply lifecycle + the `ApplyRestoredState()` stub
+- Task 1 (`5b-implement-object-tracking.md`) — emits the capture code; this is its row-for-row inverse.
+- Task 2 (`5c-plan-state-restoration.md`) — produces `RESTORATION_PLAN.md`, the plan this task implements.
+- Task 3 (`5d-implement-restoration-flow.md`) — built the apply lifecycle + the `ApplyRestoredState()` stub
   this task fills (hard prerequisite).
 - **Next (orchestrator):** run the task-4 state gate (play a captured Ludeo: first-frame snapshot, non-zero
-  counts, cross-ref resolved; replay-twice no-leak). When it passes, **phase 4 is complete** — the player
-  flow is proven and phase 5 (actions) may begin.
+  counts, cross-ref resolved; replay-twice no-leak). When it passes, **phase 5 is complete** — the player
+  flow is proven and phase 6 (actions) may begin.

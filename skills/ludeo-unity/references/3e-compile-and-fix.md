@@ -1,10 +1,10 @@
-# Phase 2 · Task 5 — Compile & Run Gate (Unity)
+# Phase 3 · Task 5 — Compile & Run Gate (Unity)
 
-> **Human-gated task — NOT a subagent.** The orchestrator (`2-lifecycle-orchestrator.md`) drives this
+> **Human-gated task — NOT a subagent.** The orchestrator (`3-lifecycle-orchestrator.md`) drives this
 > directly **with the user**, because the agent cannot see the Unity Editor Console and the gate needs
 > the human to focus the Editor (recompile) and play the game (overlay). This is the single
-> human touch-point of phase 2.
-> **Entry: only via the orchestrator.** This is task 5 of 5 in phase 2 (SDK lifecycle), not a phase of
+> human touch-point of phase 3.
+> **Entry: only via the orchestrator.** This is task 5 of 5 in phase 3 (SDK lifecycle), not a phase of
 > its own — never open or run it standalone.
 >
 > **Legend:** `[SDK]` = Ludeo package API · `[Layer]` = prescribed façade · `[Unity]` = engine API.
@@ -19,7 +19,7 @@ script compilation; errors land in `Editor.log`.
 ## 2. Inputs (Input Contract)
 
 - [ ] Task 4 done — the `LudeoController` layer created + game hooks edited.
-- [ ] Phase 0 done — package installed, `LudeoSettings.asset` configured, native smoke test passed.
+- [ ] Phase 1 done — package installed, `LudeoSettings.asset` configured, native smoke test passed.
 - [ ] Context files read:
   - `ludeo-integration-docs/unity/READING-UNITY-LOGS.md` — **how you observe compile output** (required).
   - `ludeo-integration-docs/04-BUILD-INTEGRATION.md` — build model + native/IL2CPP/asmdef troubleshooting.
@@ -64,7 +64,7 @@ and hand to the user for manual review.
 > will authenticate. Confirm `LudeoSettings.asset` has a **real `apiKey`** and, for local no-launcher
 > testing (`runWithoutLauncher = true`), **both** `launcherUserId` (Steam id) **and** `betaVersion`
 > (Steam beta branch name) — the SDK needs the pair, and `Activate` rejects if either is missing. All
-> set in phase 0. With a placeholder/missing key, or a half-set no-launcher pair, the game runs but
+> set in phase 1. With a placeholder/missing key, or a half-set no-launcher pair, the game runs but
 > **Ludeo won't authenticate** (`Activate` rejects) — and the SDK log won't name the offending field,
 > so check the `apiKey` and the `launcherUserId`/`betaVersion` pair first when auth fails.
 
@@ -120,6 +120,6 @@ Report to the orchestrator: (1) compile status (package-on ✅/❌, define-off �
 
 ## Related / Next
 
-- This closes phase 2. The capture pipeline is now live. **Next:** phase 3 (map game objects) —
-  `8-map-game-objects.md` (census + wave plan), then phase 4 (tracking & restore). Actions come **later**,
-  in phase 5, after the player flow is proven — they are no longer the next step after lifecycle.
+- This closes phase 3. The capture pipeline is now live. **Next:** phase 4 (map game objects) —
+  `4-map-game-objects.md` (census + wave plan), then phase 5 (tracking & restore). Actions come **later**,
+  in phase 6, after the player flow is proven — they are no longer the next step after lifecycle.

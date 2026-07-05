@@ -175,7 +175,7 @@ level-based restore:
 1. **Re-drive the generator from captured inputs — do not let it roll.** Feed the captured selection
    id(s) into the builder so it assembles *that* chunk/room/layout, and the captured sub-roll id so the
    encounter/wave-set is *that* one, not a fresh `RandomEncounter`. The clean mechanism is the **same
-   `IsInLudeoFlow` `[Layer]` gate** phase 10 uses to suppress pre-match randomness: when
+   `IsInLudeoFlow` `[Layer]` gate** phase 5 · task 2 uses to suppress pre-match randomness: when
    `IsInLudeoFlow`, `RandomChunk`/`GetEncounterByLevel`/wave-roll return the captured id instead of
    rolling. Reloading the scene alone is **not** restoration here — it yields the empty container.
    > **Suppress the *placement* roll too, not just the content roll.** At the seam where the room's
@@ -217,7 +217,7 @@ the next (the previous is gone), each chunk re-rolls its encounter on load, and 
 run's combat level. This is the **single-active-room** regime — the captured moment is one container.
 (If instead several rooms stayed navigable, you'd add the layout + `ChunkDelta` captures from §2.1.)
 
-| Capture (phase 8/9) | Source `[Unity]`/game | Restore (phase 10/11) |
+| Capture (phase 4–5) | Source `[Unity]`/game | Restore (phase 5) |
 |---|---|---|
 | `ChunkId` (selection identity) | active `LevelChunkBase` asset name | re-drive `LevelSelectionPool` to load *that* chunk under `IsInLudeoFlow`, not `RandomChunk` |
 | `EncounterSettingsId` (sub-roll) | resolved `EncounterSettings` asset name | force `GetEncounterByLevel`/`RandomEncounter` to return *that* encounter under `IsInLudeoFlow` |
@@ -231,9 +231,9 @@ projectiles, pickups) are captured/restored normally per `06`/`07`; `RunMetadata
 ## 7. After this file
 
 Capture the generation inputs as a `RunMetadata` objectType in
-[`phase 8`](../../8-map-game-objects.md)/[`phase 9`](../../9-implement-object-tracking.md) (data model:
+[`phase 4`](../../4-map-game-objects.md)/[`phase 5 · task 1`](../../5b-implement-object-tracking.md) (data model:
 [`06-TRACKING-PATTERNS.md`](../06-TRACKING-PATTERNS.md)); plan + implement the re-drive-the-generator
-restore in [`phase 10`](../../10-plan-state-restoration.md)/[`phase 12`](../../12-implement-state-reconstruction.md)
+restore in [`phase 5 · task 2`](../../5c-plan-state-restoration.md)/[`phase 5 · task 4`](../../5e-implement-state-reconstruction.md)
 on top of [`07 §8`](../07-RESTORATION-PATTERNS.md). You still need the **action catalog** and **tracking
 checklist** for whichever genre(s) the run blends (combat → `shooter.md`/`rpg.md`), via
 [`INDEX.md`](./INDEX.md). If the world also streams, load the [`open-world*.md`](./open-world.md) pair too.

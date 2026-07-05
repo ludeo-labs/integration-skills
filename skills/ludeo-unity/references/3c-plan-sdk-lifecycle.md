@@ -1,9 +1,9 @@
-# Phase 2 · Task 3 — Plan the SDK Lifecycle (Unity)
+# Phase 3 · Task 3 — Plan the SDK Lifecycle (Unity)
 
-> **Single-task subagent brief.** Dispatched by the phase-2 orchestrator
-> (`2-lifecycle-orchestrator.md`). Do exactly this one task, produce the §6 artifact, and return a
+> **Single-task subagent brief.** Dispatched by the phase-3 orchestrator
+> (`3-lifecycle-orchestrator.md`). Do exactly this one task, produce the §6 artifact, and return a
 > short summary + the artifact path. You run in isolated context — your inputs are the files in §2.
-> **Entry: only via the orchestrator.** This is task 3 of 5 in phase 2 (SDK lifecycle), not a phase of
+> **Entry: only via the orchestrator.** This is task 3 of 5 in phase 3 (SDK lifecycle), not a phase of
 > its own — never open or run it standalone.
 >
 > **Legend:** `[SDK]` = Ludeo package API · `[Layer]` = prescribed façade
@@ -20,7 +20,7 @@ emissions** — without searching game code. Output
 ## 2. Inputs (Input Contract)
 
 - [ ] `ludeo-integration-plan/CODE_MAP.json`, `SDK_INTEGRATION_POINTS.json`, `TDD_<GameName>.md`.
-- [ ] **Phase 0 done** — `LudeoSettings.asset` configured (apiKey/auth/Steam already set). This plan
+- [ ] **Phase 1 done** — `LudeoSettings.asset` configured (apiKey/auth/Steam already set). This plan
       **consumes** that config; it does **not** re-gather it.
 - [ ] Context files read:
   - `ludeo-integration-docs/00-CRITICAL-REQUIREMENTS.md` — CR-001/003/007/009/011/012.
@@ -52,10 +52,10 @@ emissions** — without searching game code. Output
 5. **Plan the notification registration** (§5 table) — registered once, before `Activate`.
 6. **Plan the non-gameplay emissions** from `SDK_INTEGRATION_POINTS.non_ludeoable`:
    - For each, plan the `[Layer]` façade method that wraps `SendAction("StartNoneLudeable")` /
-     `"StopNoneLudeable"` at the enter/exit sites — the actual edits land in phases 6–7.
+     `"StopNoneLudeable"` at the enter/exit sites — the actual edits land in phase 6.
    - Plan the **capture-hygiene pause** pair (`PauseLudeo`/`ResumeLudeo`) if the game has a true
      sim-freeze pause/cutscene (distinct from the overlay pause notification).
-   - Note the **one-time platform global-trigger mapping** (out-of-code; phases 6–7) so non-ludeoable
+   - Note the **one-time platform global-trigger mapping** (out-of-code; phase 6) so non-ludeoable
      windows are backend-excluded.
    - **No dangling non-ludeoable:** ensure each `Start`/`Pause` has a matching `Stop`/`Resume`, and that
      a Gameplay Session `End`/`Abort` closes any still-open span.
@@ -73,7 +73,7 @@ Surface to the orchestrator:
 
 | Notification `[SDK]` | Required? | Handler responsibility |
 | --- | --- | --- |
-| `AddNotifyLudeoSelected` | ✅ | Enter play flow — **stub** here (`GetLudeo` + cache reader); restore flow is phase 11, data read-back phase 12. |
+| `AddNotifyLudeoSelected` | ✅ | Enter play flow — **stub** here (`GetLudeo` + cache reader); restore flow is phase 5 · task 3, data read-back phase 5 · task 4. |
 | `AddNotifyRoomReady` | ✅ | Gameplay-start gate **and** post-Ludeo-load resume: **apply → unfreeze → `Begin`** (never unfreeze first); restore `Begin` also waits on the scene-load leg (CR-010/CR-009). |
 | `AddNotifyConsentUpdated` | ✅ | Feed `LudeoFlowSwitch.SetFlags(canCreate, canPlay)` + gate the gallery button (CR-012). |
 | `AddNotifyPauseGame` | ✅ | **Freeze the simulation** (`Time.timeScale = 0f`) — the #1 mid-play failure if missing (CR-011). |
@@ -88,7 +88,7 @@ Surface to the orchestrator:
   `[SDK]`. Scattering `LudeoSDK` calls makes CR-001/CR-007 nearly impossible.
 - **Disable is runtime (CR-001).** Route all SDK use through interfaces with `Dummy*`/`Disabled*`
   fallbacks via `LudeoFlowSwitch` — not `#if` macros.
-- **No `LudeoConfig`/`ludeo.ini`/auth questionnaire** — config is `LudeoSettings.asset` (phase 0).
+- **No `LudeoConfig`/`ludeo.ini`/auth questionnaire** — config is `LudeoSettings.asset` (phase 1).
 - **Callback-driven ≠ game integration point (CR-009).**
 
 ## 6. Output Contract
@@ -103,7 +103,7 @@ Surface to the orchestrator:
 - **Callback chains** — `OpenRoom→AddGamePlayer`, `RoomReady→Begin`, `End→CloseRoom`.
 - **Notification registration** — the §5 table with planned handler bodies/stubs.
 - **Non-gameplay plan** — the `StartNoneLudeable`/`StopNoneLudeable` (and `PauseLudeo`/`ResumeLudeo`)
-  façade methods + emit sites (edits deferred to phases 6–7) + the platform global-trigger note.
+  façade methods + emit sites (edits deferred to phase 6) + the platform global-trigger note.
 
 ## 7. ✅ Success Criteria
 
@@ -121,10 +121,10 @@ Surface to the orchestrator:
 
 - **Scattering raw `[SDK]` calls** instead of the façade (breaks CR-001/CR-007).
 - **Planning `AddGamePlayer`/`Begin`/`CloseRoom` as game call sites** (CR-009).
-- **Planning a config class / re-gathering auth** — it's `LudeoSettings.asset` (phase 0).
+- **Planning a config class / re-gathering auth** — it's `LudeoSettings.asset` (phase 1).
 - **Unfreezing before applying** in `onRoomReady` (CR-010).
 - **Forgetting to close a non-ludeoable/pause span on session `End`** — dangling exclusion.
 
 ## Related / Next
 
-- **Next (orchestrator):** task 4 — `4-implement-sdk-lifecycle.md` (create the layer + edit hooks).
+- **Next (orchestrator):** task 4 — `3d-implement-sdk-lifecycle.md` (create the layer + edit hooks).

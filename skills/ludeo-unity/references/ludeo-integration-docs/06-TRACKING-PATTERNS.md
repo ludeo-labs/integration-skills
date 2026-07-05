@@ -1,7 +1,7 @@
 # 06 — Object Tracking Patterns (Unity)
 
 > **Purpose:** How to capture GameObject state for Ludeo during active gameplay (the C# data model).
-> **Audience:** AI agents implementing object tracking (phases 8–9) in a Unity project.
+> **Audience:** AI agents implementing object tracking (phases 4–5) in a Unity project.
 > **Scope:** Unity + the `LudeoSDK` managed plugin. **Prerequisites:**
 > [`05-LIFECYCLE-MANAGEMENT.md`](05-LIFECYCLE-MANAGEMENT.md), [`00-CRITICAL-REQUIREMENTS.md`](00-CRITICAL-REQUIREMENTS.md).
 > **Related:** [`unity/REFERENCE-ARCHITECTURE.md`](unity/REFERENCE-ARCHITECTURE.md) (the layer this builds on),
@@ -32,12 +32,12 @@ You rarely need this end-to-end — jump to the section your task needs:
 - **Relationships (owner, parent, target) across capture/restore?** → §4.
 - **Plugging into a spawner / manager / pool?** → §5.
 - **Registering everything already alive when gameplay begins?** → §6.
-- **Discrete events (kills, pickups)?** → §7 (mostly: go to `phase 7`).
+- **Discrete events (kills, pickups)?** → §7 (mostly: go to `phase 6`).
 - **Suspending capture during cutscenes / menus?** → §8.
 - **Per-object-type snippets (player, enemy, pickup, door)?** → §10.
 - **Cost / tuning?** → §11. **Self-check?** → §12.
 
-Phase 8 (map objects) leans on §2 and §9; phase 9 (implement) on §3, §4, §5, §6, §8.
+Phase 4 (map objects) leans on §2 and §9; phase 5 · task 1 (implement) on §3, §4, §5, §6, §8.
 
 ## Table of Contents
 
@@ -73,13 +73,13 @@ and are answered by §9 + the genre checklists.
 **destination** is full reconstruction, but you **get there in waves**, proving the capture↔replay
 round-trip on a small set before widening. This is *delivery order*, not a fidelity compromise — you still
 track everything, just not all at once.
-- **Census once, up front** (`phase 3` Part A): enumerate every trackable object **type**, flag the
+- **Census once, up front** (`phase 4` Part A): enumerate every trackable object **type**, flag the
   **load-bearing** ones, and assign each a **wave**. Shallow enough for a real human review; complete
   enough that no subsystem is unseen.
 - **Wave 1 = the restorable spine + the must-have set:** world/level identity + player + time-base/
   continuity singleton **plus the few collections the moment is visibly wrong without**. The smallest set
   that produces a *coherent* replay.
-- **Then deep-scope → capture → reconstruct → verify, per wave** (`phase 4` wave loop), widening only after
+- **Then deep-scope → capture → reconstruct → verify, per wave** (`phase 5` wave loop), widening only after
   a wave's restore gate is green.
 - **Guardrail — widen for breadth, never to backfill:** if a later wave reveals state an *already-confirmed*
   wave needed to read correctly, that is a miss in the **earlier** wave — fix it there and re-verify its
@@ -87,8 +87,8 @@ track everything, just not all at once.
   and forbids deferring it.)
 
 When in doubt, track it — and put it in the earliest wave its load-bearing-ness demands. See
-`8-map-game-objects.md` (Part A census, Part B per-wave deep-scope) and
-`9-tracking-restore-orchestrator.md` (the wave loop).
+`4-map-game-objects.md` (Part A census, Part B per-wave deep-scope) and
+`5-tracking-restore-orchestrator.md` (the wave loop).
 
 ### 1.2 What gets tracked
 
@@ -111,7 +111,7 @@ When in doubt, track it — and put it in the earliest wave its load-bearing-nes
 | Flow | **Capture (creator) flow only** | **Both** creator and play flow (see §7) |
 | Examples | `health=75`, `position=(10,5,3)` | `"Kill"`, `"CollectCoin"` |
 
-Both are required. Tracking is this doc; actions are `phase 7`.
+Both are required. Tracking is this doc; actions are `phase 6`.
 
 ### 1.4 Attributes vs blobs — default to attributes
 
@@ -125,8 +125,8 @@ the serialization format shifts.
 **Only use a blob (`SetAttribute(name, byte[])`) when:** the user explicitly asks, **or** the state is
 genuinely opaque/large/deeply-nested with no stable field schema (a procedural buffer, a third-party
 physics blob). Prefer the narrowest blob possible; note the entity + reason in the plan. This is
-distinct from how the *game* saves itself (classified game-level in `phase 0` `INTAKE.md`, per-entity in
-`phase 8`) — a game that saves a
+distinct from how the *game* saves itself (classified game-level in `phase 1` `INTAKE.md`, per-entity in
+`phase 4`) — a game that saves a
 JSON/binary blob should still be tracked into Ludeo as discrete attributes by default.
 
 ---
@@ -177,7 +177,7 @@ instrument all.
 
 ### 2.5 Save-system as a discovery input (planning technique, not a hook)
 If the game has a save system, its serializer is a ready-made inventory of "what the game considers
-state." Read it (already classified game-level in `phase 0` intake) to seed the tracked set + per-type fields. **Floor,
+state." Read it (already classified game-level in `phase 1` intake) to seed the tracked set + per-type fields. **Floor,
 not ceiling:** saves often skip transient state (velocity, AI perception, in-flight projectiles,
 **music/scheduler clocks and mid-countdown timers/cooldowns**) that Ludeo *does* need — saves restart
 the song/timer on load, a Ludeo must resume it (§9.5, Step 4.5) — and may include meta state (settings)
@@ -198,7 +198,7 @@ This is **not** §2.6's blind scan of live objects — the save manager is a *cu
 what the game considers state. So a Ludeo-side manager sweeps **the game's serializer**, not the scene: each
 throttled tick, call the data accessors and write **one state object per stable id**, sampling attributes
 from the returned records. This is **reconciliation-as-capture** — it mirrors the game's own serializer
-(confirm it's reconciliation in the `phase 8` per-entity matrix), and it's the cleanest fit when §2.2's live list isn't exposed.
+(confirm it's reconciliation in the `phase 4` per-entity matrix), and it's the cleanest fit when §2.2's live list isn't exposed.
 
 Why it's attractive:
 - **Zero game-code edits** — you never touch the serializable classes.
@@ -348,7 +348,7 @@ doc 12 + `07`). So identity is **your** responsibility:
   ```csharp
   obj.SetAttribute(LudeoWeaponKeys.OwnerId, owner != null ? owner.RunId : -1);   // [SDK] your key, not a ref
   ```
-  At restore (phase 12, two-pass per CR-006): create all objects first, then resolve `OwnerId` by
+  At restore (phase 5 · task 4, two-pass per CR-006): create all objects first, then resolve `OwnerId` by
   matching the captured key against the objects you spawned.
 
 ---
@@ -394,14 +394,14 @@ frames to avoid a one-time hitch (§11).
 
 ## 7. Actions (Discrete Events)
 
-Action *discovery + filtering* (genre catalogs, naming, the keep test) is `phase 6`; *insertion* (call
-sites, edge cases) is `phase 7`; the `SendAction` `[SDK]` / `LudeoController.SendAction` `[Layer]`
+Action *discovery + filtering* (genre catalogs, naming, the keep test) is `phase 6 · task 1`; *insertion* (call
+sites, edge cases) is `phase 6 · task 2`; the `SendAction` `[SDK]` / `LudeoController.SendAction` `[Layer]`
 definitions are in [`unity/REFERENCE-ARCHITECTURE.md`](unity/REFERENCE-ARCHITECTURE.md). This section
 owns nothing new — go there. Two rules that intersect tracking:
 
 > **Don't capture state as an action.** If a value is sampled by the per-tick capture (current weapon,
 > ammo/health/resource/XP totals, is-sprinting/drifting), it's **tracking**, not an action — mirroring
-> it as a `SendAction` is redundant and bloats the Ludeo. Phase 6's keep test enforces this.
+> it as a `SendAction` is redundant and bloats the Ludeo. Phase 6 · task 1's keep test enforces this.
 
 > **Actions fire in BOTH flows; state is capture-only.** `SendAction` re-fires at the same sites
 > during playback so the SDK can score the Ludeo's win/fail conditions — **never gate it on
@@ -480,7 +480,7 @@ Track if (1) AND (2 OR 3-not-derivable) AND (4-has-meaning).
 
 | Property kind | Typical | Caveat |
 |---|---|---|
-| Position / rotation / scale | Track (`Vector3`/`Quaternion`) | Attached objects: track the attachment relationship instead. **Absolute world position is only restorable if the world's spatial frame is rebuilt identically** — for procedural / streamed / randomized layouts (or a runtime **floating-origin / origin-rebasing** shift, which trips even an **authored** world) the geometry sits at a different origin/rotation than at capture, so capture/replay the resolved placement (`game-patterns/procedural-world.md` §3 Placement, §5) or store positions relative to a stable reconstructed frame. Detected up front by phase 1's world-frame probe → `CODE_MAP.session_boundaries.world_frame` |
+| Position / rotation / scale | Track (`Vector3`/`Quaternion`) | Attached objects: track the attachment relationship instead. **Absolute world position is only restorable if the world's spatial frame is rebuilt identically** — for procedural / streamed / randomized layouts (or a runtime **floating-origin / origin-rebasing** shift, which trips even an **authored** world) the geometry sits at a different origin/rotation than at capture, so capture/replay the resolved placement (`game-patterns/procedural-world.md` §3 Placement, §5) or store positions relative to a stable reconstructed frame. Detected up front by phase 2's world-frame probe → `CODE_MAP.session_boundaries.world_frame` |
 | Velocity | Usually track | Skip only if restoration reconstructs motion from position-over-time |
 | Health / ammo / resource | Track (current, not max) | Max is usually static |
 | Enum state (alive/dead, AI mode) | Track as `int` | Serialize the enum to int; document meaning |
@@ -505,7 +505,7 @@ re-apply §9.1–§9.3 from scratch rather than patching the table.
 ## 10. Common Patterns by Object Type
 
 Each is the `OnStateDataUpdate` lambda passed to `StartTrackingLudeoState` `[Layer]` (§3.1). Attribute
-names come from a `LudeoKeys` `[Layer]` constants class so capture and restore (phase 12) stay in sync.
+names come from a `LudeoKeys` `[Layer]` constants class so capture and restore (phase 5 · task 4) stay in sync.
 
 ```csharp
 // 10.1 Player (singleton — bucket[0] at restore, no per-instance key needed)
@@ -583,7 +583,7 @@ registration not amortized) or at scene transition (mass despawn in one burst).
 
 **Identity & references**
 - [ ] No `GetInstanceID()` / references captured as keys; collections carry **your** stable key attribute (CR-014).
-- [ ] Relationships captured as the target's key, resolved two-pass at restore (CR-006 / phase 12).
+- [ ] Relationships captured as the target's key, resolved two-pass at restore (CR-006 / phase 5 · task 4).
 
 **Scope & types**
 - [ ] Tracked set passes §9; attributes are typed (`Vector3`/`Quaternion`/`int`/…), blobs only where warranted (§1.4).
@@ -599,7 +599,7 @@ registration not amortized) or at scene transition (mass despawn in one burst).
 
 **`[SDK]`** (authority: [`12-SDK-API-REFERENCE.md`](12-SDK-API-REFERENCE.md)):
 `LudeoRoom.CreateStateObject` · `LudeoStateObject.SetAttribute` / `DestroyStateObject` ·
-`LudeoGameplaySession.SendAction` (see `phase 7`).
+`LudeoGameplaySession.SendAction` (see `phase 6`).
 
 **`[Layer]`** (from [`unity/REFERENCE-ARCHITECTURE.md`](unity/REFERENCE-ARCHITECTURE.md)):
 `LudeoController.{StartTrackingLudeoState, UpdateStateObjects, StopTrackingLudeoState, EndGameplay,
@@ -611,6 +611,6 @@ SendAction, IsInLudeoFlow}` · `ILudeoStateHandler` (`DefaultLudeoStateHandler`)
 
 ---
 
-**Next steps:** tracking mapped/implemented → `phase 8` (map objects) feeds `phase 9` (implement);
+**Next steps:** tracking mapped/implemented → `phase 4` (map objects) feeds `phase 5 · task 1` (implement);
 then [`07-RESTORATION-PATTERNS.md`](07-RESTORATION-PATTERNS.md) restores exactly what you captured here
 (Pass 2 is the row-for-row inverse of this capture).

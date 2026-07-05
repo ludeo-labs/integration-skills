@@ -10,7 +10,7 @@
       }
     },
     "ludeo-context": {
-      "_purpose": "Ludeo company knowledge base — integration templates, QA workflows, event lists, repo context. Most useful for phase 1 (mapping) and phases 4-5 (tracking/restore and action discovery). Fallback: proceed without; analysis quality may be reduced.",
+      "_purpose": "Ludeo company knowledge base — integration templates, QA workflows, event lists, repo context. Most useful for phase 2 (mapping) and phases 5-6 (tracking/restore and action discovery). Fallback: proceed without; analysis quality may be reduced.",
       "type": "http",
       "url": "https://mcp-ludeo-context-internal.ludeo.com/mcp",
       "headers": {

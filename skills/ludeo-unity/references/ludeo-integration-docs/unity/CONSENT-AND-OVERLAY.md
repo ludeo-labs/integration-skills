@@ -45,7 +45,7 @@ public void OpenLudeoGallery() => m_data.ludeoSession?.OpenGallery();   // [Laye
   `canCreateLudeo || canPlayLudeo` (the `[Layer]` exposes this as `IsEnablePlayableMoments` /
   `isDisplayPlayableMoment`). A gallery button on a consent-off run is a dead end.
 - Choosing a Ludeo fires the `AddNotifyLudeoSelected` `[SDK]` notification → the play/restore flow
-  (`GetLudeo` → restore → `OpenRoom` for the ludeo). That flow is phase 11; here we only ensure the
+  (`GetLudeo` → restore → `OpenRoom` for the ludeo). That flow is phase 5 · task 3; here we only ensure the
   entry point exists and is consent-gated.
 
 ## 3. Overlay pause / resume (CR-011)

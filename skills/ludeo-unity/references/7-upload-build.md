@@ -1,4 +1,4 @@
-# Phase 6 — Verification & Cloud (Unity)
+# Phase 7 — Verification & Cloud (Unity)
 
 > **Single sequential phase — not orchestrated.** Verification and upload are one coupled, outward-facing,
 > human-gated procedure: a build that fails any gate must **never** be uploaded, so gating + validation +
@@ -24,7 +24,7 @@ final phase — when it passes, the build is live on the platform.
 
 ## 2. Inputs (Input Contract)
 
-- [ ] **Phase 5 complete** — the integration is done (lifecycle, tracking & restore proven, actions wired)
+- [ ] **Phase 6 complete** — the integration is done (lifecycle, tracking & restore proven, actions wired)
       and compiles.
 - [ ] A **release player build folder** exists — **the user triggers the build in the Unity Editor**
       (current platform; Ludeo capture is Windows-desktop). The agent does **not** drive the Editor build.
@@ -161,7 +161,7 @@ legitimate non-default config; trusting the source asset value over the baked on
 failing loud.
 
 ### Step 3: Verify the build is self-contained (upload-readiness)
-> Moved here from phase 0 §5. The thing you upload is the **player build
+> Moved here from phase 1 §5. The thing you upload is the **player build
 > folder**, so the native layer must travel *with it* — not merely resolve on your dev machine. A
 > `resultCode` smoke test can pass on your box yet fail on a clean machine if a transitive dep is missing.
 
@@ -221,7 +221,7 @@ tool). Point `--exec-path` at the **`run.bat`, as a path relative to `--local-di
 Use another value only if the user confirms a different target.
 
 **Always pass a non-empty `--changes-description`.** Infer a short, concrete summary from context — the
-phase-4 reconstruction summary, the git log since the last build/tag, or what this build changed (e.g.
+phase-5 reconstruction summary, the git log since the last build/tag, or what this build changed (e.g.
 `"Initial Ludeo integration: capture + restore"` for a first build, `"Fix restore freeze on replay"` for a
 minor). If nothing can be inferred, ask the user; leave empty only if they explicitly choose to. Include
 it in **both** the dry-run and the real command.
@@ -304,7 +304,7 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
 `run.bat`) are what you intended.
 
 > **⚠️ Known gap — "ludeo runs in cloud" is not yet verified here.** The guideline lists *ludeo run in
-> cloud* as a phase-6 criterion. This skill currently treats **status `success`/`ready`** (the platform
+> cloud* as a phase-7 criterion. This skill currently treats **status `success`/`ready`** (the platform
 > processed the build and can run Ludeos from it) as the bar — there is **no discrete step that actually
 > runs/plays a Ludeo in the cloud** to confirm it. Leave this as an explicit gap to fill later (a CLI
 > command or platform action), per the team decision (2026-06-17). Do not fabricate a cloud-run step.
@@ -349,7 +349,7 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
 
 ## 7. ✅ Success Criteria
 
-**Guideline phase-6 criteria:**
+**Guideline phase-7 criteria:**
 - [ ] **Pass all verification tests** — the `[Ludeo] build gate:` line in the latest `Editor.log` (build-time
       hook, not inferred from the `.asset`) shows `developmentBuild=False`, `connectProfiler=False`,
       `scriptDebugging=False`, `waitForManagedDebugger=False`, `il2cppConfig=Release`/`Master`,
@@ -414,6 +414,6 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
 
 ## Related / Next
 
-- Self-contained build prep + the **`validate-build`** skill (Step 3/Step 4); phase 0 installed the package.
-- Phase 5 (`6-actions-orchestrator.md`) — the last integration content before verification.
-- **Next:** phase 7 (polish & fix bugs). Otherwise **done** — the build is live on the Ludeo platform.
+- Self-contained build prep + the **`validate-build`** skill (Step 3/Step 4); phase 1 installed the package.
+- Phase 6 (`6-actions-orchestrator.md`) — the last integration content before verification.
+- **Next:** phase 8 (polish & fix bugs). Otherwise **done** — the build is live on the Ludeo platform.

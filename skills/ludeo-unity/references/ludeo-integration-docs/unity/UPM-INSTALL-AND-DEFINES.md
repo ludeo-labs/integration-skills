@@ -1,6 +1,6 @@
 # UPM Install, LudeoSettings & (optional) Defines
 
-How the Ludeo Unity plugin is added to a project and configured. Phase 0 uses this. Signatures and
+How the Ludeo Unity plugin is added to a project and configured. Phase 1 uses this. Signatures and
 types referenced are in [`../12-SDK-API-REFERENCE.md`](../12-SDK-API-REFERENCE.md).
 
 ---
@@ -138,7 +138,7 @@ it. QA teams iterating on a built (non-Editor) game need to flip the **dev triad
 `launcherUserId` for no-launcher auth) — **per tester, without a rebuild each time.**
 
 The sibling C++/proprietary skill solves this with a `ludeo.ini` next to the executable (its canonical
-config source). Unity's model differs — the baked `.asset` stays the production source of truth (phase 13
+config source). Unity's model differs — the baked `.asset` stays the production source of truth (phase 7
 asserts the baked `runWithoutLauncher` from the build log) — so the override is a **dev-only escape hatch,
 gated so it can never affect a production build:**
 
@@ -257,4 +257,4 @@ Add a define **only** to support a build configuration that **excludes the SDK p
 - [ ] A trivial `LudeoManager.InitLudeoSession(cb)` call reaches its callback with a `resultCode`
       (even a failure code proves the native layer loaded — `WrapperDllNotFound` means it didn't).
 
-→ Next: `0-build-game-with-sdk.md` (phase 0) drives this end-to-end and confirms baseline + SDK builds.
+→ Next: `1-build-game-with-sdk.md` (phase 1) drives this end-to-end and confirms baseline + SDK builds.
