@@ -416,4 +416,6 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
 
 - Self-contained build prep + the **`validate-build`** skill (Step 3/Step 4); phase 1 installed the package.
 - Phase 6 (`6-actions-orchestrator.md`) — the last integration content before verification.
-- **Next:** phase 8 (polish & fix bugs). Otherwise **done** — the build is live on the Ludeo platform.
+- **Next:** phase 8 (`8-polish.md`) — polish & completion: gap-check for state Ludeo could still capture,
+  widen via phases 4 & 5, then re-run **this** phase to re-upload the wider build (a **minor**). Otherwise
+  **done** — the build is live on the Ludeo platform.

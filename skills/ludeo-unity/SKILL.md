@@ -1,6 +1,6 @@
 ---
 name: ludeo-unity-integration
-description: Integrate the Ludeo SDK into a Unity (C#) game using the Ludeo Unity plugin. Sets up the package install + scripting defines, wires the SDK lifecycle through MonoBehaviour/scene flow, maps and implements game actions, maps and tracks GameObjects as attributes, restores state for playable Ludeos, and verifies the integration. Use when the user asks to integrate, install, add, set up, or wire up Ludeo into their Unity game.
+description: Integrate the Ludeo SDK into a Unity (C#) game using the Ludeo Unity plugin. Sets up the package install + scripting defines, wires the SDK lifecycle through MonoBehaviour/scene flow, maps and implements game actions, maps and tracks GameObjects as attributes, restores state for playable Ludeos, verifies the integration, then widens capture/restore coverage and finalizes. Use when the user asks to integrate, install, add, set up, or wire up Ludeo into their Unity game.
 metadata.version: 1.1.0
 ---
 
@@ -46,10 +46,13 @@ The integration is a sequential workflow, now sequenced by the **8-phase guideli
 **Phase** column), not the legacy file numbers (renumbering is deferred).
 The order is: **1** install + intake → **2** map code → **3** SDK lifecycle → **4** map objects → **5**
 tracking & restore (an **iterative wave loop** that turns a capture into a playable Ludeo — Wave 1 = the
-restorable spine, then widen) → **6** actions → **7** validate + upload. Note **actions (phase 6) run AFTER
-tracking & restore (phase 5)** per the guideline — the player flow is proven (Wave 1 restores) before action
-enrichment. Always start at phase 1 unless the user says they've completed earlier phases.
-Complete one phase at a time and confirm with the user before advancing.
+restorable spine, then widen) → **6** actions → **7** validate + upload → **8** polish & completion. Note
+**actions (phase 6) run AFTER tracking & restore (phase 5)** per the guideline — the player flow is proven
+(Wave 1 restores) before action enrichment. **Phase 8 is a loop, not a dead end:** it checks for state Ludeo
+could still capture, recommends it, and — if the user wants to expand — **re-enters phases 4 & 5** to add it
+as new waves (then phase 7 re-uploads the wider build), before finalizing. Always start at phase 1 unless the
+user says they've completed earlier phases. Complete one phase at a time and confirm with the user before
+advancing.
 
 **Phases 3, 5, and 6 are orchestrated.** Each is one logical guideline phase made of single-task briefs,
 run by a thin orchestrator that dispatches one **subagent per task** (Agent tool) and passes artifacts by
@@ -89,6 +92,7 @@ file — so the user experiences each as a single phase.
 | 6 · task 1 | `references/6a-map-game-actions.md` | Find action points in game code (player-perspective; incl. the non-gameplay standard actions planned in phase 3) |
 | 6 · task 2 | `references/6b-implement-game-actions.md` | Insert `SendAction` calls (gameplay + non-gameplay) + document the one-time platform global-trigger mapping |
 | **7** | `references/7-upload-build.md` | **Guideline phase 7** — validate the release build (`validate-build`) + prep & upload it to the Ludeo platform with the `ludeo` CLI, then poll status until `ready` |
+| **8** | `references/8-polish.md` | **Guideline phase 8 — polish & completion (loops).** Gap-check for state Ludeo could still capture, **recommend** it, and on the user's OK **re-enter phases 4 & 5** to add it as new waves (re-upload via phase 7); plus cosmetic/timing polish + earlier-bug fixes; finalize by recording completion in the TDD. Dispatches nothing itself — routes back into the wave loop |
 
 ## Important rules
 

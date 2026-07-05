@@ -171,6 +171,13 @@ Tag each type `wave: 1 | 2 | 3 | …`:
 
 Record the wave plan as the `## Wave Rollout` table (schema §6).
 
+> **Returning later to widen (phase 8 re-entry).** The wave plan is **append-only** and can grow after the
+> initial integration ships. When `phase 8` (`8-polish.md`) recommends broader coverage the user accepts,
+> **append** the new type(s) as additional `## Wave Rollout` line(s) + `## Object Type Census` rows here
+> (classify + load-bearing flag + a new wave number), then re-enter the phase-5 loop for just those waves.
+> **Never rewrite a confirmed wave's rows** — a proven moment's *missing* state is an earlier-wave miss to
+> fix in its owning wave (§5 guardrail), not a new expansion wave.
+
 ### Step A6: Halt for human review (the census gate)
 Summarize and ask the user to review **the census only**: (1) spawn/own patterns + hooks (Step A2),
 (2) **type coverage** — missing / over-tracked types (Step A4), (3) **load-bearing flags** — is anything
@@ -433,3 +440,5 @@ criteria are verified **per wave** in phase 5 (listed here as what each Part-B i
   (`5-tracking-restore-orchestrator.md`) runs the **wave loop** — per wave it invokes Part B
   (`5a-deep-scope-wave.md`) then implements capture/restore for that wave. `phase 5` (tasks 3–4) also
   consume the per-wave rows.
+- **Later — `phase 8` (`8-polish.md`)** re-enters this phase to **widen coverage**: it appends new waves to
+  the plan (the append-only callout after Step A5) and re-runs the phase-5 loop for them.

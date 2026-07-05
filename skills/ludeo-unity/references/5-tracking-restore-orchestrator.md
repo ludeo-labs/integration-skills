@@ -90,6 +90,12 @@ for N in waves:                                  # OUTER LOOP
 the tracked set, the capture writers, and the `ApplyRestoredState()` data read-back grow. **Phase 6
 (actions) may start once Wave 1 is green** — it does not wait for every wave.
 
+> **Re-entered later to widen (phase 8).** This loop is not one-shot. When `phase 8` (`8-polish.md`) adds
+> waves to widen coverage after the integration ships, it appends them to `## Wave Rollout` (a phase-4
+> census update) and **re-enters this orchestrator for just those waves** — run exactly as waves ≥ 2
+> (data-only, **skip task 3**), each ending in its own restore gate. The wave counter simply continues; a
+> fresh session is fine (state lives in the files, not the chat).
+
 | # | Task | Brief | Cadence | Produces | Human gate (orchestrator-run) |
 | --- | --- | --- | --- | --- | --- |
 | 0 | Deep-scope this wave | `references/5a-deep-scope-wave.md` | **per wave** | wave N's `## Entity` rows appended to `OBJECT_TRACKING.md` (+ `save_system.per_entity`) | **human reviews & approves wave N's rows** (no code/run) |
@@ -261,3 +267,5 @@ green**, and is **fully complete when the last wave in the plan is green**.
   deep-scope procedure** that task 0 runs per wave.
 - **Next:** phase 6 (actions) — wire `SendAction`/`ReportAction` in both flows, now that the player flow
   is proven (Wave 1 green). Includes emitting the non-gameplay standard actions planned in phase 3.
+- **Later — phase 8 (`8-polish.md`)** re-enters this loop to widen coverage: it appends new waves and runs
+  them here as waves ≥ 2 (data-only, skip task 3).
