@@ -61,7 +61,7 @@ Surface to the orchestrator:
   game-specific ones.
 - **Reconstruction = objectType buckets, spawn-from-data by default** (CR-014); re-bind-to-persistent
   only when justified.
-- The **save-system classification** lives in `INTAKE.md` (phase 1, game-level); the per-entity
+- The **save-system classification** lives in `KYG.md` (phase 1, game-level); the per-entity
   reconciliation matrix is phase 4 — the reconstruction section here is provisional until then.
 
 ## 6. Output Contract

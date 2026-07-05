@@ -20,7 +20,7 @@ integration layer plus the planning artifacts the later phases consume.
 - [ ] **Fresh agent session** (the orchestrator's own context stays lean — subagents carry the heavy
       per-task context). If this chat already has phase-3 work in it, start fresh.
 - [ ] **Phase 1 complete** — package installed (`using LudeoSDK;` resolves), `LudeoSettings.asset`
-      configured (apiKey/auth/Steam), `INTAKE.md` recorded.
+      configured (apiKey/auth/Steam), `KYG.md` recorded.
 - [ ] **Phase 2 complete** — `ludeo-integration-plan/CODE_MAP.json` exists.
 - [ ] The five task briefs are present in `references/` (see §3).
 

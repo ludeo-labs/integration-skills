@@ -1,12 +1,12 @@
-# Phase 1 — Install SDK + Compile Baseline + Intake (Unity)
+# Phase 1 — Install SDK + Compile Baseline + KYG / Know Your Game (Unity)
 
 ## 1. Goal / Purpose
 
 Install the Ludeo Unity plugin, configure `LudeoSettings` (+ optional defines), confirm the project
 compiles and plays **both before** the package (baseline) **and after** it (SDK-enabled), prove the
-native layer loads, and **run the intake questionnaire**. There is no build script — the "build" is
+native layer loads, and **run the KYG (know your game) questionnaire**. There is no build script — the "build" is
 the Unity Editor + an installed package. Deliverable: an installed, resolving SDK on a dedicated
-branch; a verified baseline; and a recorded `INTAKE.md` (incl. game-level save-system classification).
+branch; a verified baseline; and a recorded `KYG.md` (incl. game-level save-system classification).
 
 ## 2. Inputs (Input Contract)
 
@@ -107,8 +107,8 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
 The project still **compiles** and the game still **plays** (package present, unused). Confirms the
 package didn't break the baseline.
 
-### Step 3.5 — Run the intake questionnaire ⭐
-Fill `ludeo-integration-plan/INTAKE.md` (template in §6) with the user. Answer with `file:line`
+### Step 3.5 — Run the KYG (know your game) questionnaire ⭐
+Fill `ludeo-integration-plan/KYG.md` (template in §6) with the user. Answer with `file:line`
 evidence where it comes from code; mark unknowns `?`; **ask** the human-only items (§4). Three parts:
 
 1. **Game + Ludeo profile** — identity, genre (→ a `game-patterns/*.md` match), engine/render
@@ -215,7 +215,7 @@ Only what can't be inferred from code:
 - **Auth mode** — implicit Steam (`runWithoutLauncher = false`, production; needs Steam initialized
   before `Activate`) vs explicit no-Steam (`runWithoutLauncher = true` + `launcherUserId`, testing/CI).
   Steam appId if applicable.
-- **Ludeo concept** (intake §) — what makes a good highlight moment in this game; what the player
+- **Ludeo concept** (KYG §) — what makes a good highlight moment in this game; what the player
   should experience when launching a Ludeo; typical Ludeo length; which player actions matter most.
 - **Bosses** — does the game have boss / named / scripted-encounter enemies? If a boss fight is a likely
   highlight, note each boss and how the fight is structured (phases/forms? summoned adds? an intro or
@@ -249,12 +249,12 @@ Context files (read first; relative to this workflow file):
 | `feature/ludeo-integration-#N` branch | Isolates the attempt; discard by deleting the branch |
 | Installed package; `using LudeoSDK;` compiles | SDK resolves with no extra wiring |
 | `LudeoSettings.asset` with real `apiKey` | SDK config; dev flags appropriate for the build |
-| `ludeo-integration-plan/INTAKE.md` | Recorded intake (below) |
+| `ludeo-integration-plan/KYG.md` | Recorded KYG (below) |
 | `CODE_MAP.json → save_system` (game-level block) | Mechanism/format/group + entry points; per-entity matrix deferred to `phase 4` |
 
-`INTAKE.md` template:
+`KYG.md` template:
 ```markdown
-# Ludeo Integration — Intake (<GameName>)
+# Ludeo Integration — KYG / Know Your Game (<GameName>)
 
 ## Game + Ludeo profile
 - Name / studio:
@@ -305,7 +305,7 @@ The gate — satisfy all before advancing to phase 2.
 - [ ] SDK references resolve — `using LudeoSDK;` compiles with no asmdef/define.
 - [ ] Project compiles **with** the SDK (package installed; baseline intact).
 - [ ] Project compiles **without** the SDK (the pre-install baseline — Step 0c).
-- [ ] Intake questionnaire answered and recorded (`INTAKE.md` + `CODE_MAP.json` `save_system` block),
+- [ ] KYG questionnaire answered and recorded (`KYG.md` + `CODE_MAP.json` `save_system` block),
       **incl. the launch model** (creator + player axes; whether the SDK-readiness gate is required).
 
 **Skill-specific additions:**
