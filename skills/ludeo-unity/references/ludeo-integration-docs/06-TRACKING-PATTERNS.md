@@ -125,7 +125,7 @@ the serialization format shifts.
 **Only use a blob (`SetAttribute(name, byte[])`) when:** the user explicitly asks, **or** the state is
 genuinely opaque/large/deeply-nested with no stable field schema (a procedural buffer, a third-party
 physics blob). Prefer the narrowest blob possible; note the entity + reason in the plan. This is
-distinct from how the *game* saves itself (classified game-level in `phase 1` `INTAKE.md`, per-entity in
+distinct from how the *game* saves itself (classified game-level in `phase 1` `KYG.md`, per-entity in
 `phase 4`) — a game that saves a
 JSON/binary blob should still be tracked into Ludeo as discrete attributes by default.
 
@@ -177,7 +177,7 @@ instrument all.
 
 ### 2.5 Save-system as a discovery input (planning technique, not a hook)
 If the game has a save system, its serializer is a ready-made inventory of "what the game considers
-state." Read it (already classified game-level in `phase 1` intake) to seed the tracked set + per-type fields. **Floor,
+state." Read it (already classified game-level in `phase 1` KYG) to seed the tracked set + per-type fields. **Floor,
 not ceiling:** saves often skip transient state (velocity, AI perception, in-flight projectiles,
 **music/scheduler clocks and mid-countdown timers/cooldowns**) that Ludeo *does* need — saves restart
 the song/timer on load, a Ludeo must resume it (§9.5, Step 4.5) — and may include meta state (settings)

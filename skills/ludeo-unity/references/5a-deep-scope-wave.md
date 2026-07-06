@@ -36,7 +36,7 @@ the next wave's types are untouched until their turn.
       (Steps B1–B7) — **the procedure you execute.**
 - [ ] **Phase 2** → `ludeo-integration-plan/CODE_MAP.json` (`object_model`, `event_systems`,
       `session_boundaries`, the game-level `save_system` block).
-- [ ] **Phase 1** → `ludeo-integration-plan/INTAKE.md` — game-level save classification (for Step B5).
+- [ ] **Phase 1** → `ludeo-integration-plan/KYG.md` — game-level save classification (for Step B5).
 - [ ] **Prior waves' rows** already in `OBJECT_TRACKING.md` — read them so cross-wave references resolve
       correctly and you do not duplicate a shared type.
 - [ ] Context files: `ludeo-integration-docs/06-TRACKING-PATTERNS.md` (**§1.4, §3, §4, §6, §9, §11**),

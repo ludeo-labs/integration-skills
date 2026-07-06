@@ -35,7 +35,7 @@ the same file. Output (Part A) is human-approved before the phase-5 wave loop be
       `session_boundaries`, `object_model`, `non_ludeoable_candidates`, the **game-level `save_system`
       block** (mechanism/format/group/entry_points, `per_entity: []`), `serialization`.
 - [ ] **Phase 3** → `ludeo-integration-plan/SDK_INTEGRATION_POINTS.json` (boundaries / hook map).
-- [ ] **Phase 1** → `ludeo-integration-plan/INTAKE.md` — the game-level save-system classification
+- [ ] **Phase 1** → `ludeo-integration-plan/KYG.md` — the game-level save-system classification
       (the narrative source; the structured form is `CODE_MAP.save_system`). **No `phase 3f` /
       `GAME_ANALYSIS_SAVE_SYSTEM.md`** — 3f is retired; the **per-entity** matrix is built in Part B.
 - [ ] Recommended: if `ludeo-integration-plan/TDD_<GameName>.md` exists, read its **State Capture** section.
@@ -61,7 +61,7 @@ it, scoped to that wave's types). Run only Part A in this phase.
 
 ### Step A1: Read prior artifacts
 From `ludeo-integration-plan/`: `CODE_MAP.json` (classes, `event_systems`, `session_boundaries`,
-`object_model`, `non_ludeoable_candidates`, the game-level `save_system` block), `INTAKE.md` (the
+`object_model`, `non_ludeoable_candidates`, the game-level `save_system` block), `KYG.md` (the
 save-system classification narrative), `SDK_INTEGRATION_POINTS.json` (boundaries), and
 `TDD_<GameName>.md` if present.
 
@@ -247,7 +247,7 @@ silently break reference resolution.
 > wave N** in the row. Do not silently drop it.
 
 ### Step B5: Build the per-entity save matrix (reconciliation vs manual)
-> The **game-level** classification (mechanism/format/group) is already in `INTAKE.md` +
+> The **game-level** classification (mechanism/format/group) is already in `KYG.md` +
 > `CODE_MAP.save_system`. For each entity in the wave, decide the approach **per entity** and record it
 > inline (no separate `GAME_ANALYSIS_SAVE_SYSTEM.md`).
 
@@ -323,7 +323,7 @@ block per type as its wave is scoped):
 # Object Tracking Plan — <GameName>
 
 **Engine:** Unity <version>
-**Save-system group:** <1 | 2 | 3>   (from INTAKE.md / CODE_MAP.save_system)
+**Save-system group:** <1 | 2 | 3>   (from KYG.md / CODE_MAP.save_system)
 **Spawn/own patterns:** <e.g., §2.2 spawner for entities, §2.3 pool for projectiles>
 **Structural:** <level-based | open-world/streaming> · **Assembly:** <authored | procedural (RunMetadata captured)>
 **Types:** X   **Waves:** N   **Census pending human review**
@@ -426,7 +426,7 @@ criteria are verified **per wave** in phase 5 (listed here as what each Part-B i
 
 ## Related / Next
 
-- `phase 2` (FIRST), `phase 3` — produce the inputs; `phase 1` `INTAKE.md` holds the game-level save
+- `phase 2` (FIRST), `phase 3` — produce the inputs; `phase 1` `KYG.md` holds the game-level save
   classification.
 - `phase 6 actions` — sibling discovery for discrete **actions** (waits for Wave 1's restore gate).
 - **Next:** review the **census + wave plan** with the user (Step A6), then the phase-5 orchestrator

@@ -44,7 +44,7 @@ mandatory rules, recalibrated for the C# wrapper.
 
 The integration is a sequential workflow, now sequenced by the **8-phase guideline order** (the table's
 **Phase** column), not the legacy file numbers (renumbering is deferred).
-The order is: **1** install + intake → **2** map code → **3** SDK lifecycle → **4** map objects → **5**
+The order is: **1** install + KYG → **2** map code → **3** SDK lifecycle → **4** map objects → **5**
 tracking & restore (an **iterative wave loop** that turns a capture into a playable Ludeo — Wave 1 = the
 restorable spine, then widen) → **6** actions → **7** validate + upload. Note **actions (phase 6) run AFTER
 tracking & restore (phase 5)** per the guideline — the player flow is proven (Wave 1 restores) before action
@@ -69,7 +69,7 @@ file — so the user experiences each as a single phase.
 
 | Phase | File | Purpose |
 | --- | --- | --- |
-| 1 | `references/1-build-game-with-sdk.md` | **Download the latest plugin release** (`github.com/ludeo-labs/unity-plugin-releases`) + install the UPM package, set scripting defines + `LudeoSettings`, baseline + SDK-enabled compile, run **intake** (incl. game-level save-system classification) |
+| 1 | `references/1-build-game-with-sdk.md` | **Download the latest plugin release** (`github.com/ludeo-labs/unity-plugin-releases`) + install the UPM package, set scripting defines + `LudeoSettings`, baseline + SDK-enabled compile, run **KYG (know your game)** (incl. game-level save-system classification) |
 | 2 | `references/2-map-game-code.md` | Produce CODE_MAP of the Unity project (scenes, MonoBehaviours, prefabs, managers) |
 | **3** | **`references/3-lifecycle-orchestrator.md`** | **SDK lifecycle (orchestrated) — dispatches the five briefs below as subagents; plans the restoration entry point + Non-Gameplay Handling** |
 | 3 · task 1 | `references/3a-find-sdk-integration-points.md` | Map each game-event → `[SDK]`/`[Layer]` call site |
@@ -77,7 +77,7 @@ file — so the user experiences each as a single phase.
 | 3 · task 3 | `references/3c-plan-sdk-lifecycle.md` | Plan the LudeoController layer + notification registration + non-gameplay emissions |
 | 3 · task 4 | `references/3d-implement-sdk-lifecycle.md` | Implement the LudeoController/Flow/SessionManager layer + wire hooks |
 | 3 · task 5 | `references/3e-compile-and-fix.md` | Compile in the Editor (defines on and off), fix, confirm the capture overlay — **human-gated** |
-| 3f | `references/3f-classify-save-system.md` | *Superseded:* game-level save classification moved to phase 1 intake; per-entity matrix to phase 4. Pending retirement. |
+| 3f | `references/3f-classify-save-system.md` | *Superseded:* game-level save classification moved to phase 1 KYG; per-entity matrix to phase 4. Pending retirement. |
 | **4** | `references/4-map-game-objects.md` | **Guideline phase 4 — CENSUS + wave plan (Part A):** enumerate every trackable object **type**, flag load-bearing ones, assign **waves** (Wave 1 = restorable spine + must-have set). Holds the **Part B** deep-scope procedure phase 5 runs per wave. No deep detail or code here |
 | **5** | **`references/5-tracking-restore-orchestrator.md`** | **Tracking & restore (orchestrated, iterative WAVE LOOP) — implements the wave plan one wave at a time; dispatches the briefs below as subagents; owns a human gate per sub-task, per wave** |
 | 5 · task 0 | `references/5a-deep-scope-wave.md` | **Per wave:** deep-scope this wave's types (runs phase-4 Part B) → append `## Entity` rows to `OBJECT_TRACKING.md` |
