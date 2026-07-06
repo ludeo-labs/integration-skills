@@ -29,6 +29,10 @@ emissions** — without searching game code. Output
   - **If `session_boundaries` has the `{ model, start_sites[], exit_sites[], pause_overlay[] }`
     sub-structure**, also read `ludeo-integration-docs/game-patterns/open-world.md` — **this is the
     phase where the `OpenRoom` bind point is decided**.
+  - **If `CODE_MAP.launch_model.readiness_gate_required` is `true`**, also read
+    `ludeo-integration-docs/unity/LAUNCH-AND-READINESS.md` — **this is the phase where the
+    SDK-readiness gate is designed** (bootstrap placement, the create-path gate + its bounded
+    fallthrough, the play-path auto-start suppression).
 - Reads files only; does **not** analyze the Unity project directly. If no TDD exists, ask the
   orchestrator: *"No TDD found — run task 2 first, or continue without?"*
 
@@ -40,13 +44,24 @@ emissions** — without searching game code. Output
    (keep the façade boundary, dummy/disabled wiring, consent gating, and notification registration).
 3. **Bind each integration point** to a location:
    - `InitLudeoSession` + register notifications + `Activate` `[SDK]` → bootstrap MonoBehaviour in the
-     init scene (from `entry_points`).
-   - `OpenRoom` `[SDK]` via `[Layer]` → the gameplay **start** site.
+     init scene (from `entry_points`). **Boot-straight (no init scene):** a
+     `RuntimeInitializeOnLoadMethod(BeforeSceneLoad)` hook or a build-index-0 boot scene — it must
+     construct the controller **before** the gameplay scene's `Start()` (LAUNCH-AND-READINESS §5).
+   - `OpenRoom` `[SDK]` via `[Layer]` → the gameplay **start** site. **Boot-straight:** not a
+     synchronous `Start()` call — **gate-driven** (fires when the readiness gate releases; step 3.5).
    - `UpdateStateObjects()` `[Layer]` → a gameplay MonoBehaviour `Update` `[Unity]` (CR-005).
    - `End`/`Abort` `[SDK]` via `[Layer]` → **every** exit path (CR-007), incl. `OnApplicationQuit`.
    - **Session release** → `OnApplicationQuit` `[Unity]`: end/abort active gameplay (CR-007) **and
      `Dispose()` the owned `LudeoSession`** (the plugin disposes the room/reader, not the session —
      skipping it breaks Editor re-init; `05-LIFECYCLE-MANAGEMENT.md` "Shutdown").
+   - **(boot-straight only) 3.5 — Plan the SDK-readiness gate** (LAUNCH-AND-READINESS): the level loads
+     immediately behind a "ready" cover while Activate + consent resolve; the first interactive/recorded
+     frame is held until `Begin`. Plan: (a) the cover/freeze the gameplay scene shows until release;
+     (b) the **create-path release** — `OpenRoom` on `canCreate`, gameplay starts on `Begin`; (c) the
+     **bounded fallthrough** — consent-denied / init-failure / timeout → release the cover and play
+     **uncaptured** (CR-001), reusing the layer's `cancellationTokenSource` timeout; (d) the
+     **play-path** — suppress the scene's auto-start under `IsInLudeoFlow`, restore resets/reloads the
+     already-live scene (phase 11). Record the uncaptured-vs-upgrade choice (LAUNCH-AND-READINESS §4).
 4. **Document the callback chains** (CR-009): `OpenRoom` cb → `AddGamePlayer`; `RoomReady` notification
    → `Begin`; `End`/`Abort` cb → `CloseRoom`. **Not** game call sites.
 5. **Plan the notification registration** (§5 table) — registered once, before `Activate`.
@@ -113,6 +128,9 @@ Surface to the orchestrator:
 - [ ] **Every** exit path routed to `End`/`Abort` (CR-007); `OnApplicationQuit` ends/aborts **and**
       `Dispose()`s the session.
 - [ ] **All required notifications registered before `Activate`** (§5).
+- [ ] **(If `readiness_gate_required`)** the SDK-readiness gate is planned: bootstrap before the
+      gameplay scene's `Start()`; `OpenRoom` gate-driven (not in `Start()`); a **bounded fallthrough**
+      to an uncaptured run; play-path auto-start suppression.
 - [ ] Callback chains documented, not as game call sites (CR-009).
 - [ ] **Non-gameplay emissions planned** with no dangling non-ludeoable span (matched Start/Stop,
       closed on `End`).

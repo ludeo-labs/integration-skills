@@ -394,6 +394,61 @@ public class LudeoController
 
 ---
 
+## Boot-straight-to-gameplay: the SDK-readiness gate (no-menu launch model)
+
+The skeleton above assumes a **main menu** sits between boot and gameplay — it absorbs the async
+`Activate` + consent latency and is where `onInitDone` is consumed. A game that **auto-starts a run on
+the first scene's `Start()`** has no such wait, so a creator `OpenRoom` can fire while
+`LudeoFlowSwitch` is still `Disabled` → `DisabledLudeoFlow.InitRoom` **no-ops** (silent: no room, no
+capture). Replace the menu's implicit wait with an explicit **bounded readiness gate** — load the
+level immediately, but hold the first interactive/recorded frame until Activate + consent resolve.
+Full doctrine + the player path in [`LAUNCH-AND-READINESS.md`](./LAUNCH-AND-READINESS.md); the wiring
+additions to *this* skeleton:
+
+```csharp
+// Construct the controller from [RuntimeInitializeOnLoadMethod(BeforeSceneLoad)] or a build-index-0
+// boot scene so it exists BEFORE the gameplay scene's Start() — else the auto-start races the gate.
+private bool m_creatorGateReleased;
+
+// (replaces the create branch of HandleActivateDone for the boot-straight model)
+private void HandleActivateDone(LudeoSessionActivateCallbackData data)
+{
+    // Auth failure (e.g. InvalidAuth — Steam not up for implicit auth) is non-fatal: fall through to
+    // the bounded creator gate, which releases to an UNCAPTURED run. Log so it isn't a silent no-Ludeo.
+    if (data.resultCode != LudeoResult.Success) Debug.LogWarning($"Ludeo activate: {data.resultCode}; continuing uncaptured.");
+    m_data.isInLudeo = data.resultCode == LudeoResult.Success && data.isLudeoSelected;
+    if (m_data.isInLudeo) m_onInitDone(isStartingInLudeoFlow: true);      // PLAY: suppress auto-start; LudeoSelected → restore
+    else TryReleaseCreatorGate();                                         // CREATE / auth-failed: may still be waiting on consent
+}
+
+private void HandleConsentUpdated(LudeoSessionConsentUpdatedCallbackData data)   // CR-012
+{
+    m_switch.SetFlags(data.canCreateLudeo, data.canPlayLudeo);
+    m_data.isDisplayPlayableMoment = data.canCreateLudeo || data.canPlayLudeo;
+    if (!m_data.isInLudeo) TryReleaseCreatorGate();   // consent is the second half of the create-path gate
+}
+
+// Releases the creator gate EXACTLY ONCE — when Activate has resolved create AND consent has decided,
+// OR on a bounded timeout / init failure. The game's onInitDone(false) handler then either opens the
+// creator room + starts gameplay on Begin (canCreate) or starts UNCAPTURED (CR-001). The bound is
+// mandatory: an unbounded wait hangs the game at the loading cover when offline / auth fails.
+private void TryReleaseCreatorGate()
+{
+    if (m_creatorGateReleased) return;
+    m_creatorGateReleased = true;
+    m_onInitDone(isStartingInLudeoFlow: false);   // create branch — see "How the game wires it"
+}
+// Wire a timeout (reuse m_data.cancellationTokenSource) that also calls TryReleaseCreatorGate() on
+// expiry/failure, so the game falls through to an uncaptured run instead of hanging.
+```
+
+> **The gate is opt-in.** Classic menu-gated games keep the plain `HandleActivateDone` above (one
+> unconditional `m_onInitDone(data.isLudeoSelected)`); the menu is the wait. Add the gate only when the
+> launch model is boot-straight — or when a classic menu is fast/skippable enough to race consent
+> ([`LAUNCH-AND-READINESS.md`](./LAUNCH-AND-READINESS.md) §6).
+
+---
+
 ## Implicit auth: gate `Activate` on Steam-ready (don't call it inline)
 
 Implicit (Steam) auth is a **code-ordering** problem, not just the `runWithoutLauncher` toggle. Auth
@@ -657,8 +712,12 @@ public static class LudeoPlayerKeys {
 
 ```csharp
 // In a bootstrap MonoBehaviour in the init scene (Awake/Start):           [Unity]
+// BOOT-STRAIGHT (no init scene): construct from [RuntimeInitializeOnLoadMethod(BeforeSceneLoad)] or a
+// build-index-0 boot scene, and read onInitDone as the gate signal (see LAUNCH-AND-READINESS.md):
+//   startingInLudeo == true  → suppress the scene's auto-start; LudeoSelected drives restore.
+//   startingInLudeo == false → release the "ready" cover: OpenRoom(creator) if canCreate, else play UNCAPTURED.
 m_ludeo = new LudeoController(                                            // [Layer]
-    onInitDone:      startingInLudeo => { if (startingInLudeo) {/* go to level for replay */} else {/* main menu */} },
+    onInitDone:      startingInLudeo => { if (startingInLudeo) {/* go to level for replay */} else {/* main menu, OR boot-straight: release the readiness gate */} },
     // SYNCHRONOUS apply: apply WHILE frozen, then Begin, then unfreeze (07 §10.1). Never unfreeze before apply.
     onRoomReady:     () => { ApplyRestoredState(); m_ludeo.BeginGameplay(() => Time.timeScale = 1f); }, // [Unity]+[Layer] CR-010
     onStopGame:      () => Time.timeScale = 0f,   // [Unity] CR-011 pause

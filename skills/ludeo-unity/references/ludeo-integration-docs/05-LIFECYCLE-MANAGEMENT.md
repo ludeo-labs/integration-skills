@@ -32,6 +32,17 @@ branch into the play/restore flow. Map it onto **scenes + MonoBehaviour callback
 > → `Begin`) — no third gate. Read [`game-patterns/open-world.md`](./game-patterns/open-world.md)
 > before mapping `OpenRoom` for these games.
 
+> **No main menu — game boots straight into gameplay?** The classic flow leans on a main menu as an
+> implicit **waiting room**: it absorbs the async `InitLudeoSession → Activate` and **consent**
+> latency before the first creator `OpenRoom`, and it's where the create-vs-play branch resolves. A
+> game that auto-starts a run on the first scene's `Start()` has no such wait — open a creator room
+> before consent flips `LudeoFlowSwitch` on and it **silently no-ops** (no room, no capture, passes a
+> smoke test). You replace the menu with an explicit **SDK-readiness gate**: load the level
+> immediately, but hold the first interactive/recorded frame until Activate + consent resolve (or a
+> bounded timeout falls through to an *uncaptured* game). Read
+> [`unity/LAUNCH-AND-READINESS.md`](./unity/LAUNCH-AND-READINESS.md) before planning the lifecycle for
+> these games — and for any classic game with a fast/skippable menu.
+
 ---
 
 ## Where each step lives (scene mapping)
