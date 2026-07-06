@@ -201,19 +201,32 @@ Implement the world rebuild the plan specified, driven by the restored definitio
 ```csharp
 LudeoTrackedDefinitions defs = LudeoController.Instance.GetLudeoTrackedDefinitions();   // [Layer]
 SpawnLevel(defs.gameConfig, defs.levelIdx);   // rebuild level/spawn definitions BEFORE entities
-SetMusic(defs.gameMusic);
+SetMusic(defs.gameMusic);                     // (RE)START the captured track — see the soundtrack callout below
 // then spawn + restore entities (Step 3) into that rebuilt world
 ```
 
 **Ordering:** restore **level/spawn definitions before** entities; restore **world/environment state after**
 entities when a world flag could despawn/alter a just-spawned entity. Honor the plan's **exclusion list**.
 
+> **⚠️ Soundtrack: (re)start it here — restore must, because the game won't.** The game's own scene-start
+> music trigger sits in the `Start()`/`OnEnable`/scene-start logic that restore **suppresses** (`11` Step 3,
+> via `IsInLudeoFlow`), so the classic state restores but the **soundtrack stays silent** unless this step
+> starts it — the reported bug. Read the **active-track id** captured on the definitions/world singleton and
+> call the game's play-track API (`SetMusic(defs.gameMusic)` above). Make it **idempotent** — don't stack a
+> second track if one is already playing. **Presence, not position:** starting the right track **from the
+> top is enough**; resuming at the captured `AudioSource.time` is the separate time-driven-only concern
+> (Step 6 deferred / time-base). This is a **later-wave (2+) additive bucket, not Wave 1** — implement it in
+> the wave that captured the track id (`8-map-game-objects.md` Step A5).
+
 > **Procedural / non-deterministic assembly (`game-patterns/procedural-world.md §5`, `07 §8`):** "load the
 > scene" is not restoration — it yields an empty container and the generator re-rolls. Read the captured
 > `RunMetadata` (via `GetLudeoTrackedDefinitions()` `[Layer]`) and **re-drive the level builder/pool from
 > the generation inputs**, gating `RandomChunk`/`GetEncounterByLevel`/wave-rolls on `IsInLudeoFlow` so they
 > return the *captured* ids instead of rolling. Restore the scaling counter (combat level) **before** any
-> post-restore spawn, and assemble the container **before** the two-pass entity restore.
+> post-restore spawn, and assemble the container **before** the two-pass entity restore. **If the room's
+> load-time `Setup` consumes the scaling counter / room list *during scene load*** (before this method
+> runs), arming it here is too late — arm it at `onBeginRestore`, pre-LoadScene (`11` Step 3). This method
+> owns only what the world consumes **after** the scene is up.
 
 ### Step 8: Pre-existing-object reconciliation (07 §9)
 For each batch-registered type, implement the plan's match-vs-spawn decision — **match** the scene-placed
@@ -297,6 +310,8 @@ Surface to the orchestrator; don't guess:
 - [ ] Cross-entity references resolved via `keyMap` in Pass 2, **fail loud** on a miss (never null).
 - [ ] Deferred-property queue applied after Pass 2, before `Begin`, in the plan's order.
 - [ ] World/level definitions restored **before** entities; environment **after**; exclusion list honored.
+- [ ] **Soundtrack (re)started** in the environment restore when its (later) wave is in scope — idempotent,
+      reads the captured track id; never left to the game's own suppressed scene-start trigger.
 - [ ] Pre-existing reconciliation gated on `IsInLudeoFlow`; batch *registration* gated `!IsInLudeoFlow`.
 - [ ] Restore-read accessors are no-ops in creator/disabled flows (CR-001); the task-3 call site/freeze/entry
       chain left untouched (the Seam); backups for edited files.
@@ -312,6 +327,8 @@ Surface to the orchestrator; don't guess:
 - **Omitting a persistent-singleton baseline reset** — prior-run inventory/buffs/score leak across Ludeos.
 - **Fabricating an attribute task 1 didn't capture** — the fix belongs in `phase 3`/task 1.
 - **`ObjectId`/`GetInstanceID()` as a match key** (CR-014).
+- **Relying on the game's scene-start logic to start music** — it's suppressed during restore, so the
+  replay is silent; the environment restore must (re)start the track itself (Step 7).
 
 ## Related / Next
 

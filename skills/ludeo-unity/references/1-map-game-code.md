@@ -96,6 +96,19 @@ results. All patterns are **Unity-native** — adapt based on what the project r
   `Grep("Random\.|new System\.Random|Seed|RandomChunk|RandomEncounter|LevelPool|ChunkPool|SelectionPool|GetLevelChoices|Instantiate.*[Pp]refab.*\[")`.
   Positive signal is content **selected/built at load**. A scene that always loads the same authored
   content is **not** procedural even if it uses `Random` for cosmetics.
+- **World-frame determinism question** (answer for every game — **orthogonal to the assembly axis**, so
+  ask it even when `assembly: "authored"`): **does any gameplay object's world transform get established
+  from a run-time roll, or does the engine shift the world origin during play?** This is a *question to
+  answer from the spawn/placement code*, not a token to grep — a token-hunt that comes back empty gives
+  false confidence. Trace where gameplay segments (rooms/chunks/arenas) and the player get their world
+  position: if it's always a fixed authored coordinate or a constant origin, the frame is deterministic;
+  if it's *computed at spawn* (e.g. aligning a chosen connector to the previous segment + an offset) or
+  *moved at runtime* (a floating-origin / origin-rebasing system, common in large **authored** worlds —
+  content deterministic, frame not), it is **not**. Grep is only a starting lead — terms like
+  `connector`/`AlignTo`/`FloatingOrigin`/`ShiftOrigin` *may* surface it, but their absence does **not**
+  settle the question; read the placement code. If non-deterministic, **absolute world positions are not
+  restorable as-is** — record it (Output Contract, `world_frame`) so phases 8/10 capture/replay the
+  **resolved placement**, not just which content.
 - **List every distinct way gameplay is left** — each is a required `End`/`Abort` site later (CR-007).
 
 **6b. Non-ludeoable areas (mid-gameplay segments)** — segments *inside* live play that should never
@@ -231,8 +244,16 @@ neither — and any of those can be boot-straight or menu-gated.
      include `assembly` — `"authored"` (fixed levels) or `"procedural"` (scene is a container; content
      assembled at load from data + RNG). When `"procedural"`, also record `builder` (the level/run
      builder or pool class + file:line) and `generation_inputs` (selection/seed, sub-roll,
-     progress-cursor, scaling-counter fields phases 8/10 will capture — see
-     `ludeo-integration-docs/game-patterns/procedural-world.md §3`). **When the project has no
+     progress-cursor, scaling-counter, **and `placement`** — the resolved per-room/chunk world transforms
+     + connector indices, captured **when the generator rolls *where* a segment lands**, not just which —
+     fields phases 8/10 will capture — see `ludeo-integration-docs/game-patterns/procedural-world.md §3`).
+     Independently of `assembly`, answer the **world-frame determinism question (§4.6)** and record
+     `world_frame` — `{ deterministic: true, reason, evidence:{file,line} }` when the frame is fixed
+     (a bare `true` with no reason is not acceptable — it just means the question wasn't answered), or
+     `{ deterministic: false, cause: "procedural-placement" | "floating-origin", sites:[{file,line}] }`
+     — so phase 8's absolute-world-position checkpoint is answered from evidence, not asked blind. A
+     **floating-origin** world is the case where `assembly` is `"authored"` but `world_frame.deterministic`
+     is still `false`. **When the project has no
      per-level scenes** (open-world / streaming / sandbox / state-machine-driven), use this
      sub-structure (see `ludeo-integration-docs/game-patterns/open-world.md`):
      - `model` — one-line classification (e.g. `"state-machine + event-dispatch; single streaming world"`)
@@ -265,6 +286,11 @@ The gate — satisfy all before advancing to phase 2.
 - [ ] `serialization` recorded (mode found + user's decision).
 - [ ] `session_boundaries` lists **every distinct gameplay exit path** (not just the happy-path end),
       with `assembly` set; open-world/procedural sub-structure used where applicable.
+- [ ] **World-frame determinism question (§4.6) answered from the placement code** — `world_frame`
+      recorded; `deterministic: true` carries a **reason + file:line** (e.g. "rooms always `Instantiate`
+      at origin"), so "grepped nothing" can't pass as deterministic; otherwise `{deterministic:false,
+      cause, sites}`. `placement` added to `generation_inputs` when a procedural builder rolls *where*
+      segments land, not just which.
 - [ ] `non_ludeoable_candidates` recorded (mid-gameplay non-ludeoable segments with enter/exit sites,
       or explicitly empty) — phase 2 needs these to plan `StartNoneLudeable`/`StopNoneLudeable`.
 - [ ] `existing_ludeo` recorded (prior/partial integration detected, or explicitly none).
