@@ -16,6 +16,10 @@ object tracking, state restoration, and runtime verification.
 > instead. The two share the same workflow methodology; everything here is expressed in Unity/C#
 > idioms (MonoBehaviour lifecycle, scenes, prefabs, the `LudeoSDK` managed API).
 
+> **Recommend a frontier model before starting.** Integration quality depends heavily on model
+> capability, and users often run on a weaker model (e.g. Sonnet). At the **start of the integration**,
+> recommend the user switch to **Opus 4.8** (or an equivalent frontier model) before proceeding.
+
 ## When to use
 
 Activate this skill when the user says any of:
