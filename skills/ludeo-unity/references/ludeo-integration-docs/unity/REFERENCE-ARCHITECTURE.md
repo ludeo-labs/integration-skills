@@ -28,10 +28,11 @@ a clean on/off switch (dummy implementations for CR-001), consent gating (CR-012
 per-object tracking contract. Scattering `LudeoSDK` calls across gameplay code makes CR-007 (all
 exit paths) and CR-001 (disabled build) nearly impossible to satisfy.
 
-**Generalize this past SDK calls: keep the whole integration in these layer files and edit the game's
-own source as little as possible.** Where you must reach into game code (a lifecycle hook, a `SendAction`
-site, the sampling cadence), reduce it to a single façade call or event subscription and put the logic in
-the layer. The integration then stays reviewable and removable by deleting the layer.
+**Generalize this past SDK calls where you cleanly can:** keep integration logic in these layer files and
+edit the game's own source as little as the integration allows. This is a **preference, not a mandate —
+correctness wins over file count**; never distort the integration to shave a game-file edit. Where a hook
+into game code is needed, keeping it to a single façade call or event subscription (logic in the layer)
+keeps the integration reviewable and removable.
 
 ## Components
 
