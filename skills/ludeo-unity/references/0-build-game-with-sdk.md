@@ -96,14 +96,11 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
   with them** — don't leave placeholders. Production builds (no `LUDEO_DEV`) ignore it, so phase 13's baked
   `runWithoutLauncher` gate stays authoritative.
 
-### Step 2.5 — (Optional) Mirror game logs to Ludeo's cloud log channel
-On Ludeo's cloud runner (Windows/Proton), the SDK's logs are collected but the game's own `Debug.Log`
-output is not — they ride different channels. Optionally add a tiny `LudeoLogMirror` that forwards Unity
-logs (**warnings + errors by default**) onto `OutputDebugString` (the same Win32 channel the SDK core
-uses), so game and SDK logs land **co-located** in the collected-log folder. Gate it on the Ludeo *build*
-define — **not** dev/release, since the build uploaded to the cloud is a release build — full code +
-adaptation rules in `unity/UPM-INSTALL-AND-DEFINES.md §5`. Verifiable **only from a cloud build**, so it's
-optional here.
+### Step 2.5 — Mirror game logs to Ludeo's cloud log channel ⭐
+**Every integration.** The cloud runner harvests the SDK's `OutputDebugString` logs but not Unity's
+`Debug.Log`. Add `LudeoLogMirror` to forward Unity logs (warnings + errors by default) onto that channel,
+co-locating both in the collected-log folder — code + gating (Ludeo build define, **not** dev/release) in
+`unity/UPM-INSTALL-AND-DEFINES.md §5`. Cloud-verifiable only, but add the file here.
 
 ### Step 3 — Verify with the package installed
 The project still **compiles** and the game still **plays** (package present, unused). Confirms the
@@ -276,6 +273,7 @@ The gate — satisfy all before advancing to phase 1.
 - [ ] `LudeoSettings.asset` present with a real `apiKey`; dev flags appropriate for the build.
 - [ ] `InitLudeoSession` reaches its callback with a `resultCode` (not `WrapperDllNotFound`), in the
       **Editor and a player build**.
+- [ ] `LudeoLogMirror` added (Step 2.5) — required in every integration; verification is cloud-only (§5).
 - [ ] _(Self-contained build + `validate-build` — **moved to phase 6**, `13-upload-build.md` Step 3–4.)_
 
 ## 8. Common Mistakes

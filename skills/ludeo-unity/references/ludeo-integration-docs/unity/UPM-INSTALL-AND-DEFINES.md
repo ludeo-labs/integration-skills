@@ -236,24 +236,19 @@ Add a define **only** to support a build configuration that **excludes the SDK p
 
 ---
 
-## 5. (Optional) Mirror Unity logs onto the SDK's cloud log channel
+## 5. Mirror Unity logs onto the SDK's cloud log channel (required)
 
-**Optional wiring step.** By default, a build that runs on **Ludeo's cloud runner** (Windows under
-Proton/Wine) yields the **SDK's** logs but **not the game's own** `Debug.Log` output. The native SDK
-core emits every line through the Win32 `kernel32!OutputDebugString` API, and Wine captures that stream
-into the collected-log folder the harvester copies. Unity's own logs ride a different channel (Unity's
-`-logFile` / `Player.log` / stdout) that the runner often does **not** collect. Mirroring Unity's log
-output onto `OutputDebugString` **co-locates** game logs with SDK logs — interleaved by timestamp, in
-the exact folder the harvester already grabs. This is a general property of the SDK + Proton, not
-game-specific (the SDK's `OSSystems.win64.cs` P/Invokes `OutputDebugString`; it shows up in the runner's
-Wine capture as `…OutputDebugStringW L"…Core:LOG:…"`).
+**Required for every Unity integration.** On the cloud runner (Windows/Proton), the SDK core emits its
+logs via `kernel32!OutputDebugString`, which Wine harvests into the collected-log folder — but Unity's
+`Debug.Log` goes to `-logFile`/`Player.log`/stdout, which the runner doesn't collect. So a cloud build
+yields SDK logs with no game logs. Forwarding Unity logs onto `OutputDebugString` co-locates both streams
+in the harvested folder. (SDK side: `OSSystems.win64.cs`; capture shows `…OutputDebugStringW L"…Core:LOG:…"`.)
 
-Add one file to the game's Ludeo integration folder, matching the integration's namespace:
+Add one file beside the game's other Ludeo scripts, in their namespace:
 
 ```csharp
-// Ludeo: Mirror Unity log output onto OutputDebugString — the same Win32 channel the SDK core uses,
-// which the Ludeo cloud runner (Proton/Wine) captures into its collected log folder. Puts game logs
-// side-by-side with SDK logs, independent of where Unity's -logFile points.
+// Ludeo: forward Unity logs onto OutputDebugString — the channel the SDK core uses and the cloud
+// runner (Proton/Wine) harvests. Co-locates game + SDK logs regardless of Unity's -logFile.
 #if <LUDEO_DEFINE> && !UNITY_EDITOR && UNITY_STANDALONE_WIN
 using System.Runtime.InteropServices;
 using UnityEngine;
@@ -283,44 +278,23 @@ namespace <GameNamespace>.Ludeo
 #endif
 ```
 
-**Per-game adaptation rules:**
+Notes:
+- **Gate on the Ludeo *build* define, not `DEVELOPMENT_BUILD`/`Debug.isDebugBuild`.** The uploaded cloud
+  build is a release build (`13-upload-build.md`), so a dev/release gate strips the mirror from the build
+  that actually runs on the cloud. Use the define the integration already sets for Ludeo builds (e.g.
+  `LUDEO_BUILD` via `extraScriptingDefines`); with no such define (default — disable is runtime, §4), the
+  `!UNITY_EDITOR && UNITY_STANDALONE_WIN` guards alone are fine.
+- **Warnings + errors by default.** Info-level `Debug.Log` is dropped so a per-frame log can't flood the
+  capture or the global lock; define `LUDEO_LOG_VERBOSE` for a verbose repro.
+- **Tag lines `[GAME]`/`[GAME:…]`** to stay greppable against the SDK's `:Core:LOG:` format.
 
-1. **Gate on the Ludeo *build* define — not on development/release.** Use whatever scripting define the
-   integration already sets to mark Ludeo builds (some games use `LUDEO_BUILD`, applied via
-   `extraScriptingDefines` on the build). **Do not gate on `DEVELOPMENT_BUILD` / `Debug.isDebugBuild`:**
-   the build uploaded to Ludeo's cloud is a **release** build (production auth, no dev flags — see
-   `13-upload-build.md`), so a dev/release gate would strip the mirror out of exactly the build that runs
-   on the cloud. **If the integration has no Ludeo define** (the default here — disable is runtime, §4),
-   gate on `!UNITY_EDITOR && UNITY_STANDALONE_WIN` alone; it then rides every Windows player build, which
-   for a Ludeo-targeted build is what you want (but see the lock caveat below).
-2. **`UNITY_STANDALONE_WIN` guard is mandatory** — the P/Invoke resolves only on Windows. Ludeo's cloud
-   is Windows-via-Proton, so this is correct; the guard just prevents build breakage for games that also
-   ship Mac/Linux/console.
-3. **Editor gate (`!UNITY_EDITOR`)** — the Editor already shows everything in its Console/`Editor.log`,
-   so mirroring there is pointless; exclude it.
-4. **Placement/namespace** — put it beside the game's other Ludeo scripts and match their namespace, so
-   it reads as part of the integration.
-5. **Use the threaded callback (`logMessageReceivedThreaded`)** — captures logs raised off the main
-   thread; `OutputDebugString` is thread-safe. No unsubscribe needed (process-lifetime).
-6. **Tag the lines (`[GAME]` / `[GAME:Error]`)** so they stay greppable against the SDK's `:Core:LOG:`
-   format in the merged capture.
-7. **Verbosity — warnings + errors by default.** Info-level `Debug.Log` is skipped (the
-   `#if !LUDEO_LOG_VERBOSE` guard) so a per-frame log can't flood the cloud capture or the global
-   `OutputDebugString` lock. Define `LUDEO_LOG_VERBOSE` on the build only when you need info-level lines
-   for a verbose cloud repro.
+**Verify (cloud-only).** Grep the collected SDK-log for `[GAME]` after a cloud run — there's no local sink
+for `OutputDebugString` (short of attaching DebugView/VS Output), so it can't be checked in the Editor or a
+bare local run.
 
-**Verify (cloud-only).** After a cloud build runs, grep the runner's collected SDK-log file for `[GAME]`
-— the game's lines should appear interleaved with SDK lines. **This cannot be verified in the Editor or a
-bare local run:** locally there is no sink for `OutputDebugString` unless a viewer (DebugView / VS Output)
-is attached. That's expected — the payoff is cloud-only.
-
-> **Caveat to flag to the integrator.** `OutputDebugString` is **not free even with no debugger
-> listening** — it takes a **process-global lock** (`DBWinMutex`), so very heavy multi-threaded logging
-> can serialize log calls across threads. The default (warnings + errors only) keeps this negligible;
-> enabling `LUDEO_LOG_VERBOSE` restores full traffic (roughly doubling the SDK's own `OutputDebugString`
-> volume), so turn it on only for an active repro — or additionally lower the SDK's log level
-> (`ludeoLogLevel` / category in `LudeoSettings`). Also remind them to **commit the Unity-generated
-> `.meta`** alongside the `.cs`.
+> **Caveat.** `OutputDebugString` takes a process-global lock (`DBWinMutex`) even with no listener, so
+> `LUDEO_LOG_VERBOSE` under heavy multi-threaded logging can serialize log calls — leave it off outside a
+> repro (or lower `ludeoLogLevel`). Commit the generated `.meta` with the `.cs`.
 
 ---
 
