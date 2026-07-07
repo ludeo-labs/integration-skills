@@ -112,6 +112,13 @@ file — so the user experiences each as a single phase.
 - **The SDK ticks itself.** The plugin instantiates a `LudeoUnityManager` that drives the SDK Tick.
   Do **not** wire SDK Tick into an Update loop. The game only drives its own `UpdateStateObjects()`
   attribute-sampling cadence.
+- **Keep the integration in the Ludeo layer; touch game code minimally.** Prefer adding/editing files in
+  the game's Ludeo integration folder (the `[Layer]` classes — `unity/REFERENCE-ARCHITECTURE.md`) over
+  modifying the game's own source. When you *must* hook game code — lifecycle hooks (phase 2), `SendAction`
+  call sites (phase 5), the `UpdateStateObjects` sampling cadence — keep each edit to a **single façade call
+  or event subscription**; all logic lives in Ludeo-layer files. This keeps the integration reviewable,
+  isolable, and trivially removable (delete the layer). It does **not** mean "never touch game code" — the
+  hook phases require it; it means minimize and keep those edits mechanical.
 - **Disabling Ludeo is primarily a runtime concern, not conditional compilation.** Once the package
   is installed it is auto-referenced (no asmdef wiring needed). Route all SDK use through interfaces
   so that consent-off / uninitialized states fall back to `Dummy*`/`Disabled*` implementations and
