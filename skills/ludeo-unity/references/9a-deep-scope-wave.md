@@ -50,9 +50,15 @@ the next wave's types are untouched until their turn.
 2. **Run phase 3 Part B, Steps B1–B7, scoped to those types** (`8-map-game-objects.md`):
    - **B1** time-base/continuity fields — only if this wave owns the `SessionState`/`Continuity` singleton
      (normally Wave 1).
-   - **B2** stable key per type · **B3** properties (typed attributes + cadence) · **B4** cross-entity
-     references · **B5** reconciliation-vs-manual · **B6** batch/stream-in paths · **B7** confidence + open
-     questions.
+   - **B2** stable key per type · **B3** properties — **sweep the entity's whole subsystem** (all
+     components on the anchor GameObject + its managers/SOs, not just the census `class`), then
+     **disposition every field** (`capture | defer→wave N | exclude(static/settings/derivable)`),
+     recording the `N = C + D + X` tally **and the components swept from**; do not stop at the anchor
+     class or list only visibly-changing fields (both drop invisible forward-play state —
+     skills/cooldowns/quests/reputation/inventory — `06 §9.1` mode 4). For the player, actively fold in
+     the `Stats`/`SkillTree`/`Inventory`/`Equipment`/`Progression` components · **B4** cross-entity
+     references · **B5** reconciliation-vs-manual · **B6** batch/stream-in paths · **B7** confidence +
+     open questions.
 3. **Resolve cross-wave references (B4 rule).** If a type in this wave references a type **not yet
    captured** (a later wave), either pull the target into **this** wave (if the reference is load-bearing
    for this wave's replay — and tell the orchestrator, since it changes the wave plan) or mark the row
@@ -96,6 +102,10 @@ The orchestrator relays whatever you surface — do not invent your own. Expecte
       confidence) — and **no later wave's** type was scoped.
 - [ ] Stable key resolved per collection type (no `GetInstanceID()`/references, CR-014); singleton
       persistence flagged (Step B2).
+- [ ] **Field completeness (Step B3):** the surface was swept from the **whole subsystem** (components +
+      managers/SOs, not just the anchor class), recorded as "swept from"; every field has a disposition
+      (`capture | defer→wave N | exclude(reason)`); the `N = C + D + X` tally is recorded and no field is
+      left undispositioned. Player's stats/skill/inventory subsystem folded in where the game has one.
 - [ ] Properties captured as **typed attributes** by default; any blob has a recorded reason (Step B3).
 - [ ] Cross-entity references rowed; cross-wave references either pulled in or marked **deferred** (Step B4).
 - [ ] reconciliation-vs-manual recorded per entity + written to `CODE_MAP.save_system.per_entity` with
@@ -108,6 +118,10 @@ The orchestrator relays whatever you surface — do not invent your own. Expecte
 - **Rewriting the census or a prior wave's block** — this brief is append-only.
 - **Silently dropping a cross-wave reference** instead of pulling it in or marking it deferred.
 - **Absorbing earlier-wave load-bearing state here** instead of surfacing it for a wave-plan fix.
+- **Stopping the field sweep at the anchor class** — enumerating only `PlayerController` and missing the
+  `Stats`/`SkillTree`/`Inventory` components/managers; the tally then passes over an incomplete surface.
+- **Listing only visibly-changing fields** in B3 — silently dropping invisible forward-play state
+  (skills/cooldowns/quests/reputation/inventory). Enumerate the full surface and disposition every field.
 - **Defaulting to blobs / `GetInstanceID()`** (`06 §1.4`, CR-014).
 
 ## Related / Next

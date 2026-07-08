@@ -435,12 +435,27 @@ lobby, loading screen, shop/inventory overlay, safe zone/hub, cutscene.
 ## 9. What to Track — Decision Guide
 
 ### 9.1 The principle
-**Track every object whose state change a viewer would notice, or that another tracked object depends
-on.** Three failure modes:
+**Capture what the moment needs to PLAY FORWARD, not just what reproduces the picture.** The Ludeo is a
+continuous playable reconstruction (§1.1), so "would a viewer notice this frame-1?" is the wrong single
+test — much of what a run needs to continue correctly is **invisible on the first frame yet governs how
+it plays on**: character stats/skills, cooldowns, quest/world flags, reputation, hidden inventory. So the
+rule has two limbs: **track every object whose state a viewer would notice, OR whose state changes how the
+run plays forward** (including state another tracked object depends on). Four failure modes:
 1. **Over-tracking** is cheap — a slightly larger capture. It doesn't break the replay.
 2. **Under-tracking visible state** → loudly broken replay (missing objects, stuck doors). Easy to catch.
 3. **Under-tracking derived state** → subtly broken replay (enemy targets the wrong player, physics
    drifts). These slip through testing.
+4. **Under-tracking invisible forward-play state** → the moment *looks* right on frame 1 and passes a
+   behavioral restore gate, then diverges as it plays (skills/inventory/cooldowns/flags missing). The
+   costliest miss, because the gate green-lights it. A viewer-centric read (§9.2) is what drops it.
+
+> **Visibility decides PRIORITY (which wave), never INCLUSION.** Invisible forward-play state is in
+> scope; if it's not load-bearing for the current wave's replay it is **deferred to a later wave with a
+> reason**, not dropped. Prove inclusion structurally, not by eye: enumerate each entity's full
+> state-field surface (the save-serialized fields — §2.5/§2.7 — or its runtime-mutable component fields)
+> and give **every field a disposition** — `capture | defer→wave N | exclude(static/settings/derivable)`.
+> This is the phase-8 Step B3 completeness gate; it catches failure mode 4, which no "does it look right"
+> check can. (`settings`/meta is excluded, not captured — it leaks across Ludeos.)
 
 **When in doubt, track.** Over-tracking's cost is measurable; under-tracking's cost is a silently
 wrong replay.
