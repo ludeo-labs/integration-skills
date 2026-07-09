@@ -96,7 +96,7 @@ the tracked set, the capture writers, and the `ApplyRestoredState()` data read-b
 | 1 | Implement object tracking (capture) | `references/9-implement-object-tracking.md` | **per wave** (additive) | capture `.cs` for N's types (register + `OnStateDataUpdate` writers + keys) | **recompile clean + play + actually capture a session**, registration fires, no `LudeoResult` errors |
 | 2 | Plan state restoration | `references/10-plan-state-restoration.md` | **per wave** (append) | wave N's rows in `RESTORATION_PLAN.md` | **human reviews & approves the rows** (no code/run) |
 | 3 | Implement restoration flow | `references/11-implement-restoration-flow.md` | **ONCE (wave 1 only)** | flow `.cs` + `LudeoRestoredData` + `ApplyRestoredState()` **stub** | **play a captured Ludeo**: freeze → captured scene loads → stub reached in order → `Begin`; replay→replay tears down clean; overlay pause/resume |
-| 4 | Implement state reconstruction | `references/12-implement-state-reconstruction.md` | **per wave** (additive buckets) | wave N's buckets filled in `ApplyRestoredState()` (two-pass read-back) | **play a captured Ludeo**: wave N's cumulative set restores on first frame, non-zero two-pass counts, cross-ref resolved; replay-twice shows the **second's** state |
+| 4 | Implement state reconstruction | `references/12-implement-state-reconstruction.md` | **per wave** (additive buckets) | wave N's buckets filled in `ApplyRestoredState()` (two-pass read-back) | **play a captured Ludeo**: wave N's cumulative set restores on first frame, non-zero two-pass counts, cross-ref resolved; replay-twice shows the **second's** state; **the moment plays through to its win/lose condition** (derived counters intact, `07 §9`) |
 
 **No task here is hands-off** — every one ends in a human gate the orchestrator must run, because the
 agent **cannot see the Unity Editor Console** and the capture/replay gates require the human to actually
@@ -197,6 +197,12 @@ green**, and is **fully complete when the last wave in the plan is green**.
       (task 4 gate), two-pass counts non-zero, cross-refs resolved.
 - [ ] **Replay→replay** (in one session) tears the prior run down cleanly and shows the **second** Ludeo's
       state — no stale-flag deadlock, no dropped-`Start` defaults, no persistent-singleton leak (tasks 3–4).
+- [ ] **The restored moment plays to completion, not just "looks right" on the first frame** — drive it to
+      its win/lose condition. Win conditions ride on invisible **derived counters** (alive-enemy tally,
+      objective count — `07 §9`) that a first-frame snapshot check cannot see, so a replay can look perfect
+      and still be unwinnable. A cheap **heartbeat diagnostic** — log redundant state against ground truth
+      every few seconds (e.g. `numEnemiesRemaining` vs actual alive count) — surfaces counter drift instantly;
+      wire it temporarily for any state-heavy restore and remove it once the wave is green.
 
 **Wave 1 additionally (the guideline phase-4 criteria + one-time flow):**
 - [ ] **Flow reaches the restore entry point on a real captured Ludeo** (task 3 gate).

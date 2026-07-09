@@ -261,6 +261,13 @@ Surface to the orchestrator; don't guess:
   it on `IsInLudeoFlow`. The per-enemy spawn primitive (`AIManager.Spawn`) stays **ungated** — Pass 1 calls
   it to place the restored entities. Suppress a trigger that re-creates the **restored** wave; keep one that
   merely advances to the next wave from the restored cursor.
+- **Restore invariants, not just objects (`07 §9`).** The ungated spawn primitive Pass 1 calls still runs
+  the game's derived bookkeeping (alive-enemy tally, objective counter, spawn budget) **once per entity**,
+  and a suppressed creator trigger may have been what *reset* it. After reconstruction, **recompute each
+  manager-level aggregate from ground truth** (`counter = count of restored killable entities`) — don't
+  trust N incremental side effects to sum. Count the right subset: classification flags (`isStructure` /
+  `IsMinion`, read off the restored type) travel with the count. This is the aggregate-level analogue of the
+  §4 baseline reset.
 - **Don't modify game logic** beyond the restore read-back; propose-confirm-execute every change.
 
 ## 6. Output Contract
@@ -310,6 +317,9 @@ Surface to the orchestrator; don't guess:
 - **Single-pass apply** — silently corrupts reference graphs by spawn order (CR-006).
 - **Substituting null on a missing reference key** instead of failing loud (Pass-1 bug).
 - **Omitting a persistent-singleton baseline reset** — prior-run inventory/buffs/score leak across Ludeos.
+- **Trusting the spawn primitive's side-effect bookkeeping** — Pass 1 fires it N times (accounting drifts)
+  and a suppressed trigger no longer resets it; recompute derived counters from ground truth (`07 §9`), or
+  the replay looks perfect on the first frame yet can't be played to completion.
 - **Fabricating an attribute task 1 didn't capture** — the fix belongs in `phase 3`/task 1.
 - **`ObjectId`/`GetInstanceID()` as a match key** (CR-014).
 
