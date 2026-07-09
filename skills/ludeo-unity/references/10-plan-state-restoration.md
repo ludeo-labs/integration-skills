@@ -109,7 +109,11 @@ notification must work in **any** state (menu, mid-gameplay, loading, cutscene):
 
 1. **Tear down** any active gameplay session + room (the SDK `LudeoSession` stays alive); cancel in-flight
    transitions; suppress non-restoration input. If currently capturing, route through `EndGameplay`/
-   `AbortGameplay` `[Layer]` (CR-007).
+   `AbortGameplay` `[Layer]` (CR-007). **Also plan to purge the game's own registries** (`07 §2.2`): between
+   runs, list every global gameplay collection (enemy roster, target/aggro lists, spatial buckets,
+   `static List<T>` on a manager) that accumulates **destroyed-but-unregistered** refs across replays. Plan
+   dead-ref-safe queries (`== null` filtering) **and** a purge on reset that removes dead entries **without**
+   `Clear()`-ing live ones. Note each registry (file:field) with its purge point.
 2. The flow switch flips to **Play** (`SwitchToPlay()` `[Layer]`, consent-gated, CR-012) and
    `IsInLudeoFlow` `[Layer]` becomes `true` — the seam that gates all pre-match suppression.
 3. **Load the scene** named in the Ludeo metadata; block until load completes. (Open-world: no scene
@@ -152,8 +156,14 @@ Also plan four distinct sets of hooks:
 - **Start-of-run suppression (two categories)** — every mechanism the game runs between launch and the
   first interactive frame, in **both** categories (don't enumerate only the first):
   1. **State-clobbering** (would overwrite restored values): intro cutscenes, countdowns, slow-mo intros,
-     fly-in cameras, default-spawn teleports (`SpawnPoint`/`Respawn`), scripted scene-start events,
-     `Start`/`OnEnable` re-initializers. Miss one → Ludeo loads at the **wrong** state.
+     fly-in cameras, default-spawn teleports (`SpawnPoint`/`Respawn`), scripted mid-scene warps
+     (teleport-to-arena / checkpoint snap), scripted scene-start events, `Start`/`OnEnable` re-initializers.
+     Miss one → Ludeo loads at the **wrong** state. **But don't blanket-suppress a cutscene the viewer should
+     see (`07 §10.1`):** split its **reposition** branch (teleport / spawn-snap / body-moving camera
+     possession — skip; the restored player is already placed) from its **presentation** branch (framing /
+     VFX / dialogue — keep). Gate the reposition branch, not the whole moment — else you get either "cutscene
+     didn't show" or a player warped off-position. Record which branch each moment needs; if they aren't
+     cleanly separable in code, flag the split as a proposed change (Open Question), don't drop the cutscene.
   2. **Flow-blocking** (stall reaching the playable frame *without* touching state): "press start"/"press
      any key"/"click to continue" gates, modal popups (daily-reward, news, "what's new"), EULA/login/
      age-gate prompts, tutorial overlays, confirmation dialogs, between-segment reward/shop screens. Miss
@@ -167,6 +177,15 @@ Also plan four distinct sets of hooks:
   re-fires the **restored** wave; leave a spawner that merely **advances** to the next wave from the
   restored cursor (`07 §9`, `game-patterns/procedural-world.md §5`). List each spawn trigger (file:method)
   with its keep/suppress decision.
+- **Trigger-gated activations to re-drive** — the **complement** of suppression (`07 §9.1`). Replay lands the
+  player *past* the physical trigger (door / shrine / proximity volume / arena gate / cutscene zone) that
+  normally **activates** an encounter, so restored entities **exist but sit inert** — boss idle, wave never
+  starts, objective never arms. For each such trigger decide: **capture the activation as an attribute**
+  (preferred — restore it verbatim in Pass 2, §5) or **re-drive it on restore-complete** via an explicit
+  "activate what should already be active" call at `RoomReady → Begin`, invoking the game's activation entry
+  point (`Activate`/`EnterCombat`/`Arm`) minus any reposition branch. List each (file:method) with its
+  decision. **Never leave activation to the skipped trigger** (a re-drive hook that runs at `Begin` is task
+  3's flow — flag it as an Open Question if the flag can't simply be captured as state).
 
 Map each step onto a concrete game hook (file:method) where known; flag any that don't yet exist as an
 Open Question for task 3/task 4.
@@ -206,6 +225,12 @@ entity, fill one restoration block:
 - **Per-property apply** — for every property `phase 3` captured, name the setter and whether it applies
   in Pass 2 or is **deferred** (Step 7). Reference properties get a Pass-2 `keyMap` lookup. Each is a
   `TryGetAttribute(K.Name, out value)` `[SDK]` read against the **same `LudeoKeys` constant** capture used.
+- **Transient vs durable (`07 §1.5`)** — mark any captured attribute that is a **transient action-phase**
+  value (`isAttacking`/`isCasting`/mid-stagger/combo-index/animation-lock) as **normalize-to-idle**: it is
+  **not** restored verbatim, because the snapshot lands mid-action and the loop that would clear it was
+  skipped, so restoring `true` jams the behavior loop (the inert-entity trap). Durable state
+  (HP/position/inventory/target) restores as usual. This is the one deliberate exception to the Mirror
+  Principle — call it out per property so task 4 doesn't faithfully re-apply a mid-attack flag.
 - **Approach** — `reconciliation` (route through the game's recreate/load path, §5.1) or `manual`
   (explicit `TryGetAttribute` → setter, §5.2), taken from the matrix — never re-decided here by policy.
 
@@ -354,7 +379,7 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 ## LudeoSelected Interrupt Flow
 | Step | Game hook (file:method) | Notes |
 |---|---|---|
-| Tear down gameplay session + room | ... | EndGameplay/AbortGameplay; SDK LudeoSession stays alive (CR-007) |
+| Tear down gameplay session + room + **purge game registries** | ... | EndGameplay/AbortGameplay; SDK LudeoSession stays alive (CR-007); dead-ref-purge game lists, no Clear() of live (07 §2.2) |
 | SwitchToPlay → IsInLudeoFlow=true | LudeoController [Layer] | consent-gated (CR-012); gates pre-match suppression |
 | Selection-time: start scene load + suppress intros AND flow-blocking UI (press-start/modals/popups/EULA) | onBeginRestore (HandleGetLudeoDone, before room opens) | loader calls NotifySceneReadyForRestore() → begin-gate leg 3 |
 | Freeze sim / suppress (CR-010) | Time.timeScale = 0f (sync apply) or IsInLudeoFlow suppression (async apply) | separate flag from CR-011 overlay pause; async → freeze deadlocks |
@@ -374,9 +399,9 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 - Spawn function: <inverse of register hook @ file:line>
 
 ### Property Restoration (TryGetAttribute → setter)
-| Property | Kind | Setter | Pass 2 | Deferred? | Reference resolves to | If absent |
-|---|---|---|---|---|---|---|
-| ... | ... | ... | yes/no | no / queue#N | — / <Target> via keyMap | keep default / error |
+| Property | Kind | Setter | Pass 2 | Deferred? | Transient? (07 §1.5) | Reference resolves to | If absent |
+|---|---|---|---|---|---|---|---|
+| ... | ... | ... | yes/no | no / queue#N | no / normalize-to-idle | — / <Target> via keyMap | keep default / error |
 
 ## Cross-Entity Reference Resolution
 | From | Field | To | Resolution | Failure |
@@ -392,6 +417,21 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 | Entity | Match key | Hook (rel. to scene load) | Spawn or match |
 |---|---|---|---|
 | ... | ... | OnSceneLoaded | match scene-placed |
+
+## Trigger-Gated Activations to Re-Drive (07 §9.1)
+| Encounter / entity | Skipped trigger | Activation entry point | Restore approach |
+|---|---|---|---|
+| ... | proximity volume / arena gate | encounter.Activate() / boss.EnterCombat() | capture `active` attr (Pass 2) / re-drive at Begin (Open Q → task 3) |
+
+## Scripted Moments — Reposition vs Presentation (07 §10.1)
+| Moment (file:method) | Reposition branch (skip under IsInLudeoFlow) | Presentation branch (keep) | Separable in code? |
+|---|---|---|---|
+| ... | teleport-to-arena / spawn-snap / body-moving camera | framing / VFX / dialogue / timeline | yes / no → Open Q |
+
+## Registries to Purge on Re-Entry (07 §2.2)
+| Registry (file:field) | Holds live objects too? | Purge point | Query dead-ref-safe? |
+|---|---|---|---|
+| ... | yes → remove-dead-only / no → Clear() ok | teardown callback | == null filtered |
 
 ## Environment Restoration
 - Order relative to entities: after (world flags can affect spawned entities)
@@ -448,6 +488,16 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 - [ ] **Pre-existing reconciliation chose match-vs-spawn per entity** with a stable-key match.
 - [ ] **Every matched / persistent singleton has a baseline reset named** (the player especially), running
       first in the apply. Freshly-spawned entities correctly have none.
+- [ ] **Transient action-phase attributes marked normalize-to-idle**, not restore-verbatim (`07 §1.5`) — a
+      captured `isAttacking`/`isCasting`/mid-stagger/combo is dropped, not mirrored.
+- [ ] **Trigger-gated activations planned** — every encounter/boss/objective whose activation rides a
+      physical trigger the replay skips is listed with capture-as-state or re-drive-at-`Begin` (`07 §9.1`);
+      none left to the skipped trigger.
+- [ ] **Scripted moments split reposition vs presentation** (`07 §10.1`) — each cutscene/warp lists its
+      reposition branch (skip) and presentation branch (keep); no plan to blanket-suppress a viewer-facing
+      cutscene, and no plan to let a warp reposition the restored player.
+- [ ] **Game registries to purge on re-entry enumerated** (`07 §2.2`) — each names whether it also holds
+      live objects (remove-dead-only vs `Clear()`), its purge point, and dead-ref-safe queries.
 - [ ] **Pre-match / location-override mechanisms enumerated**, each gated on `IsInLudeoFlow`.
 - [ ] **Environment ordering** after-entities; exclusion list rationalized.
 - [ ] **Low-confidence + Open Questions** populated (empty on a complex game is itself a yellow flag).
@@ -462,6 +512,14 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 - **One shared pause flag** — a mid-play `ResumeGame` then unfreezes a restore (`07 §10.4`).
 - **Freezing an async apply** with `timeScale = 0` — deadlocks `FixedUpdate` (`07 §10.1`).
 - **Omitting a persistent-singleton baseline reset** — prior-run inventory/buffs/score leak across Ludeos.
+- **Restoring a transient action flag verbatim** (`isAttacking` mid-attack) instead of normalizing to idle
+  (`07 §1.5`) — jams the gated behavior loop; the entity is restored "correctly" but never acts.
+- **Leaving a restored encounter inert** — suppressing its trigger without re-driving its activation
+  (`07 §9.1`); the boss exists but never attacks.
+- **Blanket-suppressing a viewer-facing cutscene** instead of splitting reposition (skip) from presentation
+  (keep) (`07 §10.1`) — causes "cutscene didn't show", or a player warped off-position.
+- **Resetting only the Ludeo layer on re-entry** — leaving the game's own registries full of destroyed refs
+  (`07 §2.2`); the next replay iterates ghosts / mis-counts.
 - **Handing off without the self-validation pass** — gaps surface as bugs in task 3/task 4.
 
 ## Related / Next

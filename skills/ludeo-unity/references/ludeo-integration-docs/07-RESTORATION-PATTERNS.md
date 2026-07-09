@@ -83,11 +83,37 @@ Every restore decision inverts a capture decision in `OBJECT_TRACKING.md`. Same 
 `SetAttribute(K.X, x)` `[SDK]` wrote. **You cannot restore what tracking didn't capture** — a gap means the
 fix is in `phase 8`/`phase 9`, not here.
 
+> **The mirror is not absolute — it has three deliberate exceptions**, because restore lands the player
+> *past* the machinery that establishes a live encounter, so a faithful mirror alone leaves entities
+> *existing-but-not-established*: **normalize** transient action-phase flags to idle instead of applying them
+> (§1.5), **re-drive** trigger-gated activation the replay skipped (§9.1), and **skip** the repositioning
+> branch of scripted moments (§10.1). Mirror everything else verbatim.
+
 ### 1.4 `TryGetAttribute` returns `false` when absent or type-mismatched
 
 For every read, decide the fallback: **keep the spawn default** (partial-/version-tolerant restore — a
 feature of the attribute model, `06 §1.4`) or **treat as an error**. Do **not** fail the whole restore on
 one missing optional field; **do** fail loud on a missing identity key or a missing reference target (§6).
+
+### 1.5 Transient action-phase state — normalize, don't mirror
+
+The snapshot is taken at an **arbitrary instant**, so entities come back **mid-action** — mid-attack,
+mid-cast, mid-dodge, mid-stagger, animation-locked. This is the **one deliberate exception to the mirror
+principle (§1.3)**: a captured *transient action-phase* flag must **not** be restored verbatim, because
+nothing in the restored run clears it the normal way. A behavior loop gated on it (`if (!isAttacking) …`)
+then never runs — the entity is restored "correctly" and sits **jammed forever**.
+
+Classify every captured attribute:
+- **Durable state** (HP, position, inventory, ammo, score, AI *target*, quest progress) — restore verbatim.
+- **Transient action-phase** (`isAttacking`/`isCasting`/`isReloading`/`isDodging`/mid-stagger, attack-combo
+  index, animation-lock booleans, in-progress-ability timers) — **reset to a clean idle baseline** before
+  handing control to the AI/behavior loop; do **not** apply the captured mid-action value.
+
+The tell: a flag some *other* code path sets `true` and later sets `false`. If that false-setter is the very
+gameplay loop the replay skipped past, restoring `true` strands the entity. When in doubt, **idle is safe** —
+the AI re-derives an attack next tick; a stuck `isAttacking` never recovers. Distinct from **deferred
+properties** (§7), which *are* restored, just later; and from a **matched-instance baseline reset** (§4),
+which clears *uncaptured* leakage. Here a *captured* value is deliberately dropped.
 
 ---
 
@@ -154,6 +180,7 @@ the second play:
 | Overlay/Ludeo-done **pause flag** still `true` → `timeScale = 0` | an **async** restore (coroutine/`UniTask` spawn, NavMesh warp/bake, or any awaited physics step) **deadlocks** — `FixedUpdate` never ticks at `timeScale 0` (§10.1) |
 | Prior **room + gameplay session** never `Abort`+`CloseRoom`d | `InitRoom` opens a **second room over a live one**; the begin-gate can `Begin` on the **stale session** (Begin fails) |
 | **gameplay-active** flag (`isGameplayActive`) never cleared | any suppression keyed on the gameplay-active flag (a `!IsGameplayActive` pre-match/spawn guard, §10.1/§9) goes false → the suppressed systems fire on the replay |
+| The **game's own registries** (enemy roster, target/aggro lists, spatial buckets, `static List<T>` on an `AIManager`/`SpawnManager`) never purged of destroyed refs | queries hand back **stale destroyed** (`== null`) entries → systems iterate ghosts, counts are wrong, or capture re-tracks dead handles on the next run |
 
 **Complete teardown** = `AbortGameplay()` `[Layer]` (abort the **session**, `StopTrackingAllLudeoStates()`,
 `CloseRoom`, reset `isGameplayActive`/`m_gameplayStarted`) **+** `ResetBeginGate()` `[Layer]`
@@ -162,6 +189,18 @@ unfrozen baseline (§10.3, done in `onBeginRestore`). **Start the new play ONLY 
 callback** — `Abort`/`CloseRoom` are async, so issuing them and then opening the new room synchronously
 stacks a second room over the still-closing one. See the wired `HandleGetLudeoDone` in §3.3 and the
 `AbortGameplay`/`ResetBeginGate` skeleton in [`unity/REFERENCE-ARCHITECTURE.md`](unity/REFERENCE-ARCHITECTURE.md).
+
+> **⚠️ Purge dead references from the *game's own* registries — resetting the Ludeo layer isn't enough.**
+> The teardown above resets the **layer** (session, room, flags). But re-entry (`11` Step 3 already resets
+> the game's world *singletons*) also corrupts the game's global **collections** — the enemy roster,
+> target/aggro lists, spatial partitions, any `static List<T>` a manager keeps. Teardown between runs usually
+> **destroys** the objects without **unregistering** them, so the list fills with **destroyed** entries and
+> hands them back next run. Two-part fix, and the second half is the trap: **(1)** make registry *queries*
+> skip dead refs — Unity's overloaded `obj == null` is `true` for a destroyed object, so filter on it;
+> **(2)** **purge** dead entries on reset — **but never blindly `Clear()`** a list that also holds **live**
+> objects carried across teardown (a persistent player, pooled objects). *Remove the dead, keep the live.*
+> This is the collection-level analogue of the per-entity baseline reset (§4); wire it on the teardown path
+> (`11` Step 3) beside the layer/world-singleton resets.
 
 ---
 
@@ -373,6 +412,12 @@ Each is the `RestoreLudeoState(LudeoStateObjectRestore r)` callback — the **in
 `OnStateDataUpdate` lambda**. Same `LudeoKeys` `[Layer]` constants. Read with `TryGetAttribute` `[SDK]`, then
 write to the live object `[Unity]`.
 
+> **⚠️ Normalize transient action-phase flags — don't mirror them (§1.5).** Before applying, split this
+> entity's captured attributes into **durable** (restore verbatim) and **transient action-phase**
+> (`isAttacking`/`isCasting`/mid-stagger/combo-index/animation-lock). Reset the transient ones to a clean
+> **idle** baseline so the behavior loop the replay skipped past isn't left waiting to clear a flag it never
+> set. Applies to **any** entity with a gated action loop, not just the player.
+
 ```csharp
 // 5.1 Player (singleton — bucket[0], no key)                                       [Layer] inverse of 06 §10.1
 void RestoreLudeoState(LudeoStateObjectRestore r) {
@@ -396,6 +441,8 @@ void RestoreLudeoState(LudeoStateObjectRestore r) {
     r.TryGetAttribute(K.HP, out int hp);
     r.TryGetAttribute(K.AiState, out int ai);
     transform.position = pos;  m_hp = hp;  m_aiState = (AiState)ai;
+    NormalizeActionState();     // §1.5 transient action-phase → idle: clear isAttacking/combo/animation-lock —
+                                // do NOT restore mid-attack, or the gated AI loop never runs (the inert-boss trap)
     // r.TryGetAttribute(K.TargetId, out int targetId) → resolve in Pass 2 via keyMap (§6)
 }
 
@@ -573,6 +620,36 @@ creator flow uses `06 §6` batch *registration* instead.
 > whole play flow is the simple correct choice; where the replay plays through later waves, gate only the
 > re-create trigger.
 
+### 9.1 Re-drive trigger-gated activation (restore skips your triggers)
+
+Replay drops the player into the **middle** of a scene, **past** the physical trigger that normally starts
+an encounter — a door, a shrine, a proximity volume, an arena gate, a cutscene zone. Two-pass (§4) makes the
+boss/enemies/hazard **exist** with the right HP and position, but the code that **activates** them (enables
+the AI, arms the objective, starts the boss phase/music, opens the arena) was wired to fire **when the player
+crossed that trigger** — and that crossing never happens on a replay. Result: everything is present but
+**inert** — the boss stands idle, the wave never starts, the objective never arms.
+
+This is the **complement of the §9 spawn-trigger callout**, not a duplicate. There the danger is a live
+trigger firing during play-forward and **re-creating** what you restored (suppress it). Here the danger is an
+activation trigger that **never fires**, so a state the snapshot needs is **never established** (re-drive it).
+Same triggers, opposite failure — and the skill's pervasive "suppress start-of-run machinery" (§10.1,
+`11` Step 5) makes **this** one easy to over-suppress into inertness.
+
+**Do this — drive activation directly, don't wait for the trigger:**
+- **Prefer capturing activation as state.** "Encounter active", "boss phase", "aggro", "objective armed",
+  "AI enabled" are just attributes — capture them in `phase 9` and restore them verbatim in Pass 2 like any
+  durable field (§1.5). This is the cleanest fix: the mirror covers it once the attribute exists, entirely
+  inside the two-pass apply.
+- **When activation isn't captured as a flag, re-drive it on restore-complete.** Add an explicit *"restore
+  finished — activate what should already be active"* hook that runs **after the freeze lifts / on
+  `RoomReady → Begin`** (§10.2) and call the game's own activation entry point directly
+  (`encounter.Activate()`, `boss.EnterCombat()`, `objective.Arm()`) — the code path the crossed trigger would
+  have invoked, **minus** any repositioning branch (§10.1). Never rely on the physical trigger to fire.
+
+Enumerate these in `RESTORATION_PLAN.md` (`10` Step 3) as a distinct row class — *trigger-gated activations
+to re-drive* — separate from *triggers to suppress*. **A restored entity that exists but never acts is this
+gap until proven otherwise.**
+
 ---
 
 ## 10. Wait-For-Player, Freeze & Overlay (CR-010/011)
@@ -619,6 +696,20 @@ Suppression holds until `Begin`, then lifts so the player drives the restored st
 > assemble. Await the async spawns to completion (then the narrow scalar freeze) **before** signaling
 > scene-ready, and keep the scene covered until then, so the paused overlay's background and the first
 > interactive frame show the finished scene, not its assembly (§2.1 invariant 5).
+
+> **⚠️ A scripted moment has two effects — skip the reposition, keep the presentation.** "Suppress
+> cinematics/encounter-start" (the Suppress bullet above) is **too blunt** for a cutscene the *viewer expects
+> to see*. Blanket-suppressing it produces the **"cutscene didn't show"** bug; letting it run untouched
+> **warps the just-placed player off-position** (a "teleport party to arena" / camera-possession step yanks
+> the restored player off the snapshot — off-map, in the field report). These are **two separable branches of
+> the same sequence**: the **presentation** branch (camera framing, VFX, dialogue, timeline) is safe — *keep
+> it*; the **reposition** branch (teleport-to-arena, spawn-point snap, `Respawn`, camera possession that moves
+> the *body*) must be **skipped under `IsInLudeoFlow`** — the restored player is **already** where it belongs
+> (§2.1). So gate the **reposition branch**, not the whole cutscene: run the frame/observe path, skip the move
+> path. Add scripted **mid-scene warps** (arena/checkpoint teleports fired by an encounter or a cutscene) to
+> the reposition list alongside default-spawn teleports — same hazard, just later in the run. When a moment's
+> two effects aren't cleanly separable in code, splitting them is a proposed game-code change — surface it,
+> don't silently drop the whole cutscene.
 
 ### 10.2 Resume = `RoomReady → Begin`
 
@@ -672,6 +763,26 @@ A useful confirmation signature: after the restore unfreeze, log the inputs to t
 **no** `PauseGame`/`ResumeGame` callback fired this run, the flag is inherited stale state (§10.3), not
 anything this run set.
 
+### 10.5 Debugging restore — instrument before theorizing
+
+Restore bugs invite confident-but-wrong theories ("bad positioning", "flaky cutscene machinery") that a
+single runtime log disproves. **Get real per-tick logs first, theorize second** — the field-report team
+burned hours on positioning/cutscene hypotheses the logs killed instantly. Log, per restore: the two-pass
+counts (spawned / applied / references resolved, per bucket), the resolved pause state at unfreeze
+(`restoreFreeze` / `overlayPause` / `timeScale`, §10.4), and each re-driven activation (§9.1). A restored
+entity that never acts is then a **one-line** diagnosis — *inert* = activation never fired (§9.1); *jammed*
+= a transient flag stuck `true` (§1.5) — instead of a guessing game. (The agent reads these from
+`Editor.log`/`Player.log`, [`unity/READING-UNITY-LOGS.md`](unity/READING-UNITY-LOGS.md).)
+
+> **⚠️ Per-tick silence during a freeze is the system *working*, not stalling — don't mistake it for the
+> §10.1 deadlock.** A frozen or suppressed entity (CR-010) emits **nothing** from its
+> `Update`/`FixedUpdate`/AI tick while the restore window holds — that silence is **expected**, and reads
+> deceptively like a hang. Tell it apart from the real async-apply deadlock by the **unfreeze**, not the
+> ticks: if the pause-state log shows `timeScale` returning to `1` (or suppression lifting) at
+> `RoomReady → Begin` and ticks resume, the earlier silence was correct. Only if the **unfreeze point is
+> never reached** — no `Begin`, `FixedUpdate` never resumes — on an **async** apply is it the genuine
+> `timeScale = 0` deadlock (§10.1). The signal is the *absent unfreeze*, not the absent ticks.
+
 ---
 
 ## 11. Validation Checklist
@@ -682,6 +793,9 @@ anything this run set.
 - [ ] Play-flow re-entry (mid-capture **and replay→replay**) **completely** tears the prior run down
       first — `AbortGameplay` (session abort + stop tracking + close room + reset gameplay-active) +
       `ResetBeginGate` + reset both pause flags — and starts the new play **only in the teardown callback** (§2.2).
+- [ ] Teardown **purges dead refs from the game's own registries** (enemy roster, target/aggro lists,
+      spatial buckets) — queries skip destroyed (`== null`) refs; dead entries removed on reset **without**
+      `Clear()`-ing live objects (§2.2).
 
 **Identity & two-pass**
 - [ ] No SDK id-map / `ObjectId` matching — buckets + your stable key (CR-014); singletons `[0]`, collections keyed.
@@ -691,6 +805,8 @@ anything this run set.
 - [ ] Apply is driven **synchronously from the restore driver**, not deferred to a spawned object's
       `Start`/`OnEnable` (dropped for scene-transition spawns → frozen-at-default 2nd-replay bug, §4). Apply is idempotent.
 - [ ] Missing reference key → **fail loud**; missing optional attribute → keep default (§1.4/§6).
+- [ ] Transient action-phase flags (`isAttacking`/`isCasting`/mid-stagger/combo) **normalized to idle**, not
+      mirrored verbatim — the one deliberate exception to the mirror principle (§1.5).
 
 **Coverage (the mirror)**
 - [ ] Every entity/property in `OBJECT_TRACKING.md` has a `RestoreLudeoState` read using the **same `LudeoKeys`** + `objectType`.
@@ -698,6 +814,8 @@ anything this run set.
 - [ ] Deferred properties applied after Pass 2, before `Begin`, in recorded order (§7).
 - [ ] World/level definitions restored to drive spawning; environment after entities; exclusion list recorded (§8).
 - [ ] Scene-placed objects reconciled match-vs-spawn — no double-spawn (§9).
+- [ ] Trigger-gated activation re-driven — restored encounters/bosses/objectives are **active**, not inert;
+      activation captured as state or driven directly on restore-complete, never left to a skipped trigger (§9.1).
 
 **Freeze & overlay**
 - [ ] Restored state protected during apply (CR-010): **synchronous apply → freeze whole apply**; **async
@@ -706,6 +824,15 @@ anything this run set.
 - [ ] Apply is never preceded by an unfreeze (no live frames mid-restore); resume via `RoomReady → Begin`,
       not `ResumeGame`/`PlayerReady`.
 - [ ] CR-010 freeze and CR-011 overlay pause on separate flags (§10.3).
+- [ ] Scripted moments split correctly — **reposition** branch (teleport-to-arena / spawn-snap / `Respawn` /
+      body-moving camera possession) skipped under `IsInLudeoFlow`; **presentation** branch (framing/VFX/
+      dialogue) kept, so the cutscene shows and the player isn't warped off-position (§10.1).
+
+**Debugging**
+- [ ] Per-restore instrumentation present (two-pass counts, resolved pause state, re-driven activations) so
+      inert/jammed/dead-input are one-line diagnoses, not theories (§10.5).
+- [ ] Per-tick silence during the freeze is not misread as a hang — the deadlock signal is an **absent
+      unfreeze** on an async apply, not absent ticks (§10.5/§10.1).
 
 ---
 

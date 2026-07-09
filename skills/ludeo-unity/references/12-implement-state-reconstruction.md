@@ -152,6 +152,9 @@ void RestoreLudeoState(LudeoStateObjectRestore r) {          // inverse of the 0
     r.TryGetAttribute(K.Position, out Vector3 pos);          // [SDK] read back what SetAttribute wrote
     r.TryGetAttribute(K.HP,       out int hp);
     transform.position = pos;  m_player.UpdateCurrentHP(hp);  // [Unity]
+    NormalizeActionState();     // 07 §1.5 transient action-phase → idle: clear isAttacking/combo/animation-lock.
+                                // Do NOT restore the mid-action value — the loop that clears it was skipped, so
+                                // it never recovers (the jammed-entity / inert-boss trap).
     // r.TryGetAttribute(K.Velocity, ...) → DEFER (Step 6)
     // r.TryGetAttribute(K.TargetId, ...) → resolve in Pass 2 via keyMap (Step 5)
 }
@@ -165,6 +168,12 @@ Drive each from the plan's per-entity block:
   **at the top of the apply, before any `TryGetAttribute`**. It was never re-instantiated, so uncaptured
   fields (inventory, ammo, buffs, score, cooldowns, status flags) survive from the prior run and leak in
   otherwise. Freshly-spawned entities skip this — `Instantiate` already gave them a clean slate.
+- **Normalize transient action-phase flags (`07 §1.5`)** — for every property the plan marked
+  *normalize-to-idle* (`isAttacking`/`isCasting`/mid-stagger/combo-index/animation-lock), reset it to a clean
+  idle baseline instead of applying the captured mid-action value. This is the **one deliberate exception to
+  "mirror the capture"**: the snapshot lands mid-action and the loop that would clear the flag was skipped,
+  so a verbatim restore leaves the entity jammed forever (the inert-boss trap). Durable fields
+  (HP/position/target) still mirror exactly.
 - **Collections** read their stable key into `keyMap` in Pass 1 (Step 3); **singletons** don't.
 - Match `objectType` strings and `LudeoKeys` constants **exactly** to the capture side — a mismatch
   silently returns an empty bucket / `false`.
@@ -239,6 +248,17 @@ is `true` (set by task 3); the creator flow uses `06 §6` batch *registration* i
 > **Open-world / streaming:** re-bind by **persistent world id** across stream cycles, restore only the
 > loaded neighborhood (`game-patterns/open-world-tracking.md`).
 
+> **⚠️ Re-drive trigger-gated activation (`07 §9.1`).** Two-pass makes restored encounters/bosses/objectives
+> **exist**; it does **not activate** them. If an entity's live/aggro/phase/objective-armed state is normally
+> set by a physical trigger the replay skips (door / proximity volume / arena gate / cutscene zone), the
+> restored entity sits **inert** — the boss stands idle, the wave never starts — unless you either
+> **(a)** restored an **activation attribute** in Pass 2 (the plan's *capture-as-state* rows — preferred,
+> and entirely inside this task), or **(b)** call the game's activation entry point directly on
+> restore-complete (`Activate`/`EnterCombat`/`Arm`), **minus** any reposition branch. A `Begin`-time re-drive
+> hook is **task 3's flow** — if the plan chose (b) and the flag wasn't captured, implement the attribute
+> path here and surface the hook as an Open Question rather than wiring the flow. **Never leave activation to
+> the skipped trigger.**
+
 ### Step 9: Self-check, then hand back (no play test here)
 You do **not** play a Ludeo — the orchestrator does. Before returning, statically self-check against §7's
 pre-handoff criteria, then return a summary + the files you created/edited + any open questions. **The
@@ -307,6 +327,10 @@ Surface to the orchestrator; don't guess:
 - [ ] Apply is driven **synchronously from the restore loop**, never deferred to a spawned object's
       `Start`/`OnEnable`; the apply is idempotent.
 - [ ] Matched instances / persistent singletons reset to baseline **before** any `TryGetAttribute`.
+- [ ] Transient action-phase flags normalized to idle, **not** mirrored verbatim (`07 §1.5`) — no captured
+      `isAttacking`/`isCasting`/mid-stagger/combo re-applied.
+- [ ] Trigger-gated activation handled — restored encounters are **active** (activation attribute restored in
+      Pass 2, or a `Begin`-time re-drive raised as an Open Question), not inert (`07 §9.1`).
 - [ ] Cross-entity references resolved via `keyMap` in Pass 2, **fail loud** on a miss (never null).
 - [ ] Deferred-property queue applied after Pass 2, before `Begin`, in the plan's order.
 - [ ] World/level definitions restored **before** entities; environment **after**; exclusion list honored.
@@ -325,6 +349,10 @@ Surface to the orchestrator; don't guess:
 - **Single-pass apply** — silently corrupts reference graphs by spawn order (CR-006).
 - **Substituting null on a missing reference key** instead of failing loud (Pass-1 bug).
 - **Omitting a persistent-singleton baseline reset** — prior-run inventory/buffs/score leak across Ludeos.
+- **Restoring a transient action flag verbatim** (`isAttacking` mid-attack) instead of normalizing to idle
+  (`07 §1.5`) — the entity restores "correctly" but the gated behavior loop never runs.
+- **Leaving a restored encounter inert** — entities exist but activation was never re-driven (`07 §9.1`);
+  the boss stands idle because its trigger was skipped.
 - **Fabricating an attribute task 1 didn't capture** — the fix belongs in `phase 3`/task 1.
 - **`ObjectId`/`GetInstanceID()` as a match key** (CR-014).
 - **Relying on the game's scene-start logic to start music** — it's suppressed during restore, so the
