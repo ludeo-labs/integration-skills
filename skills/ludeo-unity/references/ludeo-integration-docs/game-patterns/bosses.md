@@ -67,16 +67,26 @@ overloads. Tiered by restoration priority: **CRITICAL** (restore or the fight ca
 ### Boss entity — CRITICAL
 - [ ] Position, rotation (`Vector3`/`Quaternion`)
 - [ ] Health / HP, and **max HP if it changes per phase**
-- [ ] **Phase / form index** (`int`) — the current stage of the fight
-- [ ] **Phase thresholds already crossed** (`bool`/bitmask) — so restore doesn't re-trigger a "drop to
-      50%" transition the boss is already past
+- [ ] **Phase / form index** — the current stage of the fight. **Where this lives may not be a field you
+      can read — §4.1 before you plan its capture.**
+- [ ] **Phase thresholds already crossed** (`bool`/bitmask) — the re-trigger guard: without it restore
+      re-fires a "drop to 50%" transition the boss is already past (the mechanism is §4.3)
 - [ ] Vulnerability / stagger / armor-broken flag (`bool`) — the window the player is exploiting
+- [ ] **Current attack / action** — which attack or ability is *executing right now*, and its progress.
+      The moment is often the boss **mid-attack**, so this is part of the reconstructed moment, not
+      transient — it lives where phase lives (§4.1) and reconstructs the same way (§4.6)
+- [ ] **Locomotion / stance** — charging, airborne, burrowed/untargetable, staggered — the movement mode
+      the attack/phase implies
+- [ ] **Active hitboxes / damage windows** — which are live this frame (or recompute them from the
+      restored attack + progress, §4.6)
 - [ ] Aggro / target key (`06 §4` — the *player's* stable key, not a reference)
 - [ ] Is alive/dead (`bool`)
 
 ### Encounter / fight-state singleton — CRITICAL
-- [ ] **Phase timer — remaining, not elapsed** (`float`, `06 §9.4`) — enrage clocks, phase countdowns
-- [ ] **Scripted-sequence cursor** (`int`) — current beat/step of any scripted attack rotation or set-piece
+- [ ] **Phase timer — remaining, not elapsed** (`float`, `06 §9.4`) — enrage clocks, phase countdowns.
+      Remaining is the **re-arm input** (§4.5); captured but never re-armed, it's inert.
+- [ ] **Scripted-sequence cursor** — current beat/step of any scripted attack rotation or set-piece (often
+      a Timeline playhead, not an `int` — §4.1)
 - [ ] **Arena state** — locked/exit-sealed (`bool`), any raised barriers/hazards active
 - [ ] **Adds alive** — see §6; **recompute from the restored adds, do not capture a replayed counter**
 - [ ] Encounter phase of the fight itself if distinct from the boss form (intro-done / active / enrage)
@@ -91,35 +101,135 @@ overloads. Tiered by restoration priority: **CRITICAL** (restore or the fight ca
 
 ### SKIP (derived/transient — never track)
 - Boss **health-bar UI** — derived from HP; rebuild it from restored HP (`06 §9.3`, `07 §7`).
-- The **in-flight attack/telegraph** mid-animation — transient; let it re-drive from the restored phase.
 - The **intro cutscene** — not state; §5.
+
+> **Do not add the boss's live attack to SKIP.** The mid-attack telegraph is usually *the moment* — it is
+> **captured**, not re-driven from a fresh AI decision (§4.6).
 
 ---
 
-## 4. Spawn & triggers — the hard part
+## 4. The hard part — behavioral state, spawn & scripted triggers
+
+The §3 checklist quietly assumes the fight's phase is a value you can read and write, and that spawning
+the boss reconstructs the fight. Both are usually false: the phase often lives somewhere you can't
+`SetAttribute`, the only path that sets it fires through the trigger you're suppressing, and that trigger
+started *processes*, not just state. These are the sub-problems that actually block a boss restore —
+work them in this order. **§4.1–§4.3 are where most boss integrations get stuck; the checklist above
+won't rescue you if you skip them.**
+
+### 4.1 Where the fight's "phase" actually lives — find it before you plan its capture
+
+`phaseIndex` as a plain field is the lucky case. Find where phase really lives *first*:
+
+- **A field / FSM enum on the boss** (`currentPhase`, a state enum) — capture it directly. Easy case.
+- **An Animator state machine** `[Unity]` — the phase *is* the active state; there's no field. Capture the
+  layer's `AnimatorStateInfo.fullPathHash` + `normalizedTime`; restore via
+  `Animator.Play(hash, layer, normalizedTime)`.
+- **A Timeline / `PlayableDirector`** `[Unity]` — a scripted beat *is* `director.time`. Capture `director.time`
+  (+ which `PlayableAsset`, if it swaps); restore by setting `time` then `Evaluate()`, and stop it
+  auto-playing from zero (`playOnAwake = false`, or `Stop()` before seeking). See §5.
+- **A behavior tree / visual-scripting / state-machine asset** — the "current node" is usually **not**
+  serializable and exposes no public cursor. You need the game to surface a phase accessor, or you
+  approximate with the nearest observable proxy (HP band, active animator state).
+- **A running coroutine** — phase is implicit in *which coroutine is suspended, and where*. A yield point
+  **cannot be serialized.** There is nothing to capture: derive phase from an observable field, or add one.
+
+> **If phase isn't already a discrete, readable + writable value, making it one is the central work item
+> of this integration** — add a small explicit `Phase` field/accessor **in the boss's own code** (the
+> Ludeo layer can't faithfully observe an Animator/coroutine from outside). If you can neither find nor
+> add one, record it as an Open Question at the census — it may gate whether the boss is restorable at all.
+
+### 4.2 Restoring into a phase — you need an entry seam
+
+There is no rewind API. Writing `hp = 40%` + `phaseIndex = 2` as attributes does **not** make the AI
+*behave* like phase 2 — it sets numbers, not behavior (which attack set, movement mode, enabled hitboxes,
+active adds). To actually enter phase 2 you must run the game's **phase-entry logic**:
+
+- **A public entry point exists** (`EnterPhase(n)` / `SetPhase` / `GoToPhase`) → call it from the Ludeo
+  layer, *after* the data attributes are applied.
+- **None exists** → add the **smallest possible game-code seam**: a public method that enters phase N
+  *without* the cinematic / announcement / summon-intro that normally precedes it. **This is the
+  sanctioned exception to "prefer the Ludeo layer, minimize game edits"** — integration correctness comes
+  first (SKILL.md's own rule). Keep the seam idempotent and cutscene-free, audit it for side-effects
+  (§4.4), and don't let it re-spawn adds you've already restored.
+- **Order:** apply the data attributes (HP, position — §3) **first**, then call the phase-entry seam so it
+  doesn't clobber restored HP, and set the §4.3 guards so it doesn't immediately re-fire.
+
+### 4.3 One-shot transition guards — restore every latch or the phase re-fires
+
+Games make a transition one-shot with a latch:
+
+```csharp
+if (hp < 0.5f * maxHp && !m_enteredPhase2) { EnterPhase2(); m_enteredPhase2 = true; }   // [Unity]
+```
+
+Restore `hp = 40%` **without** `m_enteredPhase2 = true` and the very next damage tick (or `Update`)
+re-fires `EnterPhase2()` — often every frame, so the transition stutters or the intro replays forever.
+**Every latch the captured phase is already past must be captured and restored set** — this is what the
+"thresholds already crossed" bitmask (§3) is *for*; it's the mechanism, not fidelity polish.
+
+- **Find them:** grep the boss's damage handler / `Update` / phase code for one-time latches —
+  `bool m_has*/m_is*/m_entered*/m_did*` paired with an `hp`/threshold comparison, and one-shot coroutine /
+  `DOTween` / `UnityEvent`-removed guards. Each latch gating a transition **earlier** than the captured
+  phase → restore it set.
+- Missing one is invisible at capture and only shows up as a re-trigger at replay — exactly why §8 makes
+  you play the moment *through* rather than eyeball frame 1.
+
+### 4.4 The spawn trigger & its one-shot side-effects
 
 Bosses rarely use the normal enemy spawner (`06 §2.2`). They spawn on a **one-shot trigger**: an arena
-`OnTriggerEnter`, a cutscene's end, an HP-threshold event on a mini-boss, a door/elevator, a wave-cleared
-signal. That trigger typically does **much more than instantiate the boss** — it locks the arena, seals
-the exit, starts the boss music, shows the health bar, disables the checkpoint, maybe despawns trash mobs.
+`OnTriggerEnter`, a cutscene's end, an HP-threshold on a mini-boss, a door/elevator, a wave-cleared signal.
+That trigger does **much more than instantiate the boss** — it locks the arena, seals the exit, shows the
+health bar, disables the checkpoint, maybe despawns trash mobs.
 
-On restore you must **instantiate the boss directly into its captured phase and reconstruct those
-side-effects — without re-firing the trigger or its cutscene.**
-
-- **Audit the spawn trigger's full side-effect set** before restoring the boss. List everything it does;
-  each item is either (a) reconstructed from captured state (arena locked, music cued, health bar shown)
-  or (b) deliberately skipped (the intro cutscene, §5). Missing one is the classic "boss is there but the
-  arena's open and the music's silent" bug.
-- **Guard the trigger with `!LudeoController.Instance.IsInLudeoFlow`** `[Layer]` — the same gating the
-  batch-registration and spawn paths use (`06 §6`). In the play flow the boss comes from its bucket
-  (`07 §4` two-pass), not from the arena trigger.
+- **Audit the trigger's full side-effect set** before restoring. Each item is either reconstructed from
+  captured state (arena locked, health bar shown) or deliberately skipped (the intro cutscene, §5).
+  Missing one is the "boss is there but the arena's open" bug.
+- **Guard the trigger with `!LudeoController.Instance.IsInLudeoFlow`** `[Layer]` — as the `06 §6`
+  spawn/batch paths do. In the play flow the boss comes from its bucket (`07 §4` two-pass), not the trigger.
 - **Restore invariants, not just the object.** If the trigger maintains manager-level bookkeeping (a
-  "boss active" flag, a locked-doors set, an encounter counter), that bookkeeping is a **derived
-  invariant** — recompute it from the restored ground truth, don't trust a replayed value and don't let a
-  re-driven spawn path bump it N times. (This is the general side-effect rule; a boss is its worst case.)
-- **Snap, don't ease** (`07 §5`, `07 §10.1`). Spawn the boss *at* its captured phase/pose; do not let a
-  spawn animation, an intro dolly, or a `SmoothDamp` health-bar fill play in from a default — the moment
-  must open mid-fight.
+  "boss active" flag, a locked-doors set, an encounter counter), recompute it from restored ground truth —
+  don't trust a replayed value or let a re-driven spawn path bump it N times.
+- **Snap, don't ease** (`07 §5`, `07 §10.1`) — spawn the boss *at* its captured pose/phase; no spawn
+  animation, intro dolly, or `SmoothDamp` health-bar fill easing in from a default.
+
+### 4.5 Re-arm the ongoing processes the trigger started
+
+The trigger doesn't only set one-shot state — it **starts ongoing processes**: the enrage-timer coroutine,
+the periodic summon loop, aggro acquisition, the boss music. Suppress the trigger (§4.4) and none of them
+start, so the fight **freezes** even with every value restored.
+
+- **One-shot state** (§4.4) you set once. **Ongoing processes you must re-arm** at their captured value:
+  start the enrage coroutine at the **remaining** time (§3), seed the summon loop's next-summon time +
+  budget from the restored adds-alive (§6), set the boss's aggro target to the restored player (Pass 2,
+  `07 §6`), start the boss track (soundtrack presence, `07 §8`).
+- This is why §3 captures the timer as **remaining**: remaining is the re-arm input. Captured but never
+  re-armed, it's inert.
+
+### 4.6 The live attack — reconstruct it, don't re-roll it
+
+The skill's goal is to drop the player into a **perfectly reconstructed moment**, and for a boss that
+moment is frequently the boss *mid-attack* — the wind-up the player is dodging, the beam they're outrunning.
+Restoring the boss idle in the right phase throws the moment away. So **capture the boss's live attack**,
+not just its phase.
+
+- **It lives where phase lives (§4.1).** The current attack is an Animator state + `normalizedTime`, the
+  current node of an attack-selection FSM, or a mid-run attack coroutine — capture and restore it with the
+  same §4.1/§4.2 mechanics (state hash + normalized time, or a `PlayAttack(id, atProgress)` seam if none is
+  public). Capture the attack **id + progress** plus the boss's **locomotion/stance** (§3) so pose and
+  movement match.
+- **Force the captured attack — do not let selection re-roll it.** Attack choice is usually RNG, so a plain
+  snapshot-not-replay restore lets the AI pick a *fresh* attack and the moment shows a different move than
+  the one captured — tolerable in a generic fight, **fatal when the moment *is* that attack.** Set the boss
+  into the captured attack at its captured progress; let the *next* attack re-roll naturally.
+- **In-flight projectiles / AoE telegraphs / damage volumes are their own tracked objects.** A bullet-hell
+  boss's moment is mostly the bullets on screen — track them as a collection (own keys, `06 §4`); for
+  attacks that spawn deterministically from (attack id + progress), **recompute** them on restore instead
+  of storing each. Active melee **hitboxes** follow the same rule: restore the attack at its progress and
+  let hitbox enablement follow, or set the enabled set explicitly (§3).
+- **Fidelity has a cost — scope it to the moment.** Frame-exact projectile positions matter for a
+  bullet-hell; for a slow telegraphed slam, attack id + progress is enough. Capture to the granularity the
+  highlight needs (the intake's "what is a good highlight" answer), not more.
 
 ---
 
@@ -129,7 +239,8 @@ side-effects — without re-firing the trigger or its cutscene.**
   not the cinematic. The cutscene is a one-shot beat, not tracked state — skip it (suppress, not freeze,
   `07 §10.1`), and snap straight to the captured fight state.
 - **If a scripted sequence is *active* at capture** (a scripted attack rotation, a set-piece phase), track
-  its **cursor** (§3) and snap the sequence to it on restore — do not run it from step 0.
+  its **cursor** (§3) and snap the sequence to it on restore — do not run it from step 0. When the sequence
+  is a Timeline/animator, the cursor and the snap mechanics are §4.1.
 - **Capturing a moment mid-cutscene is an open question** (§8) — most integrations should curate the
   playable fight, not the cinematic. If the game genuinely needs a mid-cutscene Ludeo, record it and
   escalate rather than guessing.
@@ -192,7 +303,12 @@ callbacks, and arena `OnTriggerEnter` locks.
 worst for bosses. At this wave's restore gate: play the restored Ludeo and confirm the boss enters its
 next phase, the arena stays locked, adds spawn, and the fight can reach its win/lose condition — then
 watch the derived counters (adds-alive, enemies-remaining) match ground truth as it plays (the phase 4
-wave restore gate). "Boss is standing there" is not a pass.
+wave restore gate). Confirm the moment **opens on the captured live attack** (§4.6), not a fresh idle.
+"Boss is standing there" is not a pass.
+
+> **Expected divergence, not a bug:** the boss's *next* attack after the captured one will differ run to
+> run (attack selection is RNG — snapshot-not-replay). Only the **captured** live attack + state must
+> match on open; the fight legitimately plays out differently after. Don't chase this into a false failure.
 
 **Known unknowns — record the case and escalate; grow this list.**
 - **Mid-cutscene capture / QTE beats** — curating a Ludeo *inside* a cinematic or quick-time event (§5).
