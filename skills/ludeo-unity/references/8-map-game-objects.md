@@ -90,6 +90,11 @@ wave — here, just the spawn/own classification + the hook sites (they decide t
   and `game-patterns/open-world-tracking.md` — the tracking delta: **presence ≠ existence** (don't
   unregister on stream-out), world/cell object types, persistent-world-id identity across stream cycles,
   scoping the tracked set to the loaded neighborhood.
+- **If the game has bosses** (INTAKE "Bosses? yes", or a boss / named / scripted-encounter type surfaces
+  during discovery), also load `game-patterns/bosses.md` — a boss fight is a load-bearing, scripted
+  encounter with a unique spawn trigger, phases/forms, an intro cutscene, and summoned adds, whose state
+  restoration must reconstruct without re-firing the trigger. It drives the boss's wave/load-bearing flags
+  below and its per-wave scoping in Part B.
 - **If `session_boundaries.assembly == "procedural"`**, also load `game-patterns/procedural-world.md` —
   add a singleton **`RunMetadata`** objectType (§3) capturing the **generation inputs** (selection id,
   sub-roll id, progress cursor, scaling counter) as stable asset names/values; default to **resolved**
@@ -154,6 +159,16 @@ spawn pattern (dynamic / scene-placed / both), whether it streams in/out (+ its 
 > non-load-bearing state belongs in a **later wave (2+)** — assign it there in Step A5, and do **not** drop
 > it just because it's deferred. (The mid-song *position* clock is the separate, time-driven-only Wave-1
 > concern above.)
+
+> **⚠️ If the game has bosses — record TWO types, both load-bearing / Wave 1 (when a boss is in the
+> captured moment).** A boss is not a generic enemy: (1) the **boss entity** (flag it `IsBoss` so it's
+> never swept into or counted as the generic-enemy bucket), and (2) a **`<Boss>Encounter` fight-state
+> singleton** — phase/form index, phase timer *remaining*, scripted cursor, arena-lock, adds-alive — the
+> manager-level state a viewer-centric sweep (§9.2) misses, just like the time-base singleton. Adds the
+> boss summons are their **own** type (`IsMinion`, owner = boss key). The boss's spawn is a one-shot
+> trigger/cutscene whose side effects restoration reconstructs without re-firing — see
+> `game-patterns/bosses.md` for the full framework. Do not defer a boss in the captured moment to a late
+> wave.
 
 ### Step A5: Assign a wave to every type (NEW — the iterative plan)
 Tag each type `wave: 1 | 2 | 3 | …`:

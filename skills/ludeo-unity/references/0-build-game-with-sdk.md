@@ -107,9 +107,10 @@ Fill `ludeo-integration-plan/INTAKE.md` (template in §6) with the user. Answer 
 evidence where it comes from code; mark unknowns `?`; **ask** the human-only items (§4). Three parts:
 
 1. **Game + Ludeo profile** — identity, genre (→ a `game-patterns/*.md` match), engine/render
-   pipeline/scripting backend, target platform, auth, and the **Ludeo concept** (what a good highlight
-   moment is; what the player should experience when launching a Ludeo; typical length; the player
-   actions that matter most).
+   pipeline/scripting backend, target platform, auth, **whether the game has boss encounters**
+   (→ `game-patterns/bosses.md`; a boss fight is a common highlight and a load-bearing special case),
+   and the **Ludeo concept** (what a good highlight moment is; what the player should experience when
+   launching a Ludeo; typical length; the player actions that matter most).
 2. **Launch model ⭐** — a **product choice** (not inferable from code alone) that selects the startup
    flow the integration builds. Two **independent** axes — ask both; a game can be boot-straight for
    creation but gallery-based for replay, or vice-versa:
@@ -203,6 +204,11 @@ Only what can't be inferred from code:
   Steam appId if applicable.
 - **Ludeo concept** (intake §) — what makes a good highlight moment in this game; what the player
   should experience when launching a Ludeo; typical Ludeo length; which player actions matter most.
+- **Bosses** — does the game have boss / named / scripted-encounter enemies? If a boss fight is a likely
+  highlight, note each boss and how the fight is structured (phases/forms? summoned adds? an intro or
+  transition cutscene? a unique spawn trigger / locked arena?). Drives loading `game-patterns/bosses.md`
+  and flagging the boss as load-bearing in the census. Code-level detail is confirmed later; the human
+  knows the shape of the fight now.
 - **Launch model** (intake §) — menu-gated vs. boot-straight-to-gameplay for a capture session; and
   whether a Ludeo is entered via an in-game gallery or launched preselected. A product choice — ask;
   don't infer it solely from the current first scene.
@@ -240,6 +246,7 @@ Context files (read first; relative to this workflow file):
 ## Game + Ludeo profile
 - Name / studio:
 - Genre / sub-genre:                 (→ game-patterns/<match>.md)
+- Bosses? <yes/no>:                   (if yes → game-patterns/bosses.md; per boss: phases? adds? cutscene? unique spawn trigger/arena?)
 - Single-player / multiplayer:
 - Core loop (1–2 sentences):
 - Unity version / render pipeline / scripting backend (Mono | IL2CPP):
