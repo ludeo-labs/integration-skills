@@ -411,7 +411,24 @@ void RestoreLudeoState(LudeoStateObjectRestore r) {
     r.TryGetAttribute(K.OpenProgress, out float p);
     ApplyDoorState(open, p);     // restore mid-animation pose if the replay can pause there
 }
+
+// 5.5 Camera / viewpoint (singleton — bucket[0])                                    inverse of 06 §10.6
+void RestoreLudeoState(LudeoStateObjectRestore r) {
+    r.TryGetAttribute(K.CamPitch, out float pitch);
+    r.TryGetAttribute(K.CamYaw, out float yaw);
+    r.TryGetAttribute(K.OrbitDistance, out float dist);
+    m_rig.SetAngles(pitch, yaw);  m_rig.SetDistance(dist);   // [Unity] rig control state, not the derived transform
+    m_rig.SnapToTarget();        // [Unity] SNAP — no smoothing/lerp this frame, or the view eases in from a default (§7)
+}
 ```
+
+> **⚠️ Snap the camera to the captured view — never let a follow/`SmoothDamp` rig ease into it.** The
+> viewpoint is the *first thing the viewer sees*, so a rig that spawns at a default orientation and
+> `SmoothDamp`s toward its target over the next second means the replay **opens on the wrong view and slides
+> into place** — visibly wrong even when every object is correctly restored. Restore the rig's control state
+> (pitch/yaw/distance from `06 §10.6`) and force it to its final pose in one frame (disable smoothing for
+> that frame, or call the rig's snap/teleport path) **before `Begin`**, while frozen (§10). This is the same
+> "first frame must be the finished scene" invariant as §2.1(5), applied to the camera.
 
 ---
 
@@ -447,6 +464,7 @@ Apply them **after Pass 2, before `Begin`**, in a recorded order:
 | `Animator` state / normalized time `[Unity]` | overwritten by the entry-state transition | `Animator` enabled + past entry |
 | `NavMeshAgent` position/path `[Unity]` | must be on the NavMesh (use `Warp`) | agent placed on NavMesh |
 | Ability / cooldown timers | a `Start`/`OnEnable` re-initializer resets them | re-initializers have run |
+| Camera follow/look rig (smoothing) `[Unity]` | a `SmoothDamp`/lerp `LateUpdate` eases from the default toward target over several frames | player placed; snap the rig to the captured pitch/yaw/distance (§5.5), no smoothing that frame |
 
 If deferred properties depend on each other, record the **queue order** in `RESTORATION_PLAN.md` — don't
 infer it at runtime. The freeze (§10) holds until these are applied, so the player never sees the pre-defer
@@ -676,6 +694,9 @@ anything this run set.
 - [ ] Every entity/property in `OBJECT_TRACKING.md` has a `RestoreLudeoState` read using the **same `LudeoKeys`** + `objectType`.
 - [ ] Cross-Entity References table fully resolved in Pass 2 (§6).
 - [ ] Deferred properties applied after Pass 2, before `Begin`, in recorded order (§7).
+- [ ] **If** camera view state was captured (`06 §10.6` — independently-controllable view): restored to the
+      captured pitch/yaw/distance and **snapped** (no smoothing/lerp) so the first frame opens on the captured
+      view, not a default the rig eases out of (§5.5/§7). (Fixed / player-derived cameras capture nothing here.)
 - [ ] World/level definitions restored to drive spawning; environment after entities; exclusion list recorded (§8).
 - [ ] Scene-placed objects reconciled match-vs-spawn — no double-spawn (§9).
 
