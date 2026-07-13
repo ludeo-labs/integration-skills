@@ -154,6 +154,36 @@ If your curated slice demo requires the level BP to look sane (no stale VO, no e
 
 If the intake questionnaire Group 5 (Event-Driven Scripted Systems) was run at Phase 0, cross-check findings here with the team's stated answers. Discrepancies are risks — surface them to the human.
 
+#### 3.4.6 World-Frame Determinism (Spatial Reconstruction)
+
+Answer this for **every** game — even one whose content is entirely authored / hand-placed:
+
+> *Does any gameplay object's world transform come from a runtime roll (procedural placement, a random spawn point, a seeded layout), or does the engine shift the world origin during play (World Origin Rebasing / `RebaseOrigin` in large worlds)?*
+
+**Answer by READING the placement code, not by grepping for a token.** A grep for `Rand` / `Seed` / `Rebase` that comes back empty gives false confidence — procedural placement is usually expressed without those literal tokens (a connector-alignment loop, a per-transition offset, a chunk streamer). Read how the level / rooms / chunks actually acquire their transforms.
+
+**Why it's load-bearing:** absolute world position is only restorable if the spatial frame is rebuilt **identically** at replay time. If placement is a runtime roll and you don't reproduce it (same seed + same generation inputs), a restored `FVector` lands "in the void" — right coordinates, wrong world. Reproducing *which* content spawns is necessary but **not sufficient**; you must also reproduce *where* it was placed, or store positions relative to a stable reconstructed frame. The trap case is a **world-origin-rebased** game: content is authored (`assembly: authored`) yet `deterministic: false`, because the engine moved the origin during play, so a raw captured `FVector` is in the wrong frame on restore.
+
+**Record in `code-map.json → world_frame`** — a bare `true` is rejected (it means the question wasn't answered):
+
+```json
+"world_frame": {
+  "deterministic": true,
+  "reason": "all geometry hand-placed in one persistent level; no runtime transform rolls; no origin rebasing",
+  "evidence": {"file": "Source/Game/GameMode.cpp", "line": 0}
+}
+```
+or, when it is not deterministic:
+```json
+"world_frame": {
+  "deterministic": false,
+  "cause": "procedural-placement | floating-origin",
+  "sites": ["Source/Game/RoomStreamer.cpp:PlaceNextChunk"]
+}
+```
+
+**→ Wired to:** Phase 3/4. Before tracking any **absolute** position, check `world_frame.deterministic`. If `false` or unprobed, either (a) restore the master seed + generation inputs and reproduce placement deterministically before applying positions, or (b) store positions **relative to a stable reconstructed frame** rather than world-absolute. And Phase 4's restore-verification capture MUST be taken **mid-run (past the first segment), not at the origin** — an origin capture masks a displaced-frame bug because everything is still near `(0,0,0)`. Gate symptom question: "does any entity sit in empty space, fall through the world, or appear far from geometry?" A yes is a displaced-frame bug even if positions "restored." See `learnings/common-mistakes/random-seed-is-not-optional.md`, `learnings/architecture/snapshot-determinism-is-coverage-problem.md`, and `learnings/engine-quirks/fmath-frand-vs-frandomstream-determinism.md`.
+
 #### 3.5 Save System
 
 **Step 1: Check reference sample catalog.** Before running any analysis, read `references/reference-sample-catalog.md` and check whether the current game matches a known sample (by name, engine version, or architecture). If it matches, START from the sample's classification and verify each precondition against the current project — do not re-derive from scratch. A matching sample is the strongest signal and overrides grep-based inference.
@@ -344,6 +374,13 @@ After running the analysis checklist and selecting the curated slice, produce `.
       "plugins": "Plugins/",
       "config": "Config/"
     }
+  },
+  "world_frame": {
+    "deterministic": true,
+    "reason": "REQUIRED when deterministic:true — a bare true is rejected. Why the spatial frame rebuilds identically at replay (see §3.4.6)",
+    "cause": "procedural-placement | floating-origin (only when deterministic:false)",
+    "sites": [],
+    "evidence": {"file": "", "line": 0}
   },
   "core_classes": [
     {
@@ -689,6 +726,7 @@ Each genuine risk MUST name (a) the concrete failure mode and (b) the evidence f
 - [ ] Every symbol verified against the actual codebase (no guessed names)
 - [ ] Curated slice selected (map + mode + entities) and recorded in `integration.json → curatedSlice`
 - [ ] Save-system group classified with evidence
+- [ ] World-frame determinism probed by reading placement code and recorded in `code-map.json → world_frame` (with `reason`+`evidence` when `true`, or `cause`+`sites` when `false`) — see §3.4.6
 
 ---
 
@@ -780,3 +818,9 @@ If unsure about API details, check the `sdk-docs` MCP server or `references/sdk-
 **Mistake:** Listing risks that aren't evidenced by code analysis (e.g., "UE version compatibility" when the plugin supports the version).
 **Why it's wrong:** Fabricated risks waste the human reviewer's time and undermine trust in the TDD.
 **Prevention:** Every risk must reference a specific finding — a code pattern, missing API, or constraint discovered during analysis. Check `config/sdk-sources.json` for known compatibility info. If no real risks were found, say "No risks identified."
+
+### 8.13 Tracking Absolute Positions in a Non-Deterministic World Frame
+
+**Mistake:** Capturing world-absolute `FVector` positions without first checking whether the spatial frame is deterministic — assuming "authored content" means "restorable positions."
+**Why it's wrong:** If the game rolls placement at runtime (procedural layout, seeded spawn points) or rebases the world origin during play, the captured coordinates land in a differently-assembled world on restore — actors in the void, falling through geometry, or far from where they belong. Reproducing *which* content spawns is not the same as reproducing *where*.
+**Prevention:** Answer §3.4.6 by reading placement code (not grepping); record `world_frame` in the CODE_MAP. For a non-deterministic frame, restore the seed + generation inputs and reproduce placement before applying positions, or store positions relative to a stable reconstructed frame. Verify with a **mid-run** capture, never an origin capture. See `learnings/architecture/snapshot-determinism-is-coverage-problem.md`.

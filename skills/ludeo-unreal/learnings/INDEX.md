@@ -8,7 +8,7 @@ Regenerate with `node scripts/generate-learnings-index.mjs` after adding a learn
 If you add a learning where you cannot run node (e.g. an installed skill copy),
 append the line by hand in the same format.
 
-Total: 296
+Total: 297
 
 - architecture/additive-action-emission-for-composable-goals.md | universal | p5 | Emit actions on multiple orthogonal axes — additive, not else-if
 - architecture/bind-session-notifications-once-at-subsystem-not-per-room.md | generalizable | p4 | Are the session-level notification delegates (OnRoomReady, OnLudeoSelected, pause/resume, back-to-menu) bound ONCE at session setup on a persistent owner, or rebound per-room on a transient component?
@@ -50,6 +50,7 @@ Total: 296
 - architecture/player-flow-pause-timing.md | universal | p2 | Player Flow pause timing: pause BEFORE room open, unpause BEFORE state apply
 - architecture/player-flow-spawn-not-defer.md | universal | p4 | 
 - architecture/player-flow-state-settle-requires-unpause.md | universal | p4 | State restoration requires game ticks to propagate — must unpause briefly
+- architecture/player-flow-suppression-clobbering-vs-blocking.md | universal | p4 | Two kinds of Player-Flow suppression — state-clobbering (gate it) vs flow-blocking (undo it)
 - architecture/post-restore-self-validation-phased-checks.md | universal | p4 | Validate the restore with phased self-checks in code — never sign off Player Flow on visual inspection
 - architecture/pre-vs-post-beginplay-restore-timing.md | universal | p4 | Restore timing fundamentally changes what can be restored — pre-BeginPlay sidesteps cascade firing
 - architecture/progression-trails-vs-snapshot-state.md | generalizable | p1 | Does this game have progression-trail state (scripted milestones, completed objectives, mission-prop usage, level-blueprint event history) and not just snapshot state? If so, capture the time-ordered event sequence and …
