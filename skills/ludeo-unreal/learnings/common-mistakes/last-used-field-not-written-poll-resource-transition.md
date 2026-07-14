@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: TacticsGame
-phase: 5
+phase: 6
 question: "Are you about to detect an 'ability/item/weapon used' action by polling a 'LastUsedX' / 'CurrentX' convenience field for a change? STOP and verify that field is actually WRITTEN on the use path (BP graph: look for a Set node). It often isn't. The reliable signal is the consumable-resource transition the use causes — a charge consumed (count drops) or a cooldown started (timer rises)."
 sanitized: true
 ---

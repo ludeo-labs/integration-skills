@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Does the FPS use separate FPP and TPP meshes? Is the TPP base mesh owner-visible or owner-hidden by default? Does the cosmetic / weapon attach decision evaluate `bIsLocallyControlled` (or `Controller->GetViewTarget()`) at runtime, and if so, when does that evaluation fire relative to your restore?"
 sanitized: true
 ---

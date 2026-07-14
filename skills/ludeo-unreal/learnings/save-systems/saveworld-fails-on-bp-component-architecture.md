@@ -2,7 +2,7 @@
 category: save-systems
 tier: generalizable
 sourceGame: VoyagerV2
-phase: 3
+phase: 4
 question: "Does this game store gameplay state on Blueprint sub-components (HealthComp, WeaponComp, etc.) rather than as direct UPROPERTY members on the actor? If yes, SaveWorld cannot reach those properties — use the game's native save interface or manual approach instead."
 sanitized: true
 ---

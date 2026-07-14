@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: TacticsGame
-phase: 5
+phase: 6
 question: "Does the game already expose Blueprint event dispatchers (BP 'Event Dispatcher' = dynamic multicast delegate) for the gameplay moments you want as actions (pickup, mine placed, spotted, died), and do you only need to know the event happened (attribution is the single local player or otherwise known)? If yes, bind a ZERO-ARG UFUNCTION to each dispatcher via reflection — you don't need the delegate's parameter signature."
 sanitized: true
 ---

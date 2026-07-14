@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: Lyra
-phase: 2
+phase: 3
 question: "Is there a reference sample available at the Ludeo repo (e.g., ludeosdk-lyra-sample)?"
 sanitized: true
 ---

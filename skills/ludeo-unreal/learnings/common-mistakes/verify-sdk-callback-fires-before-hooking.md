@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 2
+phase: 3
 question: "Before hooking a fix to an SDK callback (OnPauseGameRequested, OnResumeGameRequested, etc.), have you confirmed it actually FIRES in the scenario you're targeting? Add an entry-log to the handler and grep the log for it — don't assume."
 sanitized: true
 ---

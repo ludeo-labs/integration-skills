@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 4
+phase: 5
 question: "Does the restore spawn BOTH physics-settling entities (corpses/ragdolls/debris that need fall time) AND mobile AI (that wanders during any unpaused frame)? If so, stagger: physics entities first with a long settle, mobile AI last, just before the pause."
 sanitized: true
 ---

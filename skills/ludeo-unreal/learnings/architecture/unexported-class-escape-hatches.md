@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "When the API you need lives on a class that isn't `*_API`-exported, which of the four escape hatches do you use — library/singleton getter, exported parent, gameplay-tag container, or adding MinimalAPI?"
 sanitized: true
 ---

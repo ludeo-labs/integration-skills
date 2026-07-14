@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 2
+phase: 3
 question: "Does the integration plugin call UGameMapsSettings (e.g. GetGameDefaultMap() for Player Flow travel)? If so, add 'EngineSettings' to the module's .Build.cs dependencies."
 sanitized: true
 ---

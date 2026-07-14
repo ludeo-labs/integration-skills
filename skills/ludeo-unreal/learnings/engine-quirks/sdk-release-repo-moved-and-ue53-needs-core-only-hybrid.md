@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: StoryPuzzleGame
-phase: 2
+phase: 3
 question: "Is the target project on UE 5.3 (or any engine OLDER than the one the latest LudeoUESDK release was built for) AND hitting a stale-C-SDK-vs-backend problem? If so, the newest release zip's WRAPPER may not compile on your engine — keep a known-good-on-your-engine wrapper and swap in ONLY the newer core C SDK."
 sanitized: true
 ---

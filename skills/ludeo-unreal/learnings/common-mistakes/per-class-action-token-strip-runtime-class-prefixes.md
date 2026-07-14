@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: TacticsGame
-phase: 5
+phase: 6
 question: "Are you deriving a per-class action name token (e.g. Destroy<UnitClass>, Kill<EnemyType>) from a class path? Derive it from the ACTUAL runtime class name and account for ALL wrapper/family prefixes (BP_, a project 'BP_PX_'-style wrapper, a 2-letter family code), not the short name you saw in the asset browser — and log the derived token on the first few events to confirm it matches your allowlist."
 sanitized: true
 ---

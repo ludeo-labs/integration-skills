@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: TacticsGame
-phase: 2
+phase: 3
 question: "Does a Player-Flow feature compute a per-poll signal/action from transient game state (an active-unit reference, a phase value, an 'is X happening now' flag)? If so, that state can be momentarily ABSENT (null / between values) during moves, animations, or transitions — and the cloud's slower/variable frame rate will land your poll inside that transient window even when local play never does."
 sanitized: true
 ---

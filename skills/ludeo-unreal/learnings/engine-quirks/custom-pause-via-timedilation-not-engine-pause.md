@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 2
+phase: 3
 question: "How does this game pause? Does its pause function call UGameplayStatics::SetGamePaused, or a custom path (per-actor CustomTimeDilation=0, AWorldSettings::PauserPlayerState, or just a bool flag)? If custom, World->IsPaused() will NOT detect it — read the game's own pause signal for non-ludeoable segment marking."
 sanitized: true
 ---

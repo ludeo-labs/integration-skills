@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: universal
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "When firing OnRep handlers during state restoration, what's the right timing? Is OnWorldInitializedActors safe?"
 sanitized: true
 ---

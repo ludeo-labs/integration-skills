@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Does the game spawn AI/NPCs at level start that will duplicate with tracked entities?"
 sanitized: true
 ---

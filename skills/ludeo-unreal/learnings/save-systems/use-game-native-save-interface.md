@@ -2,7 +2,7 @@
 category: save-systems
 tier: generalizable
 sourceGame: VoyagerV2
-phase: 3
+phase: 4
 question: "Does this game have a save interface (e.g., BPI_SaveGame) that actors implement to serialize their own state? If yes, consider using that interface to collect state and pass to Ludeo via SaveGameToSlot (SDK Option 1) rather than SaveWorld's property traversal."
 sanitized: true
 ---

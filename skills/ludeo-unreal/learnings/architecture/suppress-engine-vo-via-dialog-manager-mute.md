@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Does the game have a central dialog/VO manager with a `bCanPlay`-style master gate and a `Clear`/`InterruptAll` that cancels pre-delay queued dialogs? If yes, muting the manager for a boot window beats killing the trigger event."
 sanitized: true
 ---

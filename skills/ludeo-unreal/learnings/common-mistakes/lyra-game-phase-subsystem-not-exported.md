@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: game-specific
 sourceGame: Lyra
-phase: 2
+phase: 3
 question: "Are the game phase subsystem methods (WhenPhaseStartsOrIsActive, WhenPhaseEnds) exported with the module API macro?"
 sanitized: true
 ---

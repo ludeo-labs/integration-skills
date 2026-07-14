@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: TacticsGame
-phase: 1
+phase: 2
 question: "Do you need to know which maps/assets a DataTable or plain-Actor BP references, and is booting the headless editor (30-60s+) overkill for the question?"
 sanitized: true
 ---

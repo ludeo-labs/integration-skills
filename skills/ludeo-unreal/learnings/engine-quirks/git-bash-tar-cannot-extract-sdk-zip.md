@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: universal
 sourceGame: EndlessFPS
-phase: 2
+phase: 3
 question: null
 sanitized: true
 ---

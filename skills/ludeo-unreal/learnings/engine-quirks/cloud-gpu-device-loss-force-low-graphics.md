@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 6
+phase: 7
 question: "Does the game run on the Ludeo cloud streamer at its normal graphics settings, or does the GPU crash mid-session? Cloud runs the Win Shipping build under Proton/Wine with D3D->Vulkan (vkd3d-proton) on a shared GPU; high/ultra settings can lose the device. Config/ini overrides may not stick if the game's menu framework re-applies its own settings on launch."
 sanitized: true
 ---

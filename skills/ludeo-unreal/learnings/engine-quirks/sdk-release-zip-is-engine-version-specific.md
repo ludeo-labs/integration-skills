@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 2
+phase: 3
 question: "Does the target engine version match the engine the LudeoUESDK release zip was built against? The published release asset can be built for an OLDER engine (e.g. a 4.2x-era release) and fail to compile on a newer one (e.g. 5.6) until the engine-version-sensitive UE wrapper files are patched. Verify before assuming 'no version risk'."
 sanitized: true
 ---

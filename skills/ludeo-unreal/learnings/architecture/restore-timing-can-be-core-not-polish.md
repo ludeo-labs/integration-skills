@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: TacticsGame
-phase: 4
+phase: 5
 question: "Does the game run a startup choreography / queued-animation / state-machine sequence AFTER its 'gameplay active' signal (turn-based action queues, scripted intros, staged spawns)? If yes, restore-timing correctness is STAGE 3 work — gate the restore on the game's own idle signals; do not reflex-defer 'timing' to the polish stage."
 sanitized: true
 ---

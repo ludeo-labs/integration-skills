@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Is this an FPS or TPS game where the camera direction is controlled by the player controller?"
 sanitized: true
 ---

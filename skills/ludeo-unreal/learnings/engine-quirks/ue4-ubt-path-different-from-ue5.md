@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: ActionGame
-phase: 2
+phase: 3
 question: "Is this a UE4 source build, UE4 launcher install, or UE5? On UE4 source builds, UnrealBuildTool.exe lives at Engine/Binaries/DotNET/UnrealBuildTool.exe (no subdirectory) — different from UE5's Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTool.exe."
 sanitized: true
 ---

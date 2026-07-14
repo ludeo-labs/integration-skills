@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: Lyra
-phase: 2
+phase: 3
 question: "Does the game run with Steam initialized at activation time? If not (e.g., editor, standalone, or sample projects), explicit Steam authentication is required."
 sanitized: true
 ---

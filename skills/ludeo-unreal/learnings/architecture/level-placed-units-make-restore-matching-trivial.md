@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: TacticsGame
-phase: 3
+phase: 4
 question: "Are the curated slice's entities LEVEL-PLACED rather than runtime-spawned? Verify with inspect-level (placed-actor histogram) plus the spawner-suspect's BeginPlay call graph. If yes, Player Flow restore = match by stable actor FName + drive the game's own removal for dead units — no spawn reconstruction at all."
 sanitized: true
 ---

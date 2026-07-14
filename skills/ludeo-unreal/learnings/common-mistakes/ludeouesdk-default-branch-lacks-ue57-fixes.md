@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: FTPS_Online
-phase: 2
+phase: 3
 question: "For UE 5.4+ projects, check if the LudeoUESDK default branch (dev) compiles cleanly. If not, look for a feature branch with 'ue57' or 'deprecated API' fixes before writing any integration code."
 sanitized: true
 ---
@@ -55,7 +55,7 @@ Record the branch in `integration.json → sdkSetup.uePlugin.branch`.
 
 ## Extra benefit from switching
 
-The `ronen/lyra_and_ue57_int` branch also adds `PlatformUrl` as a first-class field on `FLudeoSessionActivateSessionParameters`. On `dev`, plugin code that sets `PlatformUrl` would fail to compile. The skill's Stage 2 reference guidance in `references/phase-02-lifecycle.md` §5.3 already includes `PlatformUrl` handling — so the skill's own reference code is **incompatible with `dev` by design** and only compiles against this feature branch. This is another reason to always prefer the feature branch on UE 5.x integrations.
+The `ronen/lyra_and_ue57_int` branch also adds `PlatformUrl` as a first-class field on `FLudeoSessionActivateSessionParameters`. On `dev`, plugin code that sets `PlatformUrl` would fail to compile. The skill's Stage 2 reference guidance in `references/phase-03-lifecycle.md` §5.3 already includes `PlatformUrl` handling — so the skill's own reference code is **incompatible with `dev` by design** and only compiles against this feature branch. This is another reason to always prefer the feature branch on UE 5.x integrations.
 
 ## Skill action
 

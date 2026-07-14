@@ -2,7 +2,7 @@
 category: architecture
 tier: universal
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "When the integration restores replicated state through an `OnRep_X` broadcast helper, what invariants does the engine's existing OnRep code assume about the array/map shape — and does the restore preserve them?"
 sanitized: true
 ---

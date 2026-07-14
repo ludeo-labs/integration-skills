@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: TacticsGame
-phase: 1
+phase: 2
 question: "Is the core gameplay implemented by a marketplace Blueprint toolkit (ATBTT, a shooter kit, etc.)? If yes: check the BP inspection report's parentClass column for toolkit game-mode/state BPs reparented onto the studio's C++ classes — that reparent point is the C++ integration surface."
 sanitized: true
 ---

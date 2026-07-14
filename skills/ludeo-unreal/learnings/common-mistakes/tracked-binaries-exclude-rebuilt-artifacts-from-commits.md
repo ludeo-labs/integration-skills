@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: TacticsGame
-phase: 0
+phase: 1
 question: "Does this team track build artifacts (Binaries/, Intermediate UHT files) in VCS? Check `svn status` / `p4 opened` after your first editor build — if previously-tracked DLLs/PDBs/generated headers show as modified, you are on a tracked-binaries project and integration commits must exclude them."
 sanitized: true
 ---

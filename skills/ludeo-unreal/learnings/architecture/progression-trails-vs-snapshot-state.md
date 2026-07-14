@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: ActionGame
-phase: 1
+phase: 2
 question: "Does this game have progression-trail state (scripted milestones, completed objectives, mission-prop usage, level-blueprint event history) and not just snapshot state? If so, capture the time-ordered event sequence and replay it via the game's own notifiers before applying snapshot state."
 sanitized: true
 ---

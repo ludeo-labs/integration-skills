@@ -2,7 +2,7 @@
 category: save-systems
 tier: generalizable
 sourceGame: VoyagerV2
-phase: 7
+phase: 8
 question: "Does this BP-only project have 0 SaveGame flags on gameplay variables? If yes, use the LudeoBPInspector C++ plugin + set-savegame to flag key value properties programmatically. This may enable SaveWorld where it was previously ruled out."
 sanitized: true
 ---

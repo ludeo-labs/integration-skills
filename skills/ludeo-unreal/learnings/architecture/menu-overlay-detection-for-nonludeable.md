@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: Lyra
-phase: 2
+phase: 3
 question: "Does this game use CommonUI's UPrimaryGameLayout with activatable widget layers for its menu system?"
 sanitized: true
 ---

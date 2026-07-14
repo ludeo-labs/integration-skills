@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: Lyra
-phase: 2
+phase: 3
 question: "What C SDK BUILD (the `LudeoSDK vX.Y.Z, GitHash:…, Build <date>` line) does a CURRENTLY-WORKING integration on this machine/account log, and does the SDK you're using match it? An older bundled C SDK can fail against a newer live backend with RoomReady never firing."
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 2
+phase: 3
 question: "Does the packaging command pass -build -target=<Game>? A BP-only project that has a C++ plugin (every Ludeo integration does) STILL needs the game target compiled — a 'no Source/ dir => skip -build' heuristic produces a package with no/stale game binary and fails on configs with no pre-built binary (e.g. Shipping)."
 sanitized: true
 ---

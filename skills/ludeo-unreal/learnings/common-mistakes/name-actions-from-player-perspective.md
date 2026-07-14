@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: Lyra
-phase: 7
+phase: 8
 question: "Are action names human-readable and player-facing? Is variable data (team ID, weapon, count) kept out of the action name string?"
 sanitized: true
 ---
