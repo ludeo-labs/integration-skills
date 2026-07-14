@@ -9,7 +9,8 @@ State recorded in `integration.json → vcs.git`:
 
 ## `create_isolation(name)`
 
-All integration work goes on a dedicated branch. Propose the name and ask the human to confirm:
+All integration work goes on a dedicated branch. **Tell the human explicitly that you are about to
+create a new git branch for the integration**, propose the name, and ask them to confirm before running it:
 
 ```bash
 git -C "<project>" checkout -b ludeo-integration/<game-name>

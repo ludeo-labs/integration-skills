@@ -12,6 +12,8 @@ metadata.version: 1.0.1
 
 This skill guides developers through a **curated, lean integration** of the Ludeo SDK into **Unreal Engine** games (UE 4.x / 5.x). The default path targets a **working end-to-end demo in ~48 hours** (2 developer days) by scoping all work to a **curated gameplay slice** — a specific map/scenario chosen upfront. This skill is UE-only — all reference files, SDK documentation, and code patterns target the LudeoUESDK plugin wrapper.
 
+> **Recommend a frontier model before starting.** Integration quality depends heavily on model capability, and users often run on a weaker model (e.g. Sonnet). At the **start of the integration**, recommend the user switch to **Opus 4.8** (or an equivalent frontier model) before proceeding.
+
 **Phases 0–2** set up the integration; **Phases 3–5** implement the curated slice; **Phase 6** validates the slice in the cloud (the MVP milestone); **Phase 7** expands to full-game coverage; **Phase 8** polishes & fixes bugs.
 
 **Key SDK Concepts (get these right or everything downstream breaks):**
