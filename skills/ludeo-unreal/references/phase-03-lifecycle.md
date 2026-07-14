@@ -1,4 +1,4 @@
-# Phase 02 — Lifecycle + Non-Gameplay
+# Phase 03 — Lifecycle + Non-Gameplay
 
 ## 1. Goal / Purpose
 
@@ -27,7 +27,7 @@ The lifecycle is the foundation for all subsequent phases. Correctly identified 
 ```
 Required:
   tddSection1: markdown     — Approved Architecture TDD (.ludeo/tdd/integration-tdd.md Section 1)
-  codeMap: json              — .ludeo/code-map.json (from Phase 1)
+  codeMap: json              — .ludeo/code-map.json (from Phase 2)
   integrationJson: json      — .ludeo/integration.json with saveSystemGroup, gameTitle, engineVersion, gameType
 
 Optional:
@@ -37,14 +37,14 @@ Optional:
 
 Before starting this phase, verify:
 
-- [ ] Phase 1 completed — `.ludeo/tdd/integration-tdd.md` Section 1 exists and is **human-approved**
+- [ ] Phase 2 completed — `.ludeo/tdd/integration-tdd.md` Section 1 exists and is **human-approved**
 - [ ] CODE_MAP available at `.ludeo/code-map.json`
 - [ ] `integration.json` has `saveSystemGroup`, `gameTitle`, `engineVersion`, `gameType`
 - [ ] LudeoUESDK plugin is accessible in the project (for header references)
 - [ ] Game codebase compiles without Ludeo plugin
 
 **From CODE_MAP (used throughout this phase):**
-- `lifecycle_hooks` — all hook points discovered in Phase 1
+- `lifecycle_hooks` — all hook points discovered in Phase 2
 - `core_classes` — GameMode, GameState, GameInstance, PlayerController
 - `event_systems` — delegates, message subsystems, event buses
 - `codebase_summary.usesGameFeatures` — determines plugin type (GameFeature vs regular)
@@ -53,7 +53,7 @@ Before starting this phase, verify:
 
 ## 3. Steps
 
-Map each SDK lifecycle point to the game's actual code. Use CODE_MAP fields from Phase 1 as the starting point, then refine with targeted searches.
+Map each SDK lifecycle point to the game's actual code. Use CODE_MAP fields from Phase 2 as the starting point, then refine with targeted searches.
 
 ### 3.1 Startup & Shutdown
 
@@ -80,7 +80,7 @@ Map each SDK lifecycle point to the game's actual code. Use CODE_MAP fields from
 > ~1 ms after `AddPlayer` ONLY when the room opened in the normal level-load window.** A room opened
 > late (e.g. seconds later, when the Playing phase starts) **never receives `OnRoomReady`** — the
 > begin gate hangs, `Player::BeginGameplay` is never called, and **nothing records**, even though
-> `OpenRoom`/`AddPlayer` both returned success. (Lyra Phase 2, log-verified.)
+> `OpenRoom`/`AddPlayer` both returned success. (Lyra Phase 3, log-verified.)
 >
 > Because the room opens before the player may have joined, drive `AddPlayer` off a **player-added
 > delegate + a pending-players queue** (flush in `OnRoomOpened`) — do not synchronously resolve "the
@@ -101,9 +101,9 @@ Map each SDK lifecycle point to the game's actual code. Use CODE_MAP fields from
 | EndGameplay (`FLudeoPlayer::EndGameplay`) | Gameplay end signal | `lifecycle_hooks.gameplayEnd` | Confirm this fires once (not per-player in single-player) |
 | RemovePlayer / CloseRoom | End of playable unit | `lifecycle_hooks.roomClose` | Confirm ordering: EndGameplay before RemovePlayer before CloseRoom |
 
-#### 3.2.0 Verify Each Phase 1 Hook Has a LIVE Caller in the Slice Maps
+#### 3.2.0 Verify Each Phase 2 Hook Has a LIVE Caller in the Slice Maps
 
-Before scaffolding against a hook point identified in Phase 1, confirm something actually **calls** it in the curated slice — do not assume a method that exists is a method that runs. Phase 1 maps the code; Phase 2 must verify the wiring is live:
+Before scaffolding against a hook point identified in Phase 2, confirm something actually **calls** it in the curated slice — do not assume a method that exists is a method that runs. Phase 2 maps the code; Phase 3 must verify the wiring is live:
 
 - For every hook method/delegate the plugin will bind to, find its caller. For BP-exposed hooks, scan BP callers (e.g. `bp_inspector` graph search, or grep the placed-actor/level-script bindings) — a `BlueprintCallable` "bridge" method with **no BP caller** is dead, and binding to it produces a gate that never fires (silent failure). See `learnings/common-mistakes/dead-bridge-methods-verify-bp-callers.md`.
 - Confirm the GameMode/GameState class you're filtering on is actually the one instantiated on the slice maps. A project-wide default GameMode can shadow a per-map class and break a class-based world filter — see `learnings/architecture/global-default-gamemode-breaks-class-world-filter.md`.
@@ -187,13 +187,13 @@ Identify maps where a Ludeo room should NOT be opened (menus, lobbies, loading s
 | Game code calls `UGameplayStatics::SetGamePaused()` | Standard UE pause | `type: "SetGamePaused"` | Simplest path. Works for single-player and listen-server. |
 | Game code calls `APlayerController::SetPause()` directly | Controller-level pause | `type: "PlayerController::SetPause"` | Can be rejected by game mode's `CanUnpause` delegate. Check if the game has `CanUnpause` overrides. |
 | Game has a custom pause manager (e.g., `UPauseManager`, `UGameFlowSubsystem::Pause`) | Custom manager | `type: "custom", function: "<full call path>"` | Must use the game's manager — calling `SetGamePaused` directly may bypass their state tracking. |
-| Game uses time dilation instead of engine pause (common in multiplayer — e.g., Lyra) | Time dilation | `type: "custom", function: "SetTimeDilation(0.0)"` | `GetWorld()->IsPaused()` returns false — tick polling in Phase 4 must check dilation instead. Record in notes. |
+| Game uses time dilation instead of engine pause (common in multiplayer — e.g., Lyra) | Time dilation | `type: "custom", function: "SetTimeDilation(0.0)"` | `GetWorld()->IsPaused()` returns false — tick polling in Phase 5 must check dilation instead. Record in notes. |
 | Game uses CommonUI pause layers (`UCommonActivatableWidget::SetBindVisibilities`) | UI-driven pause | `type: "custom"` | Pause state is driven by widget visibility, not a direct pause call. Integration must detect the widget state. |
 | No pause mechanism found at all | No existing pause | `type: "SetGamePaused"` (use default) | The game may not have pause support yet. `SetGamePaused` is the safe default. |
 
 **If the mechanism is ambiguous** (multiple pause systems coexist, or you're unsure which one the game uses for "real" gameplay pause), ask the human using question 8 below. Don't guess — a wrong pause call can be silently rejected or bypass the game's state tracking.
 
-**If the game uses time dilation instead of engine pause**, note this in `integration.json → pauseMechanism.notes` — it affects Phase 4's tick polling: `GetWorld()->IsPaused()` won't detect time-dilation-based pause. The component must poll `GetWorld()->GetWorldSettings()->TimeDilation` instead.
+**If the game uses time dilation instead of engine pause**, note this in `integration.json → pauseMechanism.notes` — it affects Phase 5's tick polling: `GetWorld()->IsPaused()` won't detect time-dilation-based pause. The component must poll `GetWorld()->GetWorldSettings()->TimeDilation` instead.
 
 #### 3.4.3 Non-Gameplay Segments During Matches
 
@@ -259,7 +259,7 @@ Before writing any code, confirm ALL of the following:
 - [ ] Exact gameplay tag strings verified against actual tag definitions, not header comments? (Section 3.2.1 output)
 - [ ] `.Build.cs` has all required module dependencies listed?
 - [ ] Template variables populated from CODE_MAP? (see `references/templates/plugin-scaffold-guide.md`)
-- [ ] `Source/` directory exists in the game repo. If NOT, the project is BP-only — flag it and note that Phase 2 must plan for a minimal game module OR a target-generating plugin (e.g., CommonUI) before the packaging smoke test (Section 3.18) can pass. Record the chosen approach in TDD.
+- [ ] `Source/` directory exists in the game repo. If NOT, the project is BP-only — flag it and note that Phase 3 must plan for a minimal game module OR a target-generating plugin (e.g., CommonUI) before the packaging smoke test (Section 3.18) can pass. Record the chosen approach in TDD.
 - [ ] Target name confirmed — read `Source/*.Target.cs` filenames (excluding `*Editor.Target.cs` / `*Server.Target.cs`) and verify a non-Editor game target exists. This is the target `BuildAndPackage.bat` and Section 3.18 Tier 1 will use. For BP-only projects, document the fallback target name strategy (from the module/plugin decision above).
 - [ ] `.ludeo/tools/BuildAndPackage.bat` is present and executable. If missing, copy from the skill's `tools/` directory before starting implementation — it is required for Section 3.18 Tier 2.
 
@@ -271,7 +271,7 @@ If any item is unchecked, go back and complete it before writing code.
 
 ### 3.9 Implementation — Plugin Scaffold
 
-The plugin type depends on Phase 1 findings. Check `codeMap.codebase_summary.usesGameFeatures`:
+The plugin type depends on Phase 2 findings. Check `codeMap.codebase_summary.usesGameFeatures`:
 
 #### GameFeature Plugin (if game uses GameFeatures)
 
@@ -743,14 +743,14 @@ private:
     void OnRoomClosed(FLudeoResult Result);
     void InvokeTeardownCallback();
 
-    // State tracking stubs (filled in Phase 5+)
+    // State tracking stubs (filled in Phase 6+)
     void CreateWritableObjects();
     void UpdateWritableObjects();
     void DestroyWritableObjects();
     void RegisterActionListeners();
     void UnregisterActionListeners();
 
-    // Player Flow stubs (filled in Phase 5+)
+    // Player Flow stubs (filled in Phase 6+)
     void ApplyPlayerState();
     void ApplyBotStates();
 
@@ -825,7 +825,7 @@ void ULudeoGameStateComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
     {
         if (ULudeoSessionSubsystem* Subsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<ULudeoSessionSubsystem>() : nullptr)
         {
-            // Phase 5+: clear any writable-object map here — CloseRoom releases room-owned objects (no per-object destroys)
+            // Phase 6+: clear any writable-object map here — CloseRoom releases room-owned objects (no per-object destroys)
             Subsystem->FinishRoomTeardownDetached(RoomHandle.GetValue(), PlayerHandle, CurrentPlayerID, bGameplayStarted);
         }
         // clear local state — the subsystem now owns completion
@@ -850,7 +850,7 @@ void ULudeoGameStateComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
     if (TimeSinceLastWrite >= WriteInterval)
     {
         TimeSinceLastWrite = 0.f;
-        UpdateWritableObjects(); // stub — filled in Phase 5+
+        UpdateWritableObjects(); // stub — filled in Phase 6+
     }
 
     // GAME-SPECIFIC: detect pause state transitions for Pause/Resume actions
@@ -918,13 +918,13 @@ void ULudeoGameStateComponent::TeardownRoom(FOnRoomTeardownComplete OnComplete)
 // See Section 5.6 for the full teardown chain pattern
 
 // Stubs for future phases
-void ULudeoGameStateComponent::CreateWritableObjects() { /* Phase 5+ */ }
-void ULudeoGameStateComponent::UpdateWritableObjects() { /* Phase 5+ */ }
-void ULudeoGameStateComponent::DestroyWritableObjects() { /* Phase 5+ */ }
-void ULudeoGameStateComponent::RegisterActionListeners() { /* Phase 5+ */ }
-void ULudeoGameStateComponent::UnregisterActionListeners() { /* Phase 5+ */ }
-void ULudeoGameStateComponent::ApplyPlayerState() { /* Phase 5+ */ }
-void ULudeoGameStateComponent::ApplyBotStates() { /* Phase 5+ */ }
+void ULudeoGameStateComponent::CreateWritableObjects() { /* Phase 6+ */ }
+void ULudeoGameStateComponent::UpdateWritableObjects() { /* Phase 6+ */ }
+void ULudeoGameStateComponent::DestroyWritableObjects() { /* Phase 6+ */ }
+void ULudeoGameStateComponent::RegisterActionListeners() { /* Phase 6+ */ }
+void ULudeoGameStateComponent::UnregisterActionListeners() { /* Phase 6+ */ }
+void ULudeoGameStateComponent::ApplyPlayerState() { /* Phase 6+ */ }
+void ULudeoGameStateComponent::ApplyBotStates() { /* Phase 6+ */ }
 ```
 
 ### 3.15 Implementation — Core Game Modifications
@@ -1071,15 +1071,15 @@ Re-enable the plugin in `.uproject`. Build the project. This verifies all Ludeo 
 5. Repeat until clean
 6. **Max 10 iterations** — if still failing after 10 attempts, list all remaining errors and escalate to the human
 
-> **Editor compile success ≠ game-target build success.** You MUST also complete Section 3.18 Tier 1 (fast build gate) before marking Phase 2 done. UBT editor builds silently miss BP-only `Source/` absence, wrong target names, and module errors that only surface in the packaging build path.
+> **Editor compile success ≠ game-target build success.** You MUST also complete Section 3.18 Tier 1 (fast build gate) before marking Phase 3 done. UBT editor builds silently miss BP-only `Source/` absence, wrong target names, and module errors that only surface in the packaging build path.
 
 ---
 
 ### 3.18 Implementation — Packaging Smoke Test (HARD GATE)
 
-Editor compile success does NOT prove the integration packages. BP-only projects without a `Source/` directory, missing module dependencies, and wrong target names all pass UBT editor builds but fail at `BuildCookRun`. **Do not mark Phase 2 complete on an editor build alone.**
+Editor compile success does NOT prove the integration packages. BP-only projects without a `Source/` directory, missing module dependencies, and wrong target names all pass UBT editor builds but fail at `BuildCookRun`. **Do not mark Phase 3 complete on an editor build alone.**
 
-This gate has two tiers. Tier 1 is always required. Tier 2 is conditional on `integration.json → packagingTarget` (set in Phase 0).
+This gate has two tiers. Tier 1 is always required. Tier 2 is conditional on `integration.json → packagingTarget` (set in Phase 1).
 
 #### Tier 1 — Fast Build Gate (ALWAYS REQUIRED, ~5–10 min)
 
@@ -1100,7 +1100,7 @@ Substitute `<GameTargetName>` with the non-Editor target from `Source/*.Target.c
 - `module X not found` → plugin `.Build.cs` is missing a dependency. Add and rerun.
 - Plugin-side compile errors that only surface outside editor builds (different preprocessor defines, stricter linking).
 
-**Phase 2 cannot be marked complete until this build succeeds.** Even editor-only projects benefit from this — it catches module dependency issues that would bite later.
+**Phase 3 cannot be marked complete until this build succeeds.** Even editor-only projects benefit from this — it catches module dependency issues that would bite later.
 
 #### Tier 2 — Full Package + Boot (conditional)
 
@@ -1111,15 +1111,15 @@ Substitute `<GameTargetName>` with the non-Editor target from `Source/*.Target.c
 | `editor-only`           | **Skipped** — do not run |
 
 When required or recommended:
-1. Run `.ludeo/tools/BuildAndPackage.bat` (deployed in Phase 0). Takes 30–60 minutes.
+1. Run `.ludeo/tools/BuildAndPackage.bat` (deployed in Phase 1). Takes 30–60 minutes.
 2. Launch `PackagedBuild\Windows\<GameName>.exe -log` and confirm it boots to the main menu without Ludeo plugin load errors.
 3. Ask the human to confirm the packaged build reaches the curated slice map.
 
 #### Execution Owner — Ask Once, Remember the Answer
 
-The fast gate takes 5–10 minutes; the full package takes 30–60 minutes. Agent time vs. human time is a trade-off the human should decide, and the answer typically stays stable across Phase 2 iterations.
+The fast gate takes 5–10 minutes; the full package takes 30–60 minutes. Agent time vs. human time is a trade-off the human should decide, and the answer typically stays stable across Phase 3 iterations.
 
-**On the FIRST Phase 2 completion for this project**, ask:
+**On the FIRST Phase 3 completion for this project**, ask:
 
 > "The packaging smoke test will take ~[N] minutes. Should I run it in the background and wait, or will you run it and report the result? I'll remember your answer for future iterations."
 
@@ -1143,7 +1143,7 @@ Store the choice in `integration.json → preferences.smokeTestExecution`:
 - The project structure changed in a way that invalidates the prior answer (e.g., BP-only project gained a `Source/` directory, or packaging target switched from `editor-only` to `cloud-build`)
 - The human explicitly says "ask me next time"
 
-Do NOT re-ask on every Phase 2 iteration — remembering the answer is the whole point.
+Do NOT re-ask on every Phase 3 iteration — remembering the answer is the whole point.
 
 **Packaging a Ludeo-integrated project (`packaged` / `cloud-build` targets).** The integration adds a C++ plugin (`LudeoIntegration`), so the project is a CODE project even when the game itself is Blueprint-only. Consequences:
 
@@ -1151,13 +1151,13 @@ Do NOT re-ask on every Phase 2 iteration — remembering the answer is the whole
 - **Decode `Missing receipt <Game>-Win64-<Config>.target` (UAT ExitCode 103, Error_MissingExecutable)** as "the build step was skipped or built the wrong config," not a cook error — re-run with `-build -target=<Game>` for the intended config.
 - **Cloud-build launch contract.** A cloud build needs a `run.bat` at the build root, submitted as `executableLaunchPath`. It must launch ONLY the cooked standalone game (the config-suffixed Shipping exe), NEVER the editor — a packaged launcher has no editor fallback. The canonical LudeoCast flags are `-cloud -stdout -unattended -nopause -CrashForUAT -nosplash -windowed -ResX=… -ResY=…` plus exit-code logging. `tools/run.bat.template` is that script (placeholders substituted at package time); `BuildAndPackage.bat` emits it into the archive. For local interactive verification (ESC/Tab testing), run the exe directly (`<Game>-Win64-Shipping.exe -windowed -log`) instead, since the cloud `run.bat` uses `-unattended`/`-cloud`.
 
-> **Packaging success ≠ runtime success.** You MUST also complete Section 3.19 before marking Phase 2 done.
+> **Packaging success ≠ runtime success.** You MUST also complete Section 3.19 before marking Phase 3 done.
 
 ---
 
 ### 3.19 Implementation — Runtime Verification (HARD GATE)
 
-Compile and packaging verify the code BUILDS. This checklist verifies the code WORKS. **Phase 2 cannot be marked complete until the human confirms these items.**
+Compile and packaging verify the code BUILDS. This checklist verifies the code WORKS. **Phase 3 cannot be marked complete until the human confirms these items.**
 
 Present this checklist to the human:
 
@@ -1173,7 +1173,7 @@ Present this checklist to the human:
 
 **If activation fails with `SteamClient() failed`:** Steam is not initialized. Either set `STEAM_AUTH_ID` explicitly (see §5.3 resolution chain) or ensure Steam launches the game.
 
-**If the human cannot test right now:** Do NOT mark Phase 2 complete. Record the phase as `"status": "awaiting-verification"` in integration.json and move on only after confirmation.
+**If the human cannot test right now:** Do NOT mark Phase 3 complete. Record the phase as `"status": "awaiting-verification"` in integration.json and move on only after confirmation.
 
 ---
 
@@ -1430,9 +1430,9 @@ BeginPlay → TryOpenRoom()
     → OnRoomReady: bRoomReady = true
   → TryBeginGameplay() (called from each callback)
     → N-way gate check
-    → CreateWritableObjects() (stubs — filled in Phase 5+)
+    → CreateWritableObjects() (stubs — filled in Phase 6+)
     → FLudeoPlayer::BeginGameplay()
-    → Register action listeners (stubs — filled in Phase 5+)
+    → Register action listeners (stubs — filled in Phase 6+)
 ```
 
 **Catch already-initialized players:** In games where player initialization overlaps with experience loading (e.g., Lyra's `OnExperienceLoaded` → `HandleStartingNewPlayer` fires before the component's `BeginPlay`), the player-added delegate may be registered too late. After binding the delegate, immediately iterate existing PlayerControllers/PlayerStates to catch any that were already initialized:
@@ -1480,9 +1480,9 @@ void ULudeoGameStateComponent::TryBeginGameplay()
     // ... add more conditions as discovered in analysis
 
     bGameplayStarted = true;
-    CreateWritableObjects();               // stub — filled in Phase 5+
+    CreateWritableObjects();               // stub — filled in Phase 6+
     FLudeoPlayer::BeginGameplay(PlayerHandle.GetValue());
-    RegisterActionListeners();             // stub — filled in Phase 5+
+    RegisterActionListeners();             // stub — filled in Phase 6+
 }
 ```
 
@@ -1509,8 +1509,8 @@ void ULudeoGameStateComponent::EndGameplay()
     if (!bGameplayStarted) return;
     bGameplayStarted = false;
 
-    DestroyWritableObjects();              // stub — filled in Phase 5+
-    UnregisterActionListeners();           // stub — filled in Phase 5+
+    DestroyWritableObjects();              // stub — filled in Phase 6+
+    UnregisterActionListeners();           // stub — filled in Phase 6+
 
     FLudeoPlayer::EndGameplay(PlayerHandle.GetValue(),
         FLudeoPlayerEndGameplayDelegate::CreateUObject(this, &ThisClass::OnEndGameplayComplete));
@@ -2104,7 +2104,7 @@ struct FLudeoPlayerInitialState
     int32 TeamID;
     TArray<FString> WeaponAssetPaths;
     int32 ActiveWeaponIndex;
-    // GAME-SPECIFIC: add fields as discovered in Phase 5+
+    // GAME-SPECIFIC: add fields as discovered in Phase 6+
 };
 
 USTRUCT()
@@ -2135,7 +2135,7 @@ struct FLudeoBotInitialState
 **SDK notification handlers** (private):
 
 - `OnLudeoSelected()` → `PlayLudeo()`
-- `OnPauseGameRequested()` → **pause the game using the mechanism discovered in Phase 1** (recorded in `integration.json → pauseMechanism`). Do NOT hardcode `UGameplayStatics::SetGamePaused` — many games override pause (custom managers, time dilation, CommonUI). Default to `SetGamePaused` only if no game-specific mechanism was found. If `APlayerController::SetPause` is the mechanism, be aware it can be rejected by the game mode's `CanUnpause` delegate.
+- `OnPauseGameRequested()` → **pause the game using the mechanism discovered in Phase 2** (recorded in `integration.json → pauseMechanism`). Do NOT hardcode `UGameplayStatics::SetGamePaused` — many games override pause (custom managers, time dilation, CommonUI). Default to `SetGamePaused` only if no game-specific mechanism was found. If `APlayerController::SetPause` is the mechanism, be aware it can be rejected by the game mode's `CanUnpause` delegate.
 - `OnResumeGameRequested()` → **resume the game using the same mechanism**
 - `OnGameBackToMainMenuRequested()` → teardown room, travel to frontend
 - `OnPlayerConsentUpdated()` → update `bCanCreateLudeo` / `bCanPlayLudeo`
@@ -2190,14 +2190,14 @@ public:
 - `bWasPausedLastFrame` + `HandleGamePaused()` / `HandleGameResumed()` — pause detection and segment marking with flow-aware action names (`StartNoneLudeable`/`StopNoneLudeable` vs `PauseLudeo`/`ResumeLudeo`)
 - `bTickEvenWhenPaused = true` — set in constructor so pause detection works during engine pause
 
-**State tracking** (private, stubs filled in Phase 5+):
+**State tracking** (private, stubs filled in Phase 6+):
 
 - `CreateWritableObjects()` — GameMetadata + Player + Bot writable objects
 - `UpdateWritableObjects()` — called from `TickComponent()` at 10Hz
 - `DestroyWritableObjects()`
 - `RegisterActionListeners()` / `UnregisterActionListeners()`
 
-**Player Flow** (private, stubs filled in Phase 5+):
+**Player Flow** (private, stubs filled in Phase 6+):
 
 - `ApplyPlayerState()` — teleport, team, health, weapon loadout
 - `ApplyBotStates()` — position, rotation, team, health, weapons, AI
@@ -2409,7 +2409,7 @@ These are errors from prior integration attempts. The skill should actively prev
 
 **Mistake:** Relying on implicit Steam auth (SDK auto-detects via `SteamAPI_Init()`) in environments where Steam isn't initialized — editor, sample projects, or games that init Steam late.
 **Why it's wrong:** Implicit auth fails silently. The SDK cannot authenticate the user, and activation may succeed but subsequent API calls fail.
-**Prevention:** Always include explicit Steam auth resolution in the ActivateSession skeleton: `SteamAuthID` from command-line (`-SteamAuthID=`) → environment variable (`STEAM_AUTH_ID`) → config (`DefaultGame.ini`). Ask the human during Phase 2 whether Steam is initialized at activation time (Section 4, question 8).
+**Prevention:** Always include explicit Steam auth resolution in the ActivateSession skeleton: `SteamAuthID` from command-line (`-SteamAuthID=`) → environment variable (`STEAM_AUTH_ID`) → config (`DefaultGame.ini`). Ask the human during Phase 3 whether Steam is initialized at activation time (Section 4, question 8).
 
 ### 8.19 Wrong Gameplay Tag String for Phase Gate
 
@@ -2421,7 +2421,7 @@ These are errors from prior integration attempts. The skill should actively prev
 
 **Mistake:** Setting `"CanContainContent": true` (or omitting the field, which defaults to `true`) in a code-only GameFeature plugin.
 **Why it's wrong:** UE's GameFeatures system expects a `UGameFeatureData` asset at `Content/<PluginName>.uasset` when `CanContainContent` is `true`. Without it, the plugin fails to register at runtime with "Game Feature Data package not found."
-**Prevention:** The Ludeo integration plugin is code-only through Phase 8. Always set `"CanContainContent": false` in the `.uplugin`. If a future phase adds content assets, revisit this field and add the required `GameFeatureData` asset at that point.
+**Prevention:** The Ludeo integration plugin is code-only through Phase 9. Always set `"CanContainContent": false` in the `.uplugin`. If a future phase adds content assets, revisit this field and add the required `GameFeatureData` asset at that point.
 
 ### 8.21 Skipping Compile-Fix Loop
 
@@ -2438,8 +2438,8 @@ These are errors from prior integration attempts. The skill should actively prev
 ### 8.23 Rationalizing Activation Failure as "Expected"
 
 **Mistake:** Seeing `InvalidParameters` or `SteamClient() failed` in the activation log and saying "expected — no credentials configured yet" instead of diagnosing the error.
-**Why it's wrong:** An activation failure means a required field is null or malformed. `InvalidParameters` is never expected — it means `ApiKey`, `GameVersion`, or `AuthenticationDetails` is missing. "No credentials configured" is the bug, not the excuse. Marking Phase 2 complete with a failed activation means every subsequent phase builds on a broken foundation.
-**Prevention:** If activation fails for ANY reason, stop and investigate. Check each field in the `ActivateSessionParameters` struct against the resolution chain in Section 5.3. If a field is empty, trace why: is the env var set? Is the config file present? Is the command-line flag passed? Section 7.10 runtime verification explicitly checks for activation success — do NOT mark Phase 2 complete with a failed activation. See `learnings/common-mistakes/auth-is-never-optional.md`.
+**Why it's wrong:** An activation failure means a required field is null or malformed. `InvalidParameters` is never expected — it means `ApiKey`, `GameVersion`, or `AuthenticationDetails` is missing. "No credentials configured" is the bug, not the excuse. Marking Phase 3 complete with a failed activation means every subsequent phase builds on a broken foundation.
+**Prevention:** If activation fails for ANY reason, stop and investigate. Check each field in the `ActivateSessionParameters` struct against the resolution chain in Section 5.3. If a field is empty, trace why: is the env var set? Is the config file present? Is the command-line flag passed? Section 7.10 runtime verification explicitly checks for activation success — do NOT mark Phase 3 complete with a failed activation. See `learnings/common-mistakes/auth-is-never-optional.md`.
 
 ### 8.24 Opening Room on Menu Maps
 

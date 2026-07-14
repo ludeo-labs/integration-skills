@@ -1,31 +1,31 @@
-# Phase 08 — Polish & Fix Bugs
+# Phase 09 — Polish & Fix Bugs
 
 ## 1. Goal / Purpose
 
-This phase runs **after Phase 7 (Expansion)** and is where the integration is marked complete.
-It raises restore fidelity for the gaps that remain once enrichment (Phase 6) widened the tracked
+This phase runs **after Phase 8 (Expansion)** and is where the integration is marked complete.
+It raises restore fidelity for the gaps that remain once enrichment (Phase 7) widened the tracked
 set, and addresses any bugs that surfaced during earlier phases. Core Player Flow restore (universal
 backbone — subsystem reads → pending structs → ServerTravel → component applies after an N-way gate
-→ teleport/setter onto the spawned pawn) lives in `references/phase-04-tracking-restore.md`; this
+→ teleport/setter onto the spawned pawn) lives in `references/phase-05-tracking-restore.md`; this
 phase covers the POLISH-level work on top of that: deferred-property application, two-pass
 reconstruction refinements, animation/cosmetic timing, and architecture-branch-specific fidelity.
 
-**The polish techniques differ by the game's architecture.** There is no single "Phase 8 approach."
+**The polish techniques differ by the game's architecture.** There is no single "Phase 9 approach."
 A heavily-replicated game restores by firing OnRep cascades; a GAS game restores attributes through
 GameplayEffects; a BP-component game pokes sub-component properties by reflection; a SaveWorld game
 lets the SDK reconcile and only hand-restores what the SaveGame filter can't carry. **Pick the
 branch that matches the game** (§5.0) and apply it — applying the wrong branch's machinery (e.g.
 OnRep cascades on a GAS game) wastes effort and can crash.
 
-> **Scope of "timing" in Phase 8 is COSMETIC only.** Restore timing that affects *playability* —
+> **Scope of "timing" in Phase 9 is COSMETIC only.** Restore timing that affects *playability* —
 > gating the restore on a startup choreography / animation queue / staged state machine so the
-> player lands in a controllable state — is **core, and belongs in Phase 4** (see
-> `references/phase-04-tracking-restore.md` §5.4 and
-> `learnings/architecture/restore-timing-can-be-core-not-polish.md`). Phase 8 timing covers
+> player lands in a controllable state — is **core, and belongs in Phase 5** (see
+> `references/phase-05-tracking-restore.md` §5.4 and
+> `learnings/architecture/restore-timing-can-be-core-not-polish.md`). Phase 9 timing covers
 > cosmetic sequencing only: deferred application when a handler touches a not-yet-ready subsystem,
 > ordering a restore ahead of the engine's equip/loadout pipeline so the visible result is clean.
 > If a timing problem makes the slice *unplayable* (empty ability bar, wedged input, nondeterministic
-> control loss), it is a Phase 4 bug — do not carry it here as polish.
+> control loss), it is a Phase 5 bug — do not carry it here as polish.
 
 **Deliverables (those relevant to the chosen branch):**
 - Architecture identified and the matching restore branch implemented to full fidelity
@@ -41,10 +41,10 @@ OnRep cascades on a GAS game) wastes effort and can crash.
 
 Before starting this phase, verify:
 
-- [ ] Phase 4 Player Flow read side is **functional, not stubbed** — position/rotation already
-  restore for the curated slice, verified by an actual playback test (not compile success). Phase 8
+- [ ] Phase 5 Player Flow read side is **functional, not stubbed** — position/rotation already
+  restore for the curated slice, verified by an actual playback test (not compile success). Phase 9
   polishes working restoration; it does not implement it from scratch.
-- [ ] Phase 6 enrichment compiles cleanly (plugin-disabled and plugin-enabled builds pass).
+- [ ] Phase 7 enrichment compiles cleanly (plugin-disabled and plugin-enabled builds pass).
 - [ ] The game's **restore architecture is identified** (§3.1) and recorded in `integration.json`.
 - [ ] A captured Ludeo on the test map exists so restore can be exercised end to end.
 - [ ] If `packagingTarget` is `packaged`/`cloud-build`: a shipping build path is ready —
@@ -53,9 +53,9 @@ Before starting this phase, verify:
 ```
 Required:
   tddSections1-6: markdown   — Prior TDD sections (.ludeo/tdd/integration-tdd.md)
-  workingPlugin: files        — Plugin from Phases 2-6 (Phase-4 Player Flow read side functional)
+  workingPlugin: files        — Plugin from Phases 3-7 (Phase-4 Player Flow read side functional)
   restorationApproach: enum   — integration.json → curatedSlice.restorationApproach (reconciliation|manual)
-  trackedDataPlan: markdown   — Phase 6A plan, incl. per-property "how to restore" notes
+  trackedDataPlan: markdown   — Phase 7A plan, incl. per-property "how to restore" notes
   codeMap: json               — .ludeo/code-map.json
 
 Optional:
@@ -69,7 +69,7 @@ Optional:
 
 ### STOP — Pre-Flight Checklist
 
-- [ ] Phase 4 Player Flow read side is functional (verified by playback, not compile).
+- [ ] Phase 5 Player Flow read side is functional (verified by playback, not compile).
 - [ ] Restore architecture identified (§3.1) and recorded in `integration.json`.
 - [ ] Branch-specific analysis done (Pattern 1/2 for §5.A; ASC/attribute access for §5.B; sub-component map for §5.C; filter + handler plan for §5.D).
 - [ ] A captured Ludeo on the test map is available.
@@ -120,7 +120,7 @@ shipping.
 
 ### 3.6 Version / schema handling
 
-If Phase 6A added a `SchemaVersion` GameMetadata attribute, read it during reconstruction and
+If Phase 7A added a `SchemaVersion` GameMetadata attribute, read it during reconstruction and
 branch/skip gracefully on mismatch.
 
 ### 3.7 Implementation order
@@ -258,7 +258,7 @@ Some classes have their own BeginPlay non-default-state handler (e.g. a security
 
 ### 5.B Branch — GAS (Gameplay Ability System)
 
-*Reference: Lyra, ActionRoguelike. This is the most common real Phase-8 gap — GAS games routinely defer attribute restore to Phase 8 because attributes can't be written directly.*
+*Reference: Lyra, ActionRoguelike. This is the most common real Phase-8 gap — GAS games routinely defer attribute restore to Phase 9 because attributes can't be written directly.*
 
 #### 5.B.1 Attributes need GameplayEffects, not property writes
 
@@ -299,7 +299,7 @@ Apply position/rotation synchronously (TeleportTo is safe); defer only attribute
 A captured snapshot includes which abilities/weapons the player had. On restore, the pawn spawns
 with the *default* loadout. Re-grant captured abilities and re-equip the captured weapon through
 the game's own grant/equip path (ability spec grant, or the equipment manager's equip function) —
-not by writing a "current slot" UPROPERTY. This is the work GAS games defer to Phase 8.
+not by writing a "current slot" UPROPERTY. This is the work GAS games defer to Phase 9.
 
 #### 5.B.4 What "done" looks like for GAS
 
@@ -415,7 +415,7 @@ handling — verify it isn't guarded out of Player Flow.
 Append to `.ludeo/tdd/integration-tdd.md`:
 
 ```markdown
-## Phase 8: Polish & Fix Bugs
+## Phase 9: Polish & Fix Bugs
 
 ### Restore architecture
 - Identified architecture(s): [replicated / GAS / BP-component / SaveWorld]
@@ -439,7 +439,7 @@ Append to `.ludeo/tdd/integration-tdd.md`:
 ```
 
 Also update `integration.json`:
-- Phase 8 status → `complete`
+- Phase 9 status → `complete`
 - `curatedSlice.restorationApproach` populated
 - Integration marked **COMPLETE**
 
@@ -491,6 +491,6 @@ packaged (§5.E.2).
 Capturing and reading a field (Energy, weapon) into a pending struct but never writing it back on
 restore. Audit read side vs apply side and close every gap (§5.C.3).
 
-### 8.9 Treating Phase 8 as a substitute for Phase 4
-Stubbing Phase 4 Player Flow and "deferring to Phase 8." Phase 8 polishes working restoration —
-the Phase 4 hard gate prevents this.
+### 8.9 Treating Phase 9 as a substitute for Phase 5
+Stubbing Phase 5 Player Flow and "deferring to Phase 9." Phase 9 polishes working restoration —
+the Phase 5 hard gate prevents this.

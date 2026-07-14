@@ -11,11 +11,11 @@
 > file — this file is the genre catalog; those are the structural shape.
 >
 > Action names below map to the Ludeo subsystem / DataWriter `SendAction` call (see
-> `references/phase-05-actions.md` and `references/sdk-reference/`).
+> `references/phase-06-actions.md` and `references/sdk-reference/`).
 
-> **MVP scope (curated-first):** In Phases 3–5, treat this catalog as a menu — implement only the
+> **MVP scope (curated-first):** In Phases 4–6, treat this catalog as a menu — implement only the
 > actions/objects present in your **curated slice** (`integration.json → curatedSlice`). The full
-> catalog applies at **expansion** (Phase 7), when coverage broadens to the whole game.
+> catalog applies at **expansion** (Phase 8), when coverage broadens to the whole game.
 
 ---
 
@@ -118,9 +118,9 @@ time, weather, day, night, schedule, AI
 
 ## 3. Tracking Checklist
 
-After object tracking is implemented (phase 3/4), verify these are covered. Types map to the
-Unreal DataWriter set-attribute calls; see `references/phase-04-tracking-restore.md` and
-`references/phase-05-actions.md` for the exact API. For streaming worlds, also apply
+After object tracking is implemented (phase 4/5), verify these are covered. Types map to the
+Unreal DataWriter set-attribute calls; see `references/phase-05-tracking-restore.md` and
+`references/phase-06-actions.md` for the exact API. For streaming worlds, also apply
 [open-world-tracking.md](references/game-patterns/open-world-tracking.md) (track the loaded neighborhood + world/cell state,
 not the whole save).
 

@@ -1,18 +1,18 @@
 ---
 name: ludeo-unreal-integration
 description: Use when integrating the Ludeo SDK into an Unreal Engine game, performing Ludeo integration analysis, designing or implementing Ludeo integration architecture in UE code, or working on any phase of a Ludeo SDK integration (lifecycle, actions, state tracking, player flow). Also trigger when the user mentions Ludeo SDK, Ludeo integration, playable highlights integration, LudeoSession, LudeoRoom, DataWriter, DataReader, or game state tracking for Ludeo - when the work is on an Unreal Engine game's code. Do NOT use for Unity or non-Unreal engines (use ludeo-unity-integration instead), pure SDK-concept/documentation questions with no code work, cloud cast session/VM log diagnosis (use ludeo-diagnose-session), repo open-sourcing, or creating decks/docs about an integration.
-metadata.version: 1.0.1
+metadata.version: 1.1.0
 ---
 
 # Ludeo SDK Integration Skill
 
-**Skill version:** 1.0.1 · Compare against the [latest release](https://github.com/ludeo-labs/integration-skills/releases/latest) to confirm your installed copy is current. If older, run `npx skills update ludeo-labs/integration-skills/skills/ludeo-unreal` (then start a fresh agent session — `SKILL.md` is cached per session).
+**Skill version:** 1.1.0 · Compare against the [latest release](https://github.com/ludeo-labs/integration-skills/releases/latest) to confirm your installed copy is current. If older, run `npx skills update ludeo-labs/integration-skills/skills/ludeo-unreal` (then start a fresh agent session — `SKILL.md` is cached per session).
 
 ## Overview
 
 This skill guides developers through a **curated, lean integration** of the Ludeo SDK into **Unreal Engine** games (UE 4.x / 5.x). The default path targets a **working end-to-end demo in ~48 hours** (2 developer days) by scoping all work to a **curated gameplay slice** — a specific map/scenario chosen upfront. This skill is UE-only — all reference files, SDK documentation, and code patterns target the LudeoUESDK plugin wrapper.
 
-**Phases 0–2** set up the integration; **Phases 3–5** implement the curated slice; **Phase 6** validates the slice in the cloud (the MVP milestone); **Phase 7** expands to full-game coverage; **Phase 8** polishes & fixes bugs.
+**Phases 1–3** set up the integration; **Phases 4–6** implement the curated slice; **Phase 7** validates the slice in the cloud (the MVP milestone); **Phase 8** expands to full-game coverage; **Phase 9** polishes & fixes bugs.
 
 **Key SDK Concepts (get these right or everything downstream breaks):**
 - **Player Flow is snapshot-restore, NOT frame-by-frame replay.** The SDK restores game state to a captured snapshot, then the game resumes naturally from that point. There is no puppet mode, no input replay, no frame-accurate playback. The game runs its own logic after restoration.
@@ -80,35 +80,35 @@ Example: to read `config/sdk-sources.json`, use `Read("<skill-base-dir>/config/s
 
 ## VCS-Aware File Edits
 
-This skill works on projects under **git**, **Subversion (svn)**, or **Perforce (p4)**. The VCS is detected in Phase 0 and recorded in `integration.json → vcs.type`; every session loads the matching `references/vcs/<type>.md`. All version-control work goes through the named operations in `references/vcs/README.md` — never hardcode `git`.
+This skill works on projects under **git**, **Subversion (svn)**, or **Perforce (p4)**. The VCS is detected in Phase 1 and recorded in `integration.json → vcs.type`; every session loads the matching `references/vcs/<type>.md`. All version-control work goes through the named operations in `references/vcs/README.md` — never hardcode `git`.
 
 **If `vcs.type == "p4"`, you MUST open a file for edit before writing it.** A Perforce workspace is read-only by default, so the Write/Edit tools fail on any tracked file until it is opened. Run `ensure_editable(path)` — the Perforce MCP `edit`/`add` tool, or `p4 edit` / `p4 add` — before **every** Write/Edit, including `.ludeo/` state files and any `.uasset` the BP Inspector modifies. See `references/vcs/p4.md`.
 
 ---
 
-## Phase Map (0–8)
+## Phase Map (1–9)
 
 | Phase | Name | Reference File |
 |-------|------|----------------|
-| 0 | Setup + Intake | `references/phase-00-intake.md` |
-| 1 | Mapping | `references/phase-01-mapping.md` |
-| 2 | Lifecycle + Non-Gameplay | `references/phase-02-lifecycle.md` |
-| 3 | Map Game Objects (slice) | `references/phase-03-map-objects.md` |
-| 4 | Tracking & Restore (slice) | `references/phase-04-tracking-restore.md` |
-| 5 | Actions | `references/phase-05-actions.md` |
-| 6 | Verification & Cloud | `references/phase-06-verification-cloud.md` |
-| 7 | Expansion (full game) | `references/phase-07-expansion.md` |
-| 8 | Polish & Fix Bugs | `references/phase-08-polish.md` |
+| 1 | Know Your Game | `references/phase-01-know-your-game.md` |
+| 2 | Mapping | `references/phase-02-mapping.md` |
+| 3 | Lifecycle + Non-Gameplay | `references/phase-03-lifecycle.md` |
+| 4 | Map Game Objects (slice) | `references/phase-04-map-objects.md` |
+| 5 | Tracking & Restore (slice) | `references/phase-05-tracking-restore.md` |
+| 6 | Actions | `references/phase-06-actions.md` |
+| 7 | Verification & Cloud | `references/phase-07-verification-cloud.md` |
+| 8 | Expansion (full game) | `references/phase-08-expansion.md` |
+| 9 | Polish & Fix Bugs | `references/phase-09-polish.md` |
 
 ---
 
 ## Curated Slice Selection
 
-A curated slice is a **specific map + game mode combination** that represents a short, self-contained gameplay moment (2-5 minutes). All MVP work (Phases 3–5) is scoped to this slice.
+A curated slice is a **specific map + game mode combination** that represents a short, self-contained gameplay moment (2-5 minutes). All MVP work (Phases 4–6) is scoped to this slice.
 
 ### AI-Guided Selection Process
 
-During Phase 1 analysis, the skill suggests 2-3 candidate slices:
+During Phase 2 analysis, the skill suggests 2-3 candidate slices:
 
 1. **Find maps** — Glob for `.umap` files in Content/, read level references
 2. **Find game modes** — Grep for GameMode subclasses, identify which modes run on which maps
@@ -143,7 +143,7 @@ Read `.ludeo/integration.json` from the target game repo.
 
 **File exists:**
 
-> **Schema check / migration.** If `.ludeo/integration.json` is missing `schemaVersion` or it is below the current baseline (or the file has a `currentStage` key or any `stage`-named field), load `references/migration.md` and run it before proceeding — do not parse the old schema directly.
+> **Schema check / migration.** If `.ludeo/integration.json` is missing `schemaVersion` or it is below the current baseline (`3`), or shows fallback signs — a `currentStage` key, any `stage`-named field, or a **0-indexed `currentPhase`** (the phases were renumbered to 1-indexed, so `currentPhase: 0` / a `phases` block keyed from `0` means a pre-`3` file) — load `references/migration.md` and run it before proceeding — do not parse the old schema directly.
 
 - Parse `currentPhase` to determine where the integration left off.
 - Check the current phase's status:
@@ -153,7 +153,7 @@ Read `.ludeo/integration.json` from the target game repo.
 - **Tools freshness (every session):** diff each deployed tool in `.ludeo/tools/` (and `Plugins/LudeoBPInspector/Source/**` if deployed) against the skill's `tools/` directory. If a file differs, redeploy the skill copy (rebuild the editor target if C++ plugin sources changed). The skill gains tool capabilities between sessions; a stale deployed copy silently lacks them — agents have repeatedly hand-rolled one-off scripts for capabilities the current tools already had. See `learnings/common-mistakes/redeploy-tools-on-skill-update.md`.
 - Load the reference file for the current phase.
 
-**File does not exist → Phase 0 (first run):**
+**File does not exist → Phase 1 (first run):**
 1. Ask the human:
    - Game title
    - Engine version (UE 4.x / 5.x)
@@ -161,7 +161,7 @@ Read `.ludeo/integration.json` from the target game repo.
    - "Which map/level do you use for demos or QA testing?" (initial curated slice hint)
    - **Packaging target** — ask it in the integrator's language, not the skill's. The integrator knows their game and UE, and nothing about Ludeo's pipeline; explain every Ludeo-side concept inline (see `learnings/common-mistakes/intake-questions-must-be-jargon-free.md`). Ship this phrasing:
      > "How will this integration eventually run? Three options: **editor-only** — everything stays in the UE editor for now; **packaged** — we also produce a standalone Windows build of the game (UE's normal 'package project' output) and verify it boots, since that's how the integration will really be tested; **cloud-ready** — same packaged build, but prepared for Ludeo's cloud: Ludeo replays highlights by running your game on Ludeo's cloud machines, so the packaged build eventually gets uploaded there. Which fits this project?"
-     Accept one of: `editor-only`, `packaged`, `cloud-build`. Record in `integration.json → packagingTarget`. (Agent-side: this gates Phase 2's Tier 2 smoke test — full package + boot; Tier 1 fast build runs regardless. Never put tier/phase jargon in the question itself.) If the answer is `packaged` or `cloud-build` AND the project has no `Source/` directory, flag it immediately so Phase 2 can plan for a minimal game module or a target-generating plugin (e.g., CommonUI) upfront. If CommonUI (or another auto-trigger plugin) IS enabled, this is the UBT auto-generated-targets case — do NOT create a manual `Source/` (it causes CS0101 conflicts). If no auto-trigger plugin is enabled, a minimal `Source/` game module IS required. See `learnings/engine-quirks/bp-only-needs-target-cs-for-packaging.md` and `learnings/engine-quirks/bp-only-packaging-needs-source-module.md`.
+     Accept one of: `editor-only`, `packaged`, `cloud-build`. Record in `integration.json → packagingTarget`. (Agent-side: this gates Phase 3's Tier 2 smoke test — full package + boot; Tier 1 fast build runs regardless. Never put tier/phase jargon in the question itself.) If the answer is `packaged` or `cloud-build` AND the project has no `Source/` directory, flag it immediately so Phase 3 can plan for a minimal game module or a target-generating plugin (e.g., CommonUI) upfront. If CommonUI (or another auto-trigger plugin) IS enabled, this is the UBT auto-generated-targets case — do NOT create a manual `Source/` (it causes CS0101 conflicts). If no auto-trigger plugin is enabled, a minimal `Source/` game module IS required. See `learnings/engine-quirks/bp-only-needs-target-cs-for-packaging.md` and `learnings/engine-quirks/bp-only-packaging-needs-source-module.md`.
 2. **Detect the VCS and create an isolation context.** Run `detect_vcs` (`references/vcs/README.md`) to decide **git** vs **svn** vs **p4** — keyed off where the code lives — record `integration.json → vcs`, and load the matching `references/vcs/<type>.md`. Then perform `create_isolation` per that file, confirming the name with the human: a dedicated **branch** for git (`ludeo-integration/<game>`, or the repo's convention); a **long-lived branch** for svn (creation is a server-side commit — human-gated and deferrable, work proceeds in the current working copy and carries over via `svn switch`; the integration branch is permanent, never reintegrated to trunk); or a **task/dev stream** (or pending changelist) for p4. For p4, first verify the workspace is synced and logged in (`p4 info` / `p4 login -s`) — the skill verifies but does not create the client. All integration work (SDK setup, TDD, code) goes in this context.
 3. **Acquire the SDK** via `acquire_component` from the loaded `vcs/<type>.md`. Use the Read tool on `<skill-base-dir>/config/sdk-sources.json` for sources. **Resolve the latest release tag from the repo FIRST — never download a version hardcoded in this config or recalled from memory** (a stale/wrong version is a known failure). Unless the human pinned a version, take the latest: with `gh`, confirm via `gh release list -R ludeo-labs/unreal-plugin-releases -L 1` then `gh release download -R ludeo-labs/unreal-plugin-releases -p '*.zip'` (no tag = latest); without `gh`, read `.tag_name` from the `releases/latest` API. See the config's `release.acquireLatest`. Record the resolved tag in `integration.json → sdkSetup.tag`.
 
@@ -183,7 +183,7 @@ Read `.ludeo/integration.json` from the target game repo.
        └── RunKismetDump.bat
    ```
    **IMPORTANT:** Check each directory and file individually. If `.ludeo/` already exists with partial content (e.g., TDD from a prior session), preserve it. Only create directories/files that don't exist yet. NEVER `rm -rf .ludeo` and recreate. See **Destructive Action Guards** section.
-5. **Add this engagement's abstract codename to the learning allowlist now.** Append the codename to `config/learning-policy.json` → `sourceGame` allowlist at Phase 0. Writing any learning requires an allowlisted codename; doing this upfront removes the friction that otherwise stalls the first mid-phase learning. Use an abstract codename, never the real studio/title (a real name is itself a leak).
+5. **Add this engagement's abstract codename to the learning allowlist now.** Append the codename to `config/learning-policy.json` → `sourceGame` allowlist at Phase 1. Writing any learning requires an allowlisted codename; doing this upfront removes the friction that otherwise stalls the first mid-phase learning. Use an abstract codename, never the real studio/title (a real name is itself a leak).
 6. Copy tools from the skill's `tools/` directory into `.ludeo/tools/` — copy if missing; if present but different from the skill copy, refresh it (stale tools silently lack current capabilities — see "Tools freshness" in Step 1):
    - `SetupLudeoEnv.ps1` — environment variable setup for running the packaged build
    - `BuildAndPackage.bat` — self-detecting BuildCookRun wrapper for Ludeo cloud builds (detects UE_ROOT from `.uproject` EngineAssociation, GameName from `.uproject` filename, and TargetName from `Source/*.Target.cs` with the `.uproject` name as the BP-only fallback — no substitution needed, copy verbatim; pass `--nopause` when launching programmatically)
@@ -211,7 +211,7 @@ Read `.ludeo/integration.json` from the target game repo.
 
    **If Option B:**
    - Record `"bpInspectorPlugin": {"available": false, "reason": "human-opted-out"}` in `integration.json` → `tools`.
-   - Skip plugin deployment. Phase 1 and Phase 3 will use human questions instead of the automated report.
+   - Skip plugin deployment. Phase 2 and Phase 4 will use human questions instead of the automated report.
 
    **Skip this step entirely** if the game is C++-heavy with minimal Blueprint gameplay logic (i.e., `Source/` headers contain all gameplay UPROPERTYs).
 8. Initialize `integration.json` — only if the file doesn't exist. If it exists, read it and resume from where it left off.
@@ -220,14 +220,14 @@ Read `.ludeo/integration.json` from the target game repo.
 11. **Verify environment runnability.** Ask the human two questions and record both in `integration.json` → `sdkSetup`:
     - `"Can the curated slice be played WITHOUT the game's live/online backend? If not, does an offline-mode preprocessor gate (e.g., LUDEO_OFFLINE_MODE) exist or need to be built as a prerequisite?"` — Record under `sdkSetup.offlineBackend` as `"works" | "gate-exists:<flag>" | "gate-needed"`. If `gate-needed`, this is a blocker for later phases; flag it.
     - `"What is the exact command/cheat/call to load the curated slice from a cold boot? ServerTravel by map name? A game-specific state-machine call? Editor PIE only?"` — Record under `sdkSetup.sliceLoadCommand`. The default `ServerTravel` may silently no-op for games with custom load paths (e.g., ActionGame uses `UGameStateMachine::RequestSoloGame`).
-12. **Run the kickoff intake questionnaire.** Read `<skill-base-dir>/references/phase-00-intake.md` and walk the 4 question groups with the human. Target 20-30 minutes. Record answers to `integration.json` → `intake`. Unknown answers become risks, not blockers — they resurface at the phase that gates on them. Phases 2 and 3 pre-flight checklists read this block and fail if required fields are missing.
-13. Transition immediately to Phase 1.
+12. **Run the kickoff intake questionnaire.** Read `<skill-base-dir>/references/phase-01-know-your-game.md` and walk the 4 question groups with the human. Target 20-30 minutes. Record answers to `integration.json` → `intake`. Unknown answers become risks, not blockers — they resurface at the phase that gates on them. Phases 3 and 4 pre-flight checklists read this block and fail if required fields are missing.
+13. Transition immediately to Phase 2.
 
 ### Available Tools
 
 #### BP Inspector (`RunBPInspector.bat`)
 
-Reads and writes Blueprint variable metadata. Runs inside UE Editor (headless). Requires the Python Editor Script Plugin (enable it in Phase 0 step 7 — without it the script silently no-ops). When the LudeoBPInspector C++ plugin is also deployed (Phase 0 step 7), provides full introspection including SaveGame flags, replication flags, default values, and components. Without the plugin, falls back to .uasset binary scanning (variable names and types only — no flags, defaults, or components).
+Reads and writes Blueprint variable metadata. Runs inside UE Editor (headless). Requires the Python Editor Script Plugin (enable it in Phase 1 step 7 — without it the script silently no-ops). When the LudeoBPInspector C++ plugin is also deployed (Phase 1 step 7), provides full introspection including SaveGame flags, replication flags, default values, and components. Without the plugin, falls back to .uasset binary scanning (variable names and types only — no flags, defaults, or components).
 
 **Commands:**
 
@@ -257,12 +257,12 @@ Deploy like the BP Inspector plugin: copy `tools/LudeoKismetDump/` to `<GameRoot
 | `LudeoKismet.DisassembleBP <ClassSubstring>` (in-game console) | Ad-hoc disassembly of loaded classes during a live session. |
 | `LudeoKismet.DumpDelegateBindings <ClassSubstring>` (in-game console) | Live invocation list of every multicast delegate on matching world actors — "who listens to this event right now". Run after gameplay starts. |
 
-**When to use & how to read the dumps:** `references/kismet-bytecode-analysis.md` — covers the event-stub → ubergraph-offset reading technique and the restore-semantics patterns (arm-vs-grant delegate handlers, idempotent re-derivers, load-bearing latent state). Most valuable at Phase 7/8 (Player Flow restore of scripted mission progression) and per-new-map scripting-surface triage. Known limitation: UE5 World Partition cells aren't walked (persistent-level scripts still dump).
+**When to use & how to read the dumps:** `references/kismet-bytecode-analysis.md` — covers the event-stub → ubergraph-offset reading technique and the restore-semantics patterns (arm-vs-grant delegate handlers, idempotent re-derivers, load-bearing latent state). Most valuable at Phase 8/9 (Player Flow restore of scripted mission progression) and per-new-map scripting-surface triage. Known limitation: UE5 World Partition cells aren't walked (persistent-level scripts still dump).
 
 **When to use:**
-- **Phase 1:** Read the `inspect` report to classify save system (SaveGame flags present → Group 1) and answer structural questions. Run `graph` to understand BP logic flow (what BeginPlay calls, what event handlers do) without asking the human to screenshot graphs. Use `graph-function` for targeted queries on specific functions.
-- **Phase 4:** Set SaveGame flags on curated slice variables after human approves the variable list. Re-run inspect to verify.
-- **Phase 7:** Discover additional variables for enrichment. Set SaveGame flags on newly identified variables.
+- **Phase 2:** Read the `inspect` report to classify save system (SaveGame flags present → Group 1) and answer structural questions. Run `graph` to understand BP logic flow (what BeginPlay calls, what event handlers do) without asking the human to screenshot graphs. Use `graph-function` for targeted queries on specific functions.
+- **Phase 5:** Set SaveGame flags on curated slice variables after human approves the variable list. Re-run inspect to verify.
+- **Phase 8:** Discover additional variables for enrichment. Set SaveGame flags on newly identified variables.
 - **Any phase:** Answer BP structural or behavioral questions without asking the human to open the editor
 
 **Do NOT** create console commands or ask the human to manually check SaveGame checkboxes. The `set-savegame` / `set-savegame-batch` commands do this headlessly. When flagging 2+ variables, always use `set-savegame-batch` to avoid multiple editor boots.
@@ -305,7 +305,7 @@ Filter by tier: `universal` and `generalizable` apply across games. Load `game-s
 
 **Red flag for the agent to stop:** If a learning's conclusion is absolute ("the ONLY working approach", "ALL approaches failed", "NEVER do X") AND it is `tier: universal`, be suspicious — engineering rules with "only / always / never" almost always have preconditions. Check whether the learning should actually be `generalizable` before applying it.
 
-**Before checking classifications in Phase 1 (or any later phase)**, the agent MUST read `references/reference-sample-catalog.md` and check for matches. A sample match is stronger evidence than grep-based inference and should be the starting point, not an afterthought.
+**Before checking classifications in Phase 2 (or any later phase)**, the agent MUST read `references/reference-sample-catalog.md` and check for matches. A sample match is stronger evidence than grep-based inference and should be the starting point, not an afterthought.
 
 For the meta-rule itself and the incidents that motivated it, see `learnings/common-mistakes/do-not-trust-learning-without-verifying-precondition.md`.
 
@@ -320,7 +320,7 @@ The skill's primary, always-current source of SDK detail is the **`sdk-docs`** M
 
 Check for available MCP servers:
 - **`sdk-docs`** — Primary. **Search it for any SDK API detail, at any phase**, instead of guessing. Fallback: bundled `references/sdk-reference/` files (concepts only).
-- **`ludeo-context`** — If available, use for company knowledge, QA workflows, repo context. Particularly useful for Phase 1 (mapping analysis) and Phases 4–5 (tracking/restore and actions discovery from QA event lists).
+- **`ludeo-context`** — If available, use for company knowledge, QA workflows, repo context. Particularly useful for Phase 2 (mapping analysis) and Phases 5–6 (tracking/restore and actions discovery from QA event lists).
 - **Perforce MCP** (only when `vcs.type == "p4"`) — If a Perforce MCP server is connected (the official Perforce P4 MCP is recommended), use its tools for `edit`/`add`/`shelve`/`submit` and stream ops. Record the server name in `integration.json → vcs.p4.mcp`. If none is connected, set it to `null` and fall back to the raw `p4` CLI (see `references/vcs/p4.md`).
 
 If a needed MCP is unavailable, set it up from `config/mcp_config.template.json` (above), or inform the human and proceed with the bundled fallback.
@@ -336,7 +336,7 @@ Follow the loaded reference file's guidance:
 6. Implement the phase's code
 7. Record decisions and findings in `integration.json`
 
-For Phases 2+: prefer inference over questions. Analyze the code, make a decision, implement. Only ask when truly stuck or when the choice is irreversible.
+For Phases 3+: prefer inference over questions. Analyze the code, make a decision, implement. Only ask when truly stuck or when the choice is irreversible.
 
 ### Step 6: Compile-Fix (Hard Gate)
 
@@ -359,7 +359,7 @@ For Phases 2+: prefer inference over questions. Analyze the code, make a decisio
 Confirm all deliverables are implemented (not stubbed), code compiles, package builds:
 
 - For each item in the Output Contract: is it implemented and working, or is it a placeholder/stub?
-- Stubs (`/* Phase 5+ */`, `// TODO`) mean the phase is **incomplete** — do not mark it done.
+- Stubs (`/* Phase 6+ */`, `// TODO`) mean the phase is **incomplete** — do not mark it done.
 - If a deliverable was intentionally deferred (agreed with human), note it explicitly.
 
 **`bIsPlayerFlow` audit (every code-producing phase):** Grep for `bIsPlayerFlow` in the plugin source. Verify each occurrence is correct:
@@ -367,20 +367,20 @@ Confirm all deliverables are implemented (not stubbed), code compiles, package b
 - **Must NOT be guarded:** `RegisterActionListeners()`, `OnActorSpawned()`, `DetectPollBasedActions()`, `ReportAction()` (actions and entity tracking must work in both flows)
 - **Watch for cascading guards:** A `bIsPlayerFlow` check on `CreateWritableObjects()` can indirectly block action registration if `RegisterActionListeners()` depends on the entity list that `CreateWritableObjects()` populates. Trace the call chain — don't just check direct guards.
 
-**Room-open-timing audit (every code-producing phase that touches the lifecycle):** Confirm `Session::OpenRoom` is called from the component's `BeginPlay` (at level load), **NOT** gated on a warmup / countdown / "Playing" / "combat" / interesting-state phase. Only `BeginGameplay` (the N-way gate) may wait on a game phase. Grep the component for `OpenRoom` and trace its caller: if a game-phase observer (e.g. `WhenPhaseStartsOrIsActive(Playing) → … → OpenRoom`) reaches `OpenRoom`, that is the bug — a late-opened Creator room never receives `OnRoomReady` and nothing records. Move the open to `BeginPlay`; gate only `BeginGameplay` on the phase. This holds even when no reference sample is available to diff against. See `learnings/common-mistakes/open-creator-room-at-level-load-not-on-phase.md` and the HARD RULE in `references/phase-02-lifecycle.md` §3.2.
+**Room-open-timing audit (every code-producing phase that touches the lifecycle):** Confirm `Session::OpenRoom` is called from the component's `BeginPlay` (at level load), **NOT** gated on a warmup / countdown / "Playing" / "combat" / interesting-state phase. Only `BeginGameplay` (the N-way gate) may wait on a game phase. Grep the component for `OpenRoom` and trace its caller: if a game-phase observer (e.g. `WhenPhaseStartsOrIsActive(Playing) → … → OpenRoom`) reaches `OpenRoom`, that is the bug — a late-opened Creator room never receives `OnRoomReady` and nothing records. Move the open to `BeginPlay`; gate only `BeginGameplay` on the phase. This holds even when no reference sample is available to diff against. See `learnings/common-mistakes/open-creator-room-at-level-load-not-on-phase.md` and the HARD RULE in `references/phase-03-lifecycle.md` §3.2.
 
-### Phase 4 Hard Gate: Player Flow Before Phase 5
+### Phase 5 Hard Gate: Player Flow Before Phase 6
 
-**Phase 4 has mandatory execution ordering that overrides the normal flow.** Do NOT combine Phases 4 and 5 in a single plan. Phase 5 actions are meaningless if Player Flow doesn't work — highlights can't be played back.
+**Phase 5 has mandatory execution ordering that overrides the normal flow.** Do NOT combine Phases 5 and 6 in a single plan. Phase 6 actions are meaningless if Player Flow doesn't work — highlights can't be played back.
 
-**Required execution order for Phase 4:**
+**Required execution order for Phase 5:**
 1. Implement Creator Flow (write side) → compile → verify writes work (check logs)
 2. Implement Player Flow subsystem logic (GetLudeo + read state + ServerTravel) → compile
 3. Implement Player Flow component logic (detect pending Ludeo + apply state to entities) → compile
 4. **Human tests end-to-end:** capture a highlight → play it back → confirm positions restore
-5. ONLY after human confirms Player Flow works → proceed to Phase 5
+5. ONLY after human confirms Player Flow works → proceed to Phase 6
 
-**Why this gate exists:** The agent consistently stubs Player Flow and claims Phase 4 complete. Creator Flow is self-verifiable (logs show writes), but Player Flow requires a captured Ludeo. The agent writes Creator Flow, verifies it, and rationalizes that Player Flow "will connect when tested." It never does — the stubs persist into Phase 5 and beyond. This gate makes Player Flow verification a **blocking prerequisite** for Phase 5.
+**Why this gate exists:** The agent consistently stubs Player Flow and claims Phase 5 complete. Creator Flow is self-verifiable (logs show writes), but Player Flow requires a captured Ludeo. The agent writes Creator Flow, verifies it, and rationalizes that Player Flow "will connect when tested." It never does — the stubs persist into Phase 6 and beyond. This gate makes Player Flow verification a **blocking prerequisite** for Phase 6.
 
 **If Player Flow is blocked** (e.g., can't figure out how to travel to the right map, health setter doesn't work, GAS timing issue): **ask the human.** Do NOT stub it and move on. Do NOT log it as "deferred to testing." Either implement it or get help.
 
@@ -426,7 +426,7 @@ After the review is merged/submitted (or human says phase is done):
 
 The skill creates `.ludeo/integration.json` in the target game repo. It records the game's identity, `currentPhase` + per-phase statuses (Step 1 reads these to resume), the save-system classification and evidence, the curated slice definition, `packagingTarget`, VCS config, SDK setup, and accumulated `decisions` / `findings`.
 
-**Full schema with field-by-field notes: `references/state-file-schema.md`** — read it before creating the file (Phase 0 step 8) or adding new top-level fields. When updating, preserve fields you don't recognize — phases accumulate fields beyond the base template (e.g. `intake`, `pauseMechanism`, `skillImprovementNotes`); never rewrite the file from the template.
+**Full schema with field-by-field notes: `references/state-file-schema.md`** — read it before creating the file (Phase 1 step 8) or adding new top-level fields. When updating, preserve fields you don't recognize — phases accumulate fields beyond the base template (e.g. `intake`, `pauseMechanism`, `skillImprovementNotes`); never rewrite the file from the template.
 
 ---
 
@@ -539,7 +539,7 @@ The skill ships its MCP server definitions in `config/mcp_config.template.json` 
 
 **When to use each MCP:**
 - `sdk-docs`: Any phase — whenever the skill needs to **look up or search SDK documentation**. This is the document-search server; prefer it over guessing or over the bundled concept files.
-- `ludeo-context`: Phase 1 (mapping analysis), Phases 4–5 (tracking/restore and actions discovery from QA event lists).
+- `ludeo-context`: Phase 2 (mapping analysis), Phases 5–6 (tracking/restore and actions discovery from QA event lists).
 
 If a server is not detected, set it up from `config/mcp_config.template.json` (see Step 4) before relying on its fallback, and tell the human which fallback you're using.
 
@@ -549,7 +549,7 @@ If a server is not detected, set it up from `config/mcp_config.template.json` (s
 
 Each phase reference file (`references/phase-*.md`) follows a consistent section structure:
 
-**Analysis phases** (Phase 1) use 7 sections:
+**Analysis phases** (Phase 2) use 7 sections:
 
 1. **Goal** — What this phase produces (concrete deliverable)
 2. **Inputs** — What the skill needs before starting, with formal input contract (prior phase outputs, game info)
@@ -559,9 +559,9 @@ Each phase reference file (`references/phase-*.md`) follows a consistent section
 6. **Documentation template** — What to record after implementation
 7. **Common mistakes** — What prior integrations got wrong at this phase
 
-**Code-producing phases** (Phases 2–8) add an 8th section:
+**Code-producing phases** (Phases 3–9) add an 8th section:
 
-7. **Implementation guidance** — Plugin scaffold, class skeletons, compile-fix loop, config setup. For Phase 2, uses **template-driven approach** from `references/templates/`.
+7. **Implementation guidance** — Plugin scaffold, class skeletons, compile-fix loop, config setup. For Phase 3, uses **template-driven approach** from `references/templates/`.
 8. **Common mistakes** — (moved from 7 to 8)
 
 Reference files are loaded on demand — only the current phase's file is read into context.
@@ -571,7 +571,7 @@ Reference files are loaded on demand — only the current phase's file is read i
 ## Reference Samples and Learnings
 
 - **`references/reference-sample-catalog.md`** — Authoritative lookup of known-good integration reference samples (FPSGameStarterKit, Lyra, VoyagerV2, etc.) with match criteria and the classification each implies. Check this BEFORE deriving classifications from scratch — a sample match is stronger evidence than grep-based inference. Patterns and decision rationale from these completed integrations are also captured throughout `learnings/` (filter by `sourceGame`).
-- **`references/game-patterns/`** — Genre + structural playbooks (action catalogs, tracking checklists, Unreal grep idioms, open-world session doctrine, turn-based cadence). Loaded per-genre in phase-01/04; classify via its `INDEX.md`.
+- **`references/game-patterns/`** — Genre + structural playbooks (action catalogs, tracking checklists, Unreal grep idioms, open-world session doctrine, turn-based cadence). Loaded per-genre in phase-02/05; classify via its `INDEX.md`.
 - **`learnings/`** — Categorized corrections from prior integrations. Organized by topic (`architecture/`, `save-systems/`, `common-mistakes/`, `engine-quirks/`). Each file has frontmatter for filtering by tier, phase, and source game.
 
 Both are loaded on demand, filtered by the current phase's needs.
@@ -580,7 +580,7 @@ Both are loaded on demand, filtered by the current phase's needs.
 
 ## Save System Classification
 
-Games are classified during Phase 1 into one of three groups:
+Games are classified during Phase 2 into one of three groups:
 
 | Group | Description | Integration Strategy |
 |-------|-------------|---------------------|
@@ -588,7 +588,7 @@ Games are classified during Phase 1 into one of three groups:
 | 2 — Checkpoint-Only | Game saves at fixed points only | Extend checkpoint system for arbitrary save points |
 | 3 — No Save | No existing persistence beyond session | Build state capture from scratch (AI adds most value here) |
 
-This classification drives decisions in Phase 4 (curated state tracking + Player Flow restoration approach) and Phases 7–8 (full game coverage and polish).
+This classification drives decisions in Phase 5 (curated state tracking + Player Flow restoration approach) and Phases 8–9 (full game coverage and polish).
 
 ---
 

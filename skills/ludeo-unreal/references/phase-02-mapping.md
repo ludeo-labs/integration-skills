@@ -1,8 +1,8 @@
-# Phase 01 — Mapping
+# Phase 02 — Mapping
 
 ## 1. Goal / Purpose
 
-Produce a **focused CODE_MAP** (integration surface only) and select the **curated gameplay slice** that Phases 3-5 are scoped to. Quick human approval, then proceed to implementation.
+Produce a **focused CODE_MAP** (integration surface only) and select the **curated gameplay slice** that Phases 4-6 are scoped to. Quick human approval, then proceed to implementation.
 
 **Deliverables:**
 - Curated slice selection (map + game mode + entities + actions)
@@ -18,9 +18,9 @@ Produce a **focused CODE_MAP** (integration surface only) and select the **curat
 ```
 Required:
   gamePath: string          — Root path of the game project
-  engineVersion: string     — "UE 4.x" or "UE 5.x" (from Phase 0)
-  gameType: string          — "FPS", "TPS", "Action", etc. (from Phase 0)
-  demoMapHint: string|null  — Human's initial suggestion for curated slice map (from Phase 0)
+  engineVersion: string     — "UE 4.x" or "UE 5.x" (from Phase 1)
+  gameType: string          — "FPS", "TPS", "Action", etc. (from Phase 1)
+  demoMapHint: string|null  — Human's initial suggestion for curated slice map (from Phase 1)
 
 Optional:
   gameDescription: string   — GDD, wiki page, or informal description
@@ -29,7 +29,7 @@ Optional:
 
 **Before starting this phase, verify:**
 
-- [ ] Phase 0 completed — `.ludeo/integration.json` exists with `gameTitle`, `engineVersion`, `gameType`
+- [ ] Phase 1 completed — `.ludeo/integration.json` exists with `gameTitle`, `engineVersion`, `gameType`
 - [ ] Game codebase is accessible and compiles (or at least browseable)
 - [ ] Human is available for questions (this phase requires the most human input)
 
@@ -61,7 +61,7 @@ Each item describes **what to find** and **how to find it**. Run these in order 
 
 **Scope:** This analysis targets the **integration surface** — where Ludeo code will hook into the game. It is NOT an exhaustive catalog of every class. Focus on: lifecycle hooks, event systems, entity classes relevant to the curated slice, save system, and Player Flow restoration paths.
 
-**Classify genre → load the matching playbook.** From the game type (Phase 0 intake) plus a quick web/code check, classify the genre and load the matching `references/game-patterns/<genre>.md` (catalog of actions + tracking + Unreal grep idioms). See `references/game-patterns/INDEX.md` to classify. For a **streaming / no-per-map-level** game (session boundaries are state-machine/event-driven, not `OpenLevel`/`ServerTravel` per map), also load `references/game-patterns/open-world.md` — it decides where a Gameplay Session begins/ends. For a **turn-based** game (initiative / action points / grid), load `references/game-patterns/turn-based.md` (it also covers the turn-boundary capture-cadence decision).
+**Classify genre → load the matching playbook.** From the game type (Phase 1 intake) plus a quick web/code check, classify the genre and load the matching `references/game-patterns/<genre>.md` (catalog of actions + tracking + Unreal grep idioms). See `references/game-patterns/INDEX.md` to classify. For a **streaming / no-per-map-level** game (session boundaries are state-machine/event-driven, not `OpenLevel`/`ServerTravel` per map), also load `references/game-patterns/open-world.md` — it decides where a Gameplay Session begins/ends. For a **turn-based** game (initiative / action points / grid), load `references/game-patterns/turn-based.md` (it also covers the turn-boundary capture-cadence decision).
 
 #### 3.1 Project Structure
 
@@ -119,7 +119,7 @@ The answer classifies the subsystem into one of two categories:
 
 | Category | Behavior on restore-from-snapshot | Examples | Restoration strategy |
 |----------|-----------------------------------|----------|--------------------|
-| **Snapshot** | Nothing breaks — current values are sufficient | Player position, entity health, current phase enum, inventory, ability on/off | Capture current values per-tick, apply on restore (standard Phase 4 pattern) |
+| **Snapshot** | Nothing breaks — current values are sufficient | Player position, entity health, current phase enum, inventory, ability on/off | Capture current values per-tick, apply on restore (standard Phase 5 pattern) |
 | **Trail** | Everything breaks — scripted logic re-executes from start, stale VO, early-phase NPC spawns, tutorial prompts fire at mid-mission | Milestones passed, objectives completed, mission props used (deployables placed, cameras disabled, extraction zone activated), level BP scripted state, tutorial flags | Capture the **sequence of events** as a time-ordered trail; replay via the game's own notifier functions (e.g., `NotifyClientPassedMilestone`) before applying snapshot state |
 
 **How to spot trail subsystems during grep:**
@@ -131,11 +131,11 @@ The answer classifies the subsystem into one of two categories:
 | Level blueprint scripted actors | `Grep("ALevelScriptActor", glob: "*.cpp")` — inspect for `HandleActionPhaseStarted`-style event handlers that queue VO or spawn NPCs |
 | Mission prop state | `Grep("(DeviceState\|DeviceState\|bIsActivated\|bIsDeployed\|ExtractionActivated)", glob: "*.h")` |
 
-**Rule — this drives Phase 4 scoping:**
+**Rule — this drives Phase 5 scoping:**
 
-**Any subsystem classified as `trail` that is needed for the curated slice's demo is Phase 4 work. Full stop. Do NOT defer it to Phase 7 as "enrichment."**
+**Any subsystem classified as `trail` that is needed for the curated slice's demo is Phase 5 work. Full stop. Do NOT defer it to Phase 8 as "enrichment."**
 
-If your curated slice demo requires the level BP to look sane (no stale VO, no early-phase NPCs, no tutorial prompts), then the level BP's dependencies — mission progression, milestone trail, objective state — are part of Phase 4. Missing them means Phase 4 isn't actually done; the demo just hasn't revealed it yet.
+If your curated slice demo requires the level BP to look sane (no stale VO, no early-phase NPCs, no tutorial prompts), then the level BP's dependencies — mission progression, milestone trail, objective state — are part of Phase 5. Missing them means Phase 5 isn't actually done; the demo just hasn't revealed it yet.
 
 **Record classification** in `integration.json → stateClassification`:
 
@@ -152,7 +152,7 @@ If your curated slice demo requires the level BP to look sane (no stale VO, no e
 }
 ```
 
-If the intake questionnaire Group 5 (Event-Driven Scripted Systems) was run at Phase 0, cross-check findings here with the team's stated answers. Discrepancies are risks — surface them to the human.
+If the intake questionnaire Group 5 (Event-Driven Scripted Systems) was run at Phase 1, cross-check findings here with the team's stated answers. Discrepancies are risks — surface them to the human.
 
 #### 3.5 Save System
 
@@ -177,12 +177,12 @@ If the C++ grep sweep in Step 2 returns **no results for `UPROPERTY(SaveGame)` o
 **Option A — Automated (recommended):** Use the **BP Inspector tool** (see SKILL.md → Available Tools). Run `inspect`, read the report, and classify:
 
 - **SaveGame flags found** (`saveGame: true` on gameplay variables) → Group 1 (SaveWorld-compatible). Record `method: "bp-inspection"`.
-- **No SaveGame flags** → Still classify as Group 1 (SaveWorld-compatible, pending flag setup). Record `flagsSet: false`. SaveGame flags will be set in Phase 3 when the curated variable list is finalized.
-- The report also answers structural questions (parent class, components, movement type) — use these throughout Phase 1 analysis.
+- **No SaveGame flags** → Still classify as Group 1 (SaveWorld-compatible, pending flag setup). Record `flagsSet: false`. SaveGame flags will be set in Phase 4 when the curated variable list is finalized.
+- The report also answers structural questions (parent class, components, movement type) — use these throughout Phase 2 analysis.
 
 Populate `saveSystemEvidence.bpVariablesInspected` from the JSON report.
 
-**Option B — Fallback (if BP Inspector unavailable):** Ask the human to open a representative gameplay BP and check if the SaveGame checkbox is set on gameplay variables (Health, Energy, Score). Yes → Group 1. No → Group 1 pending flag setup (Phase 3 will handle). Only classify as Group 3 (WritableObject) if the human explicitly prefers it.
+**Option B — Fallback (if BP Inspector unavailable):** Ask the human to open a representative gameplay BP and check if the SaveGame checkbox is set on gameplay variables (Health, Energy, Score). Yes → Group 1. No → Group 1 pending flag setup (Phase 4 will handle). Only classify as Group 3 (WritableObject) if the human explicitly prefers it.
 
 **Do NOT infer save system capability from grep results alone in a BP-only project.** Grep cannot see BP variables — they live in `.uasset` files, not headers. An empty grep result is *inconclusive*, not negative (see `learnings/common-mistakes/do-not-trust-learning-without-verifying-precondition.md`).
 
@@ -244,7 +244,7 @@ After running the analysis checklist, suggest 2-3 candidate gameplay slices for 
 | Classify maps | Arena/wave (best first slice) > Story/mission (good second) > Menu/lobby/transition (skip) |
 | Estimate action density | Count ability classes, delegate declarations, event enums near each map's code |
 | Check dependencies | Does the slice need persistent state from outside (loadout, progression, unlocks)? |
-| Use human hint | If the human suggested a demo map in Phase 0, start with that |
+| Use human hint | If the human suggested a demo map in Phase 1, start with that |
 
 **Present to human:**
 ```
@@ -270,7 +270,7 @@ Scope analysis to the classes the curated map actually uses — not every BP in 
 
 ##### 3.9.1 Entity Priority Tiering (mandatory)
 
-"Track everything" is not a plan. "Track only the player" is also not a plan. After identifying the entity categories in the curated slice, **force the human to tier each one** — no category left unranked. This surfaces wrong assumptions up front (the canonical ActionGame example: the agent assumed vehicles could be deferred as transient; the human corrected with "WE cannot defer cars!!!" mid-Phase 4).
+"Track everything" is not a plan. "Track only the player" is also not a plan. After identifying the entity categories in the curated slice, **force the human to tier each one** — no category left unranked. This surfaces wrong assumptions up front (the canonical ActionGame example: the agent assumed vehicles could be deferred as transient; the human corrected with "WE cannot defer cars!!!" mid-Phase 5).
 
 Enumerate every entity category visible in the slice. Typical buckets: player, teammates/crew, hostile AI, neutral AI (civilians), vehicles, physics props, objective item/collectibles, placeables, deployables, environmental interactables (doors, cameras, terminals), objective markers.
 
@@ -279,7 +279,7 @@ Ask the human to tier each:
 | Tier | Meaning |
 |------|---------|
 | **P0 (must track)** | Absence breaks the demo — capture is incomplete or Player Flow feels broken. |
-| **P1 (should track)** | Adds fidelity; defer only if it blocks MVP. Revisit in Phase 7 enrichment. |
+| **P1 (should track)** | Adds fidelity; defer only if it blocks MVP. Revisit in Phase 8 enrichment. |
 | **P2 (can defer for MVP)** | Genuinely skippable for 48h MVP. |
 
 **Present to human:**
@@ -309,7 +309,7 @@ For each P0/P1: does it persist across phases, wave-spawn, or player-place? Driv
 }
 ```
 
-**→ Wired to:** Phase 4 pre-flight (every P0 entity must have a WritableObject registration path). Phase 4 cannot complete without all P0 entities tracked. P1 entities default to not-implemented-in-MVP unless the human later promotes them.
+**→ Wired to:** Phase 5 pre-flight (every P0 entity must have a WritableObject registration path). Phase 5 cannot complete without all P0 entities tracked. P1 entities default to not-implemented-in-MVP unless the human later promotes them.
 
 #### 3.10 Player Flow Restoration Approach
 
@@ -462,11 +462,11 @@ Ask these after completing the analysis checklist and curated slice selection. S
 
 ### Always Ask
 
-1. **Curated slice confirmation:** Present the 2-3 candidates from section 3.9 and ask which to target. If the human already named a map in Phase 0, lead with that as the recommendation.
+1. **Curated slice confirmation:** Present the 2-3 candidates from section 3.9 and ask which to target. If the human already named a map in Phase 1, lead with that as the recommendation.
 2. **Save system classification:** Present findings and recommend a group:
    - "Based on code analysis, this game appears to be **Group N**. [rationale]. Does this match your understanding?"
 3. **State tracking approach:** Present the recommended approach from section 3.10 and ask the developer to validate:
-   - "Based on the save system analysis, I recommend **[reconciliation / manual]** for state tracking and Player Flow restoration. Here's why: [rationale — e.g., compatible SaveGame classes exist / no save system found / serialization blockers detected]. This affects how all state tracking and restoration works from Phase 4 onward. Does this approach work for your team?"
+   - "Based on the save system analysis, I recommend **[reconciliation / manual]** for state tracking and Player Flow restoration. Here's why: [rationale — e.g., compatible SaveGame classes exist / no save system found / serialization blockers detected]. This affects how all state tracking and restoration works from Phase 5 onward. Does this approach work for your team?"
    - If the developer has a preference or constraints (team expertise, performance concerns, existing save infrastructure), adjust the recommendation.
 
 ### Ask Only If Needed
@@ -624,7 +624,7 @@ and how they connect to the game's classes. See Lyra TDD for format.]
 
 [If Group 1/2: describe the existing save system]
 [If blockers found for SaveWorld: list them]
-[Preliminary recommendation: SaveWorld vs Manual — final decision is in Phase 7]
+[Preliminary recommendation: SaveWorld vs Manual — final decision is in Phase 8]
 
 ## SDK Concept → Game Equivalent
 
@@ -673,7 +673,7 @@ Each genuine risk MUST name (a) the concrete failure mode and (b) the evidence f
 | [Only if found] | [File/pattern that proves this is real] | Low/Medium/High | [mitigation] |
 
 ### Open Questions
-[Anything unresolved that needs human input before proceeding to Phase 2]
+[Anything unresolved that needs human input before proceeding to Phase 3]
 
 ## Dependencies
 - LudeoUESDK plugin + Ludeo C SDK (setup method recorded in `integration.json` → `sdkSetup`)

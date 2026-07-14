@@ -1,4 +1,4 @@
-# Phase 05 — Actions
+# Phase 06 — Actions
 
 ## 1. Goal / Purpose
 
@@ -17,9 +17,9 @@ Hook into the curated slice's gameplay events and report them as Ludeo actions v
 ```
 Required:
   tddSections1-3: markdown  — Prior TDD sections (.ludeo/tdd/integration-tdd.md)
-  codeMap: json              — .ludeo/code-map.json (event systems from Phase 1)
+  codeMap: json              — .ludeo/code-map.json (event systems from Phase 2)
   curatedSlice: object       — integration.json → curatedSlice (entities, preliminary actions)
-  workingPlugin: files       — Plugin from Phases 2-4 with lifecycle + state tracking
+  workingPlugin: files       — Plugin from Phases 3-5 with lifecycle + state tracking
 
 Optional:
   ludeoContext: MCP          — ludeo-context MCP server (QA event lists)
@@ -28,16 +28,16 @@ Optional:
 
 Before starting this phase, verify:
 
-- [ ] Phase 4 completed — state tracking + Player Flow working for curated slice
+- [ ] Phase 5 completed — state tracking + Player Flow working for curated slice
 - [ ] Plugin compiles with state tracking code
-- [ ] CODE_MAP has `event_systems` populated (from Phase 1)
-- [ ] `curatedSlice.actions` has preliminary action list (from Phase 1 analysis)
+- [ ] CODE_MAP has `event_systems` populated (from Phase 2)
+- [ ] `curatedSlice.actions` has preliminary action list (from Phase 2 analysis)
 
 ---
 
 ## 3. Steps
 
-**Scope:** Only discover actions relevant to the **curated slice**. Full game-wide action discovery is deferred to Phase 7 (Expansion).
+**Scope:** Only discover actions relevant to the **curated slice**. Full game-wide action discovery is deferred to Phase 8 (Expansion).
 
 ### 3.1 Minimum and Recommended Actions
 
@@ -54,7 +54,7 @@ Every FPS/TPS integration needs at minimum **Kill + Death**. But stopping at the
 
 For the curated slice, implement **Required + whichever Recommended actions have existing game events**. Don't create new game events for MVP — only hook into what already fires.
 
-**Genre action catalog.** Load the matching `references/game-patterns/<genre>.md` (via `references/game-patterns/INDEX.md`) and use its Actions Catalog as the discovery shopping list. **For the MVP curated slice, implement only catalog actions whose game events already fire inside the slice** — do not add new game events for the MVP. The full catalog applies at Phase 7 expansion.
+**Genre action catalog.** Load the matching `references/game-patterns/<genre>.md` (via `references/game-patterns/INDEX.md`) and use its Actions Catalog as the discovery shopping list. **For the MVP curated slice, implement only catalog actions whose game events already fire inside the slice** — do not add new game events for the MVP. The full catalog applies at Phase 8 expansion.
 
 ### 3.2 Discover Curated Slice Actions
 
@@ -96,7 +96,7 @@ For each confirmed action, define the SendAction parameters:
 
 Before writing any action reporting code, confirm:
 
-- [ ] Phase 4 compiles cleanly with state tracking + Player Flow code
+- [ ] Phase 5 compiles cleanly with state tracking + Player Flow code
 - [ ] `.ludeo/export-check.md` is up to date — any new delegates/methods for action hooks have `GAMENAME_API`?
 - [ ] Action list confirmed by integrator (from Section 4 questions)
 - [ ] Event hook points identified for each action (delegate type, class, method name)
@@ -105,7 +105,7 @@ If any item is unchecked, go back and complete it before writing code.
 
 ### 3.6 Add Action Reporting to Existing Component
 
-Extend the `ULudeoIntegrationComponent` from Phases 2-3 — do NOT create new classes.
+Extend the `ULudeoIntegrationComponent` from Phases 3-4 — do NOT create new classes.
 
 Add to the component:
 - `ReportAction(PlayerId, ActionName)` — generic action sender
@@ -231,7 +231,7 @@ grep-able prefix and strip the firehose once confirmed. See
 After implementation, record in `.ludeo/tdd/integration-tdd.md`:
 
 ```markdown
-## Phase 5: Actions (Curated Slice)
+## Phase 6: Actions (Curated Slice)
 
 ### Actions Tracked
 | Action | Event Source | Hook Type | Player ID Source |

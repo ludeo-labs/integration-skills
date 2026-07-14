@@ -1,4 +1,4 @@
-# Phase 06 — Verification & cloud
+# Phase 07 — Verification & cloud
 
 Validate the release build and upload it to the Ludeo platform.
 
@@ -17,13 +17,13 @@ Validate the release build and upload it to the Ludeo platform. The concrete del
 for a build that passed local verification, `validate-build`, CLI upload, platform processing to **ready**,
 and a **cloud playtest session** confirming the game runs on Ludeo infrastructure. Reaching this phase means
 the **curated slice is validated end-to-end in the cloud** — the MVP milestone. It is **not** the end of the
-integration: full-game **Expansion is Phase 7** and **Polish is Phase 8**.
+integration: full-game **Expansion is Phase 8** and **Polish is Phase 9**.
 
 ## 2. Inputs (Input Contract)
 
 Required artifacts from prior phases:
 
-- [ ] Phases 0–5 complete — SDK wired, lifecycle/actions/state/player-flow implemented
+- [ ] Phases 1–6 complete — SDK wired, lifecycle/actions/state/player-flow implemented
       (`.ludeo/integration.json` prerequisites met)
 - [ ] Ludeo SDK integrated. If not, stop — resume an earlier integration phase
 - [ ] `.ludeo/cloud-upload.json` initialized (by the `cloud-upload` skill)
@@ -37,7 +37,7 @@ Required artifacts from prior phases:
 
 ### Map / plan
 
-1. Read `.ludeo/integration.json` — confirm phases 0–5 are done.
+1. Read `.ludeo/integration.json` — confirm phases 1–6 are done.
 2. Read `.ludeo/cloud-upload.json` — resume at the first incomplete gate; re-run any gate whose build
    artifact changed since it last passed.
 3. Confirm `build-creation-type` (`new` / `sdkFree` / `modification`) and which verification scenarios
@@ -82,8 +82,8 @@ Confirm the uploaded build actually runs on Ludeo cloud infrastructure — not j
    state). Capture session evidence (screenshot, session URL, or human confirmation).
 4. Record cloud-run result in `.ludeo/cloud-upload.json` → `gates.cloudRun = "pass"`.
 5. Advance phase: `.ludeo/integration.json` → `currentPhase: 6` (the **curated slice is cloud-validated** —
-   the MVP milestone). Do **not** mark the integration complete here — Expansion (Phase 7) and Polish
-   (Phase 8) still follow. Final completion is set at the end of Phase 8.
+   the MVP milestone). Do **not** mark the integration complete here — Expansion (Phase 8) and Polish
+   (Phase 9) still follow. Final completion is set at the end of Phase 9.
 
 > There is no `ludeo run` CLI subcommand today — cloud verification happens through Studio Labs after
 > upload. Check `ludeo --help` before claiming a different command exists.
@@ -129,7 +129,7 @@ Confirm the uploaded build actually runs on Ludeo cloud infrastructure — not j
 
 ## 7. ✅ Success Criteria
 
-The agent MUST satisfy **all** of these before marking phase 6 complete:
+The agent MUST satisfy **all** of these before marking phase 7 complete:
 
 - [ ] Pass all verification tests
 - [ ] validate-build passes
@@ -149,4 +149,4 @@ The agent MUST satisfy **all** of these before marking phase 6 complete:
 - Assuming upload success means the game **plays** in cloud without a Studio Labs session.
 - Wrong `--exec-path` (root launcher vs `Binaries/Win64/` game binary).
 - Putting the access token in `ludeo.json` or committing it.
-- Marking the integration **complete** at Phase 6 — it is the slice-cloud-validated milestone only; Expansion (7) and Polish (8) still follow.
+- Marking the integration **complete** at Phase 7 — it is the slice-cloud-validated milestone only; Expansion (7) and Polish (8) still follow.

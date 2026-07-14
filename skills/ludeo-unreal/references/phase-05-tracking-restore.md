@@ -1,10 +1,10 @@
-# Phase 04 — Tracking & Restore (slice)
+# Phase 05 — Tracking & Restore (slice)
 
 ## 1. Goal / Purpose
 
 Implement state tracking (write side) AND Player Flow restoration (read side) for the **curated
 slice only**. This phase produces a working end-to-end integration: Creator Flow captures state
-per-tick; Player Flow restores and replays it. The approved object→attribute table from Phase 03
+per-tick; Player Flow restores and replays it. The approved object→attribute table from Phase 04
 is the primary input — nothing is re-discovered here.
 
 **Deliverables:**
@@ -27,25 +27,25 @@ Produces:
 ```
 
 **CRITICAL:** `playerFlowWorking` means FUNCTIONAL code, not stubs. `ApplyPlayerState()
-{ /* Phase 8 */ }` is NOT acceptable. Phase 04 is NOT complete until Player Flow playback
+{ /* Phase 9 */ }` is NOT acceptable. Phase 05 is NOT complete until Player Flow playback
 actually restores entity positions.
 
 ---
 
 ## 2. Inputs (Input Contract)
 
-**Required from Phase 03:**
+**Required from Phase 04:**
 - Integrator-approved object→attribute table (entity types, strategies, properties, typed/blob)
 - `.ludeo/export-check.md` — any missing `GAMENAME_API` exports resolved before code is written
 - `integration.json → curatedSlice.restorationApproach` — reconciliation or manual
 
 **Required from prior phases:**
-- `.ludeo/integration.json` with Phase 03 complete
-- Plugin scaffold from Phase 02 (subsystem + component, ActivateSession working)
-- Active room with at least one player added (Phase 02 lifecycle)
+- `.ludeo/integration.json` with Phase 04 complete
+- Plugin scaffold from Phase 03 (subsystem + component, ActivateSession working)
+- Active room with at least one player added (Phase 03 lifecycle)
 
 **From CODE_MAP (`.ludeo/code-map.json`):**
-- `entity_types` — all actor/pawn/object classes identified in Phase 01
+- `entity_types` — all actor/pawn/object classes identified in Phase 02
 - `lifecycle_hooks` — where gameplay begins (for knowing when to start tracking)
 - `event_systems` — delegates and message buses (for entity spawn/destroy events)
 
@@ -63,7 +63,7 @@ actually restores entity positions.
 
 ### 3.1 Add State Tracking to Existing Component
 
-Extend the `ULudeoIntegrationComponent` from Phase 02 — do NOT create a new component.
+Extend the `ULudeoIntegrationComponent` from Phase 03 — do NOT create a new component.
 
 Add to the component header:
 ```cpp
@@ -97,7 +97,7 @@ vehicles, game state objects).
 
 ### 3.2 Registration Timing
 
-Register objects AFTER BeginGameplay is confirmed (the N-way gate from Phase 02 has passed):
+Register objects AFTER BeginGameplay is confirmed (the N-way gate from Phase 03 has passed):
 
 ```
 BeginGameplay → RegisterTrackedObjects → start writing in Tick
@@ -129,21 +129,21 @@ In `BeginPlay`, detect pending Ludeo. Read and apply state using the read-side p
 ### 3.7 End-to-End Verification (Human Test — HARD GATE)
 
 Ask the human to capture a highlight and play it back. Confirm entity positions restore.
-See §3.13 for the exact test script. Do NOT mark Phase 04 complete until this passes.
+See §3.13 for the exact test script. Do NOT mark Phase 05 complete until this passes.
 
 ### 3.8 Mandatory Execution Order (STOP)
 
-**Do NOT implement Creator Flow and Player Flow as separate "phases" that can be deferred.** They are both required for Phase 04 completion. Implement them in this exact sequence:
+**Do NOT implement Creator Flow and Player Flow as separate "phases" that can be deferred.** They are both required for Phase 05 completion. Implement them in this exact sequence:
 
 1. **Creator Flow** — WritableObject registration + per-tick state writing → compile → verify writes in logs
 2. **Player Flow subsystem** — LudeoSelected callback → GetLudeo → read GameMetadata → ServerTravel → compile
 3. **Player Flow component** — detect pending Ludeo in BeginPlay → read state → apply to entities → compile
 4. **End-to-end test** — human captures highlight → plays it back → confirms entity positions restore
-5. **ONLY THEN** → Phase 05
+5. **ONLY THEN** → Phase 06
 
 If step 3 is blocked (can't apply health, can't travel to correct map, can't spawn entities), **ask the human**. Do NOT:
-- Stub it with `// TODO: apply state` or `/* Phase 8 */`
-- Log "deferred to testing" and move to Phase 05
+- Stub it with `// TODO: apply state` or `/* Phase 9 */`
+- Log "deferred to testing" and move to Phase 06
 - Claim "the entry point exists, it'll connect when tested"
 
 These are the exact rationalizations that have caused this failure pattern repeatedly. Compilation does not mean Player Flow works. Stubs compile. The agent's compile-fix loop will succeed with stubs, and that success feeling will override this warning unless you follow the execution order above.
@@ -152,22 +152,22 @@ These are the exact rationalizations that have caused this failure pattern repea
 
 Before writing any state tracking or Player Flow code, confirm:
 
-- [ ] Phase 02 plugin compiles cleanly (both plugin-disabled and plugin-enabled builds pass)
+- [ ] Phase 03 plugin compiles cleanly (both plugin-disabled and plugin-enabled builds pass)
 - [ ] `.ludeo/export-check.md` is up to date — any new game classes accessed for state tracking have `GAMENAME_API`?
 - [ ] Curated slice entity list confirmed by integrator (from §4 questions)
 - [ ] Restoration approach decided: reconciliation or manual? (from `integration.json → curatedSlice.restorationApproach`)
 - [ ] **GameMetadata writable object is planned** — MapName, BotCount, and any game-specific metadata (experience asset, difficulty, etc.) will be written at room open. Without this, Ludeo creation from highlights will fail silently.
 - [ ] **Creator Flow vs Player Flow branching is planned** — `CreateWritableObjects()` and `RegisterActionListeners()` are Creator Flow ONLY. Player Flow reads state but does NOT write.
 
-**Intake answers wired here (from `integration.json → intake`, captured at Phase 00 kickoff — see `phase-00-intake.md`):**
+**Intake answers wired here (from `integration.json → intake`, captured at Phase 01 kickoff — see `phase-01-know-your-game.md`):**
 
-- [ ] **Every P0 entity from `intake.entityTiers.P0` has a WritableObject registration path planned.** Missing one = Phase 04 cannot complete. (Example: ActionGame vehicles were a P0 that the agent initially deferred as "transient.")
+- [ ] **Every P0 entity from `intake.entityTiers.P0` has a WritableObject registration path planned.** Missing one = Phase 05 cannot complete. (Example: ActionGame vehicles were a P0 that the agent initially deferred as "transient.")
 - [ ] **Every item in `intake.visiblePlayerState.firstFrameRequired` has a restoration path planned.** For each item (mask, weapon equipped, ammo, health bar, etc.), identify the concrete code path that applies it during Player Flow. Stubs are not acceptable. (Example: ActionGame ability state required `FBoolProperty` reflection + explicit OnRep UFunction call.)
 - [ ] **Every phase enum from `intake.dynamicPhaseMetadata.phaseEnums` where `changesDuringSlice: true` is written per-tick to GameMetadata.** Every one where `mustRestore: true` has a Player Flow read-and-apply path. (Example: ActionGame MissionState/CombatPhase/IntensityScale — captures in Combat playing back as Stealth broke the demo.)
 - [ ] **Every gate in `intake.playbackUXBar.gatesToSuppressInPlayerFlow` has a suppression hook planned.** For each (briefing VO, intro cinematic, warmup phase, ability-activate montage), the agent has identified where to gate it behind the Player Flow path. Not diagnosed at debug time.
 - [ ] **Room open/close logic gates on `intake.captureTimingRules.roomOpenTrigger` / `roomCloseTrigger`.** Minimum-interesting-state threshold from `minimumInterestingStateThreshold` is documented in the TDD so empty/early captures aren't debugged as bugs.
 - [ ] **Pause detection is planned.** Component sets `bTickEvenWhenPaused = true`. `TickComponent` polls `GetWorld()->IsPaused()` and sends `PauseLudeo` / `StartNoneLudeable` on transitions. `WriteTrackedState()` is guarded with `if (bWasPaused) return;`. See §5.8.
-- [ ] **Every `trail + loadBearing` subsystem has a capture AND replay path planned.** From `intake.eventDrivenScriptedSystems` (Group 5) and/or Phase 01's `stateClassification.trail`. For each entry: the capture hook is identified (usually a delegate like `OnMilestonePassed`), the replay hook is identified (usually the game's own notifier like `NotifyClientPassedMilestone`), and both are in the Phase 04 implementation plan. Trail replay runs BEFORE snapshot state application during Player Flow. See §5.9. **Trails are Phase 04 work — not Phase 06 enrichment.** If a load-bearing trail subsystem is missing from this plan, Phase 04 is not ready.
+- [ ] **Every `trail + loadBearing` subsystem has a capture AND replay path planned.** From `intake.eventDrivenScriptedSystems` (Group 5) and/or Phase 02's `stateClassification.trail`. For each entry: the capture hook is identified (usually a delegate like `OnMilestonePassed`), the replay hook is identified (usually the game's own notifier like `NotifyClientPassedMilestone`), and both are in the Phase 05 implementation plan. Trail replay runs BEFORE snapshot state application during Player Flow. See §5.9. **Trails are Phase 05 work — not Phase 07 enrichment.** If a load-bearing trail subsystem is missing from this plan, Phase 05 is not ready.
 
 If any item is unchecked — including missing intake fields — go back and complete it before writing code. If an intake answer is `"unknown"`, resolve it with the human now (this is the phase that gates on it).
 
@@ -187,17 +187,17 @@ This is NOT deferred to a later phase. Implement the read side with the same rig
 
 ### 3.11 Compile-Fix Protocol
 
-Follow the same protocol from Phase 02:
+Follow the same protocol from Phase 03:
 - Build after each new source file (.h then .cpp)
 - If you cannot compile locally, request the human to build
 - Do NOT skip the compile-fix loop
 
 ### 3.12 Phase Completion Gate (STOP)
 
-Phase 04 is NOT complete until ALL of these are true:
+Phase 05 is NOT complete until ALL of these are true:
 
-- [ ] **HARD GATE: Player Flow read side is IMPLEMENTED (not stubs)** — `ApplyPlayerState()` restores position/health/weapon, `ApplyBotStates()` restores AI state. Stubs (`/* Phase 8 */`) are NOT acceptable for Phase 04 completion.
-- [ ] **Functional verification (human tests):** Human has run the game, captured a highlight, played it back via Player Flow, and confirmed positions restore correctly. See §3.13. Compilation alone does NOT mark Phase 04 complete.
+- [ ] **HARD GATE: Player Flow read side is IMPLEMENTED (not stubs)** — `ApplyPlayerState()` restores position/health/weapon, `ApplyBotStates()` restores AI state. Stubs (`/* Phase 9 */`) are NOT acceptable for Phase 05 completion.
+- [ ] **Functional verification (human tests):** Human has run the game, captured a highlight, played it back via Player Flow, and confirmed positions restore correctly. See §3.13. Compilation alone does NOT mark Phase 05 complete.
 - [ ] Creator Flow writes state during gameplay (check highlight inspector for DataWriter activity)
 - [ ] GameMetadata writable object created at room open with MapName
 - [ ] **First 5 seconds of Player Flow match `intake.playbackUXBar.firstFiveSecondsMustFeel`** — human confirms no unwanted VO, no equip delay beyond `maxInputLockMs`, no briefing. This is a separate check from "positions restore correctly." A Ludeo can restore state perfectly and still fail the UX bar (see ActionGame setup VO incident).
@@ -210,7 +210,7 @@ Phase 04 is NOT complete until ALL of these are true:
 Compilation is necessary but NOT sufficient. After the compile-fix loop passes, **ask the human to run these tests** (the agent cannot run the game):
 
 Tell the human:
-> "Phase 04 code compiles. Before we can mark this phase complete, please run these verification steps and report results:
+> "Phase 05 code compiles. Before we can mark this phase complete, please run these verification steps and report results:
 > 1. **Creator Flow:** Play the curated slice. Check logs for DataWriter activity (or use highlight inspector). Is state being written?
 > 2. **Capture:** Press F9 **mid-gameplay, while the room is open** — the highlight is created with the room still open. You do NOT need to play to battle/match end or close the room for a highlight to be created.
 > 3. **Player Flow:** Play back the highlight. Does the player spawn at the correct position (not default spawn point)? Is health restored? Are AI entities present and positioned?
@@ -218,7 +218,7 @@ Tell the human:
 
 **Capture is NOT gated on room close.** One highlight = one room cycle as a *design* rule (`learnings/common-mistakes/room-is-not-highlight.md`), but capturing a highlight happens with the room OPEN, during gameplay. Agents repeatedly write "play to the end so the room closes, then capture" into test checklists — that is wrong. Playing through to room close is a *separate* room-close-path test, not how you capture.
 
-**Do NOT mark Phase 04 complete until the human confirms Player Flow restores positions.** If they report issues, debug the read side before proceeding.
+**Do NOT mark Phase 05 complete until the human confirms Player Flow restores positions.** If they report issues, debug the read side before proceeding.
 
 ---
 
@@ -315,7 +315,7 @@ FLudeoWritableObject RegisterEntity(
 3. Bind to spawn delegates for transient entities (so newly spawned ones get registered
    automatically)
 4. **Catch already-existing entities** — iterate before binding the delegate (same pattern as
-   Phase 02 player registration)
+   Phase 03 player registration)
 
 **Non-Character entities:** Not all tracked entities are `ACharacter`. Turrets, vehicles,
 deployables, and interactable objects are `AActor` subclasses. In `OnActorSpawned` handlers,
@@ -364,7 +364,7 @@ void ULudeoIntegrationComponent::WriteTrackedState()
         }
 
         // Additional properties — game-specific, determined by integrator
-        // The skill generates these based on the entity/property table from Phase 03
+        // The skill generates these based on the entity/property table from Phase 04
         // Example: TrackedInfo.WritableObj.WriteData("Health", GetHealth(Actor));
     }
     // Scoped guards automatically call LeaveObject when destroyed
@@ -382,10 +382,10 @@ void ULudeoIntegrationComponent::WriteTrackedState()
 
 ### 5.3 Write Frequency Strategy
 
-**For MVP (phases 1–4): default to writing every tick.** Call `WriteTrackedState()` in
+**For MVP (phases 2–5): default to writing every tick.** Call `WriteTrackedState()` in
 `TickComponent`. For real-time genres this is the right default — do not optimize write
 frequency during MVP; it adds complexity for minimal benefit on a curated slice. Frequency
-*optimization* (delta threshold, every-N-frames) is deferred to Phase 06 (Enrichment).
+*optimization* (delta threshold, every-N-frames) is deferred to Phase 07 (Enrichment).
 
 **Cadence is a design axis, not a constant — make it a swappable policy.** Some genres are
 materially better served by a non-per-tick cadence (e.g. turn-based games, where a turn-boundary
@@ -423,7 +423,7 @@ AI attacks the player before the room is configured. Resume when BeginGameplay f
 `learnings/architecture/pause-before-player-flow-room.md`.
 
 **Restructure the Phase-02 room-open for Player Flow — do not reuse its timing verbatim.** In
-Phase 02 the Creator opens the room at the GameState component's `BeginPlay`. If Player Flow
+Phase 03 the Creator opens the room at the GameState component's `BeginPlay`. If Player Flow
 reuses that timing, the Ludeo overlay appears *before* anything is restored. The SDK does nothing
 until `OpenRoom`, so delaying it is free — gate it. Player Flow order:
 
@@ -453,15 +453,15 @@ a loading-screen placeholder. Session-activation timing can mask this in Creator
 Player Flow specifically. Full detection signals and the gating sequence:
 [[gate-player-flow-on-streamed-level-not-pawn]].
 
-**Restore timing can be CORE playability, not Phase-07 polish — handle it in Phase 04.** Does
+**Restore timing can be CORE playability, not Phase-07 polish — handle it in Phase 05.** Does
 the game run a startup choreography after its gameplay-active signal — a queued animation layer,
 staged state machine, intro sequence, or any "settling" the engine plays before the player has
 real control? If yes, restoring into the *middle* of that choreography produces nondeterministic,
 demo-breaking failures (intermittent empty ability bar, wedged input) that **data correctness
 cannot fix** — and they reproduce only sometimes, so they read as flaky, not as a timing bug.
 Gate the restore on the choreography's completion using the game's OWN idle/ready signals (not a
-fixed delay), **in Phase 04**. Do not defer this to Phase 07 as "timing polish" — Phase 07
-timing is cosmetic only; core-playability timing is Phase 04. See
+fixed delay), **in Phase 05**. Do not defer this to Phase 08 as "timing polish" — Phase 08
+timing is cosmetic only; core-playability timing is Phase 05. See
 `learnings/architecture/restore-timing-can-be-core-not-polish.md`.
 
 **Write-side dual — capture-window gating.** The platform's restore point follows the user's
@@ -533,7 +533,7 @@ For curated slice entities, handle reconstruction based on persistence:
 | **Level-placed** (static enemies, doors, switches) | Always exists in level — match and apply state directly |
 | **Game-spawned** (wave AI, scripted encounters) | If the game's spawn system runs during Player Flow, wait for it and apply state when entity appears. If not (wave system doesn't trigger), **spawn manually** — see below. |
 | **Player-placed** (turrets, deployables) | Spawn manually during Player Flow — these only exist because the player created them |
-| **Event-spawned** (projectiles, pickups) | Skip for MVP — defer to Phase 07 |
+| **Event-spawned** (projectiles, pickups) | Skip for MVP — defer to Phase 08 |
 
 **Manual spawning for entities that don't exist at level start:** For wave-spawned AI,
 player-placed turrets, and other entities that only exist because gameplay created them, you MUST
@@ -562,7 +562,7 @@ exist, manual spawning is required.
 ### 5.6 LudeoSelected Callback (Player Flow Entry Point)
 
 The `LudeoSelected` notification fires when a Ludeo is available to play. Wire it in the
-Subsystem (from Phase 02):
+Subsystem (from Phase 03):
 
 ```
 OnLudeoSelected:
@@ -606,10 +606,10 @@ pre-gameplay phases.
 
 Without basic pause handling, the game keeps running while the Ludeo overlay is up at the end
 of a capture or playback. State writing continues through the overlay, and the demo feels broken.
-This is a Phase 04 concern — not Phase 05 polish.
+This is a Phase 05 concern — not Phase 06 polish.
 
-**The SDK side is already wired** (Phase 02): `OnPauseGameRequested` fires when the overlay
-opens, the subsystem calls the game's pause mechanism, and the game pauses. What Phase 04 adds
+**The SDK side is already wired** (Phase 03): `OnPauseGameRequested` fires when the overlay
+opens, the subsystem calls the game's pause mechanism, and the game pauses. What Phase 05 adds
 is **detection and action reporting** — the component must notice the pause and tell the SDK.
 
 **Implementation:**
@@ -618,7 +618,7 @@ is **detection and action reporting** — the component must notice the pause an
    keeps running while paused.
 
 2. **Track pause state in `TickComponent`.** How to detect pause depends on the game's pause
-   mechanism (discovered in Phase 01, recorded in `integration.json → pauseMechanism`):
+   mechanism (discovered in Phase 02, recorded in `integration.json → pauseMechanism`):
 ```cpp
 // Standard UE pause (most games):
 bool bCurrentlyPaused = GetWorld()->IsPaused();
@@ -661,7 +661,7 @@ void HandleGameResumed()
    Don't write state while the game is paused — it's meaningless data (nothing is moving).
 
 **Advanced pause detection** (menu overlays, map transitions, non-ludeoable area patterns) is
-deferred to Phase 05. This section covers only the basic SDK-overlay-triggered pause path.
+deferred to Phase 06. This section covers only the basic SDK-overlay-triggered pause path.
 
 ### 5.9 Progression Trail Capture (Not Just Snapshots)
 
@@ -670,10 +670,10 @@ enums; restore them directly. This works for positions, inventories, and most cu
 values.
 
 It does NOT work for **progression trails** — state that the game's scripted systems track as a
-sequence of past events. If Phase 01's "What breaks on restore?" diagnostic classified any
+sequence of past events. If Phase 02's "What breaks on restore?" diagnostic classified any
 subsystem as `trail + loadBearing` — or if the intake's Group 5 (`intake.eventDrivenScriptedSystems`)
 identified mission/objective/milestone systems that drive scripted level logic — those systems
-need trail capture in Phase 04. Not Phase 06.
+need trail capture in Phase 05. Not Phase 07.
 
 **Why snapshots fail:** If you capture "current milestone = 5" and restore it at time 0, the
 level blueprint still believes the mission is at t=0. It re-queues setup-phase VO, spawns NPCs
@@ -725,7 +725,7 @@ fight it (e.g., level BP despawns your carefully-placed mid-mission actors becau
 shouldn't exist yet).
 
 **Rule:** If a subsystem is classified as `trail + loadBearing`, implement its trail capture AND
-replay here in Phase 04. Do NOT defer to Phase 06 — Phase 06 is for broadening coverage, not
+replay here in Phase 05. Do NOT defer to Phase 07 — Phase 07 is for broadening coverage, not
 for backfilling load-bearing state. See
 `learnings/architecture/progression-trails-vs-snapshot-state.md`.
 
@@ -792,7 +792,7 @@ Full rationale: `learnings/architecture/capture-schema-lifecycle-management.md`.
 
 ```
 Produces:
-  tddSection: markdown           — Phase 4 State Tracking + Player Flow section in TDD
+  tddSection: markdown           — Phase 5 State Tracking + Player Flow section in TDD
   creatorFlowWorking: bool       — State writes during gameplay, visible in highlight inspector
   playerFlowWorking: bool        — NOT stubs. Actual read/apply code proven by human test
   decisions[]: Decision[]        — Appended to integration.json
@@ -801,7 +801,7 @@ Produces:
 After implementation, record in `.ludeo/tdd/integration-tdd.md`:
 
 ```markdown
-## Phase 4: Curated State Tracking + Player Flow
+## Phase 5: Curated State Tracking + Player Flow
 
 ### Curated Slice
 Map: [map name], Game Mode: [mode]
@@ -873,12 +873,12 @@ writable objects waste memory and may cause issues during reconstruction.
 
 ### 8.7 Registering objects before the room is open
 `RoomWriter.CreateObject()` requires an active room. If called before `OpenRoom` completes, it
-fails. Gate registration on the BeginGameplay signal from Phase 02.
+fails. Gate registration on the BeginGameplay signal from Phase 03.
 
 ### 8.8 Tracking too many entities
 Not everything needs tracking. Ambient NPCs, decorative particles, background vehicles, and
 entities far from the player don't contribute to meaningful playback. Use the entity
-classification from Phase 03 §3.2 and confirm with the integrator.
+classification from Phase 04 §3.2 and confirm with the integrator.
 
 ### 8.9 Not binding player objects
 Use `FScopedWritableObjectBindPlayerGuard` per-frame in the write loop for player-owned objects
@@ -917,6 +917,6 @@ become invalid on respawn.
 ### 8.14 Stubbing Player Flow read side
 
 `ApplyPlayerState() { /* TODO */ }` compiles. The compile-fix loop will succeed with stubs, and
-that success feeling overrides the fact that Player Flow does nothing. Phase 04 is NOT complete
+that success feeling overrides the fact that Player Flow does nothing. Phase 05 is NOT complete
 until the human has run the game, played back a captured highlight, and confirmed that entity
 positions restore. Stubs are not acceptable.

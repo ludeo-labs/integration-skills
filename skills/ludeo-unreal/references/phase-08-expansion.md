@@ -1,34 +1,34 @@
-# Phase 07 — Expansion (full-game coverage)
+# Phase 08 — Expansion (full-game coverage)
 
-> **⚠ Scope: Phase 7 is for BROADER coverage, NOT for backfilling load-bearing state.**
+> **⚠ Scope: Phase 8 is for BROADER coverage, NOT for backfilling load-bearing state.**
 >
-> Phase 7 expands coverage beyond the curated slice: more entities across more maps, more actions,
+> Phase 8 expands coverage beyond the curated slice: more entities across more maps, more actions,
 > richer metadata, and full-game systems that a single slice never exercises. That's it.
 >
-> **If Phase 7 discovery reveals state required for the curated slice's demo to feel correct — e.g.,
+> **If Phase 8 discovery reveals state required for the curated slice's demo to feel correct — e.g.,
 > a progression trail the level blueprint depends on, mission prop state that affects gameplay, an
-> objective system that drives scripted logic — that is a Phase 4 miss, not a Phase 7 addition.**
-> Go back to Phase 4 (Tracking & Restore), re-run the "What breaks on restore?" diagnostic and the
-> intake Group 5 questions (phase-00), add the missing subsystem to Phase 4's trail capture plan,
-> and re-verify Phase 4's completion gate.
+> objective system that drives scripted logic — that is a Phase 5 miss, not a Phase 8 addition.**
+> Go back to Phase 5 (Tracking & Restore), re-run the "What breaks on restore?" diagnostic and the
+> intake Group 5 questions (phase-01), add the missing subsystem to Phase 5's trail capture plan,
+> and re-verify Phase 5's completion gate.
 >
 > **Failure pattern this prevents:** The ActionGame integration deferred milestone/objective tracking
 > to expansion because it read as "enrichment." When the demo broke (level BP re-executed setup-phase
 > logic on restore), the agent hacked around it with VO suppress races and late-sweep NPC destruction
-> before eventually pulling the work back into Phase 4. If a snapshot restore produces wrong
-> scripted-system behavior, the fix is in Phase 4, not here.
+> before eventually pulling the work back into Phase 5. If a snapshot restore produces wrong
+> scripted-system behavior, the fix is in Phase 5, not here.
 >
-> **Test:** Before adding anything to Phase 7, ask: "Is this needed for the curated slice demo to feel
-> correct?" If yes → Phase 4. If no → proceed with Phase 7.
+> **Test:** Before adding anything to Phase 8, ask: "Is this needed for the curated slice demo to feel
+> correct?" If yes → Phase 5. If no → proceed with Phase 8.
 
 ---
 
 ## 1. Goal / Purpose
 
-With the curated slice cloud-validated in Phase 6, Phase 7 broadens tracking to the full game. This
+With the curated slice cloud-validated in Phase 7, Phase 8 broadens tracking to the full game. This
 happens in two layers:
 
-**Layer A — The Loop:** Re-apply Phases 3 (Map Objects), 4 (Tracking & Restore), and 5 (Actions) at
+**Layer A — The Loop:** Re-apply Phases 4 (Map Objects), 4 (Tracking & Restore), and 5 (Actions) at
 full-game scope — all maps, all game modes, all entity families, all action categories. The curated
 slice was a beachhead; this is the full invasion.
 
@@ -49,7 +49,7 @@ and require dedicated treatment:
 - Per-entity state property mapping for all tracked entities
 - Broader action discovery across all modes and entity families
 - Write frequency strategy with performance budget
-- Reconstruction feasibility preview (for Phase 8 Player Flow Polish)
+- Reconstruction feasibility preview (for Phase 9 Player Flow Polish)
 - Human-approved Tracked Data plan covering the full game
 - Implemented writable objects, state writing, and action hooks for all new entities and actions
 - Updated TDD (`tddSections7a/7b`) and `integration.json`
@@ -59,10 +59,10 @@ and require dedicated treatment:
 ```
 Required:
   tddSections1-6: markdown   — Prior TDD sections (.ludeo/tdd/integration-tdd.md)
-  codeMap: json              — .ludeo/code-map.json (populated through Phase 5)
+  codeMap: json              — .ludeo/code-map.json (populated through Phase 6)
   curatedSlice: object       — integration.json → curatedSlice (baseline entities/actions)
-  workingPlugin: files       — Plugin from Phases 2-5 with lifecycle + state + actions + non-gameplay
-  phase6Verification: notes  — Cloud verification results from Phase 6
+  workingPlugin: files       — Plugin from Phases 3-6 with lifecycle + state + actions + non-gameplay
+  phase6Verification: notes  — Cloud verification results from Phase 7
 
 Optional:
   ludeoContext: MCP          — ludeo-context MCP server (QA event lists, genre patterns)
@@ -86,11 +86,11 @@ Produces:
 
 Before starting this phase, verify:
 
-- [ ] Phase 6 cloud verification completed — curated slice validated in the cloud
+- [ ] Phase 7 cloud verification completed — curated slice validated in the cloud
 - [ ] Plugin compiles cleanly with lifecycle + state tracking + actions + non-gameplay code
 - [ ] CODE_MAP populated with `core_classes`, `event_systems`, `lifecycle_hooks`, `ai`, `inventory`,
       `ability_system`
-- [ ] `curatedSlice.entities` and `curatedSlice.actions` populated (from Phases 3/5)
+- [ ] `curatedSlice.entities` and `curatedSlice.actions` populated (from Phases 4/6)
 - [ ] Save system group known (`integration.json → saveSystemGroup`)
 - [ ] Human is available — this phase has two hard approval gates before implementation begins
 
@@ -98,7 +98,7 @@ Before starting this phase, verify:
 
 ## 3. Steps
 
-Phase 7 runs as two consecutive sub-phases: **§3A Discovery** (analysis only, no code) followed by
+Phase 8 runs as two consecutive sub-phases: **§3A Discovery** (analysis only, no code) followed by
 **§3B Implementation** (code-producing). Do not start §3B without human approval of the §3A plan.
 
 ---
@@ -110,7 +110,7 @@ human.
 
 #### §3A.1 Baseline Review
 
-Read Phases 3–5 output from the TDD. Catalog what is already tracked so this phase only discovers
+Read Phases 4–6 output from the TDD. Catalog what is already tracked so this phase only discovers
 what is NEW.
 
 | What | Where to Find |
@@ -265,7 +265,7 @@ with location vs polling 50 destructible blocks for state changes.
 - [ ] Is it a UPROPERTY? If using SaveWorld approach, does it have the `SaveGame` flag?
 - [ ] Is it in C++ or Blueprint-only? (BP-only requires reflection or manual reads)
 - [ ] How to read it? (direct access, getter, reflection, component traversal)
-- [ ] How to restore it in Player Flow? (direct set, deferred, behavioral — note for Phase 8)
+- [ ] How to restore it in Player Flow? (direct set, deferred, behavioral — note for Phase 9)
 - [ ] Is it redundant with another property?
 - [ ] Static or dynamic? (set once vs changes per tick)
 
@@ -466,7 +466,7 @@ Iterate on the plan if the human requests changes.
 
 ### §3B — Implementation (now the whole game, not just the slice)
 
-Discovery is complete from §3A. Implementation follows Phase 3's patterns at full-game scope.
+Discovery is complete from §3A. Implementation follows Phase 4's patterns at full-game scope.
 
 #### §3B.1 Review §3A Tracked Data Plan
 
@@ -509,7 +509,7 @@ Grep("GAMENAME_API", glob: "NewEntityClass.h")
 
 #### §3B.4 New Entity Writable Object Registration
 
-Create writable objects for new entity types using Phase 3's pattern. New entities are registered
+Create writable objects for new entity types using Phase 4's pattern. New entities are registered
 alongside the existing Player object — extend `RegisterTrackedEntities()`, do not replace it.
 
 **Bot entity example** (most common new entity type) — uses the SDK's `WritableObjectMapType` to
@@ -682,7 +682,7 @@ void ULudeoIntegrationComponent::WriteTrackedState()
 > (`Kill` + `GameplayEffect.DamageType.Weapon.Rifle` as separate actions, not `Kill_Rifle`),
 > accolades as human-readable names (`DoubleKill` not `ElimChain`).
 
-Extend Phase 5's `ReportAction` pattern with new bindings. Add a `RegisterBroaderActionListeners()`
+Extend Phase 6's `ReportAction` pattern with new bindings. Add a `RegisterBroaderActionListeners()`
 method called from the same BeginGameplay path as the curated-slice listeners.
 
 **IMPORTANT:** Actions must fire in BOTH Creator and Player Flow. Do NOT guard
@@ -895,7 +895,7 @@ implement all categories before any verification.
 
 #### §3B.11 Verification Checklist
 
-> "Phase 7 code compiles. Before we can mark this phase complete, please verify:
+> "Phase 8 code compiles. Before we can mark this phase complete, please verify:
 > 1. **Broader gameplay:** Play beyond the curated slice — test maps/modes that exercise new entities.
 > 2. **F9 capture:** Capture a highlight during broader gameplay.
 > 3. **Studio Labs check:** Do new entities appear with correct state? Do new actions fire?
@@ -911,7 +911,7 @@ Additional automated checks:
 **Schema incompatibility warning:** After adding new writable object attributes, all previously
 recorded Ludeos become incompatible. The SDK will assert (crash) when trying to replay old captures
 that lack the new attributes. Inform the human that all existing test captures must be re-recorded
-after Phase 7 implementation.
+after Phase 8 implementation.
 
 ---
 
@@ -965,7 +965,7 @@ Consult these reference files for patterns applicable to the full-game scope:
 
 | Entity | Class | Source File | Lifecycle | Relevance | Track? |
 |--------|-------|-------------|-----------|-----------|--------|
-| Player | `AMyCharacter` | `Source/Game/MyCharacter.h` | Persistent | Core | Yes (Phase 3) |
+| Player | `AMyCharacter` | `Source/Game/MyCharacter.h` | Persistent | Core | Yes (Phase 4) |
 | Bot | `AMyAICharacter` | `Source/Game/AI/MyAICharacter.h` | Spawned | Core | Yes |
 | Pickup | `APickupActor` | `Source/Game/Items/PickupActor.h` | Spawned | Medium | Yes |
 | Projectile | `AProjectile` | `Source/Game/Weapons/Projectile.h` | Spawned | Low | No — transient |
@@ -1000,7 +1000,7 @@ One table per tracked entity. Example for a Bot entity:
 
 **Fill guidance:**
 - Static properties are written once (BeginGameplay or first tick). Dynamic are written per-tick.
-- Reconstruction Notes is a preview for Phase 8 — note feasibility now, implement later.
+- Reconstruction Notes is a preview for Phase 9 — note feasibility now, implement later.
 - Flag properties that require deferred application.
 
 ### 5.3 Action Inventory Table
@@ -1018,7 +1018,7 @@ One table per tracked entity. Example for a Bot entity:
 **Fill guidance:**
 - Every action needs a Player ID Source — must resolve to the same ID used in `AddPlayer`.
 - Entity Binding indicates which entity the action is "about."
-- Event System should match what the CODE_MAP documented in Phase 1.
+- Event System should match what the CODE_MAP documented in Phase 2.
 
 ### 5.4 Write Frequency Summary Table
 
@@ -1042,7 +1042,7 @@ One table per tracked entity. Example for a Bot entity:
 | Player | Direct property set | Low | Position, rotation, health all have setters |
 | Bot | Spawn + property set | Medium | Must spawn correct class, set AI state |
 | Pickup | Toggle availability | Low | Set `bAvailable` flag |
-| Vehicle | Spawn + occupy | High | Requires spawn, then seat player — Phase 8 concern |
+| Vehicle | Spawn + occupy | High | Requires spawn, then seat player — Phase 9 concern |
 | WaveManager | State set + timer delta | Medium | Apply WaveNumber, restart timer at captured delta |
 | QuestState | Enum set + flag array | Medium | Set stage enum, apply completion flags without re-running init |
 | *(fill per entity)* | | | |
@@ -1059,7 +1059,7 @@ One table per tracked entity. Example for a Bot entity:
 After §3A analysis and human approval, append to `.ludeo/tdd/integration-tdd.md`:
 
 ```markdown
-## Phase 7A: Expansion Discovery — Tracked Data Plan
+## Phase 8A: Expansion Discovery — Tracked Data Plan
 
 ### Entity Inventory
 
@@ -1120,7 +1120,7 @@ After §3A analysis and human approval, append to `.ludeo/tdd/integration-tdd.md
 - **Entity scope:** [Which entities to track and why. Which were excluded and why.]
 - **Action scope:** [How many actions, rationale for inclusion/exclusion.]
 - **Write frequency:** [Frequency per entity type, rationale, performance considerations.]
-- **Serialization extension:** [How this extends Phase 3's approach — manual/SaveWorld/native.]
+- **Serialization extension:** [How this extends Phase 4's approach — manual/SaveWorld/native.]
 - **Blueprint handling:** [If applicable — how BP-only entities are handled.]
 - **Expansion layer:** [Decisions on mission/world/subsystem/scripted state capture.]
 ```
@@ -1128,7 +1128,7 @@ After §3A analysis and human approval, append to `.ludeo/tdd/integration-tdd.md
 After §3B implementation, also append:
 
 ```markdown
-## Phase 7B: Expansion Implementation
+## Phase 8B: Expansion Implementation
 
 ### Entities Implemented
 | Entity | Class | Planned | Implemented | Notes |
@@ -1167,14 +1167,14 @@ After §3B implementation, also append:
 
 ## 7. ✅ Success Criteria
 
-- [ ] Phases 3–5 re-applied at full scope (all maps/modes, entity families, actions, objects)
+- [ ] Phases 4–6 re-applied at full scope (all maps/modes, entity families, actions, objects)
 - [ ] Mission / objective / quest state captured & restored
 - [ ] Environment / world state captured (doors, cameras, destructibles, alarms, level-script counters; world/cell state for streaming worlds)
 - [ ] Stateful subsystems captured (wave/assault/spawn managers — cooldowns, RNG, reservations; absolute timestamps → deltas)
 - [ ] Cross-slice entity families covered (extra AI families, vehicles, drones — typed iterators)
 - [ ] One-time / scripted state re-applied on restore
 - [ ] Schema versioning bumped when attributes added/removed; prior Ludeos re-recorded
-- [ ] Expanded coverage re-validated in cloud (re-run Phase 6) and human-verified across multiple moments
+- [ ] Expanded coverage re-validated in cloud (re-run Phase 7) and human-verified across multiple moments
 
 ---
 
@@ -1183,7 +1183,7 @@ After §3B implementation, also append:
 ### From Discovery (§3A)
 
 #### 8.1 Skipping Baseline Review
-Rediscovering what Phases 3–5 already captured wastes context and may produce conflicting decisions.
+Rediscovering what Phases 4–6 already captured wastes context and may produce conflicting decisions.
 Always start by cataloging the existing tracked state before searching for new entities and properties.
 
 #### 8.2 Tracking Everything
@@ -1193,7 +1193,7 @@ from the highlight?" If the answer is no, skip it.
 
 #### 8.3 Ignoring Reconstruction Cost
 Tracking state is only half the problem. If a property cannot be meaningfully restored in Player Flow
-(Phase 8), it adds noise without value. Note reconstruction feasibility per property in the State
+(Phase 9), it adds noise without value. Note reconstruction feasibility per property in the State
 Property Table. Flag high-complexity items.
 
 #### 8.4 Not Considering Session Length
@@ -1225,7 +1225,7 @@ like inventory, equipment, and quickbar live on the Controller, not the Pawn. Al
 Pawn hierarchy AND the Controller hierarchy.
 
 #### 8.10 Ignoring Action Enrichment
-Discovery finds new events. Enrichment extracts richer context from events already hooked in Phase 5.
+Discovery finds new events. Enrichment extracts richer context from events already hooked in Phase 6.
 Kill already works — but examining the event payload for `DamageType` tags, weapon context, or
 distance adds significant value. Don't stop at "the event fires" — ask "what data does the event
 carry?"
@@ -1250,7 +1250,7 @@ must be created via `RoomWriter.CreateObject()` before any `WriteData` calls. Ch
 `Result.IsSuccessful()` after `CreateObject`.
 
 #### 8.14 Missing GameMetadata After Extension (SILENT failure)
-If Phase 7 adds new metadata properties, the GameMetadata writable object must still be written FIRST.
+If Phase 8 adds new metadata properties, the GameMetadata writable object must still be written FIRST.
 If GameMetadata creation is moved or accidentally removed during refactoring, Ludeo creation fails
 silently — no error, just no Ludeo produced.
 

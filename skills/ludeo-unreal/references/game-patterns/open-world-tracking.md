@@ -6,11 +6,11 @@
 > identity survives streaming.**
 >
 > **Load when:** you are mapping or implementing object tracking (the enrichment phase — see
-> `references/phase-07-expansion.md`)
+> `references/phase-08-expansion.md`)
 > for a game where the world **streams in and out** — World Partition cells, `ULevelStreaming`
 > sub-levels, or procedural chunks — instead of loading discrete maps.
 >
-> **Prerequisites:** `references/phase-04-tracking-restore.md` (the curated-slice tracking model —
+> **Prerequisites:** `references/phase-05-tracking-restore.md` (the curated-slice tracking model —
 > WritableObject registration, the `bGameplayActive` sampler gate, the DataReader restore path). This
 > file is the open-world *delta* on top of that baseline, not a replacement.
 
@@ -37,12 +37,12 @@ and conflating them corrupts the replay:
 | Event | What it means | Action |
 |---|---|---|
 | Actor **streamed out** / culled / World Partition cell unloaded / `ULevelStreaming` sublevel unloaded | Still exists in the world; just not resident near the player | **Keep the tracking record if the actor can re-enter the captured neighborhood; otherwise stop sampling it — do not treat as destroyed.** Never key off this event as "dead." |
-| Actor **destroyed in gameplay** (killed, consumed, mined, looted, removed by game logic) | Gone from the world | Call `RoomWriter.DestroyObject()` on its WritableObject (per `references/phase-04-tracking-restore.md` §7.3), *or* keep the record and capture an `IsDestroyed`/`IsConsumed` **state flag** while the actor was still loaded. |
+| Actor **destroyed in gameplay** (killed, consumed, mined, looted, removed by game logic) | Gone from the world | Call `RoomWriter.DestroyObject()` on its WritableObject (per `references/phase-05-tracking-restore.md` §7.3), *or* keep the record and capture an `IsDestroyed`/`IsConsumed` **state flag** while the actor was still loaded. |
 
 > **`EndPlay` / `Destroyed` fires for both.** When a World Partition cell unloads or a `ULevelStreaming`
 > sublevel is removed, Unreal calls `EndPlay` and then `OnDestroyed` on every `AActor` in it — exactly
 > as if the actor were destroyed. Your tracking cleanup (registered via `OnDestroyed`, per
-> `references/phase-04-tracking-restore.md` §7.3) will run. That is the trap: a streamed-out NPC is
+> `references/phase-05-tracking-restore.md` §7.3) will run. That is the trap: a streamed-out NPC is
 > **not** dead, but its `OnDestroyed` fired. **Distinguish the two at the despawn hook** — gate the
 > DestroyObject call on a real "removed from world" signal (death event, consume delegate, an explicit
 > `WorldRemoved` vs `Unloaded` flag the streaming or persistence layer exposes), not on `OnDestroyed`
@@ -55,7 +55,7 @@ distinction — it is the natural authority.
 
 ## 3. What to track in a streaming world
 
-Apply the entity discovery checklist from `references/phase-07-expansion.md` §3.4 to the
+Apply the entity discovery checklist from `references/phase-08-expansion.md` §3.4 to the
 **currently-loaded, gameplay-relevant** set, plus these open-world-specific objectTypes that
 level-based games rarely need:
 
@@ -67,7 +67,7 @@ level-based games rarely need:
 | **Player run / world metadata** | World seed (if gameplay-deterministic), current region/cell id, game-time | part of the player's writable object or a `RunMetadata` objectType on GameMetadata |
 
 Decorative streamed scenery (terrain meshes, foliage, props with no gameplay state) is **skip** —
-same as the "static or cosmetic" exclusion in `references/phase-07-expansion.md` §5.1.
+same as the "static or cosmetic" exclusion in `references/phase-08-expansion.md` §5.1.
 Track the *state* the world shows, not the streamed geometry.
 
 ## 4. Identity across stream cycles
@@ -81,12 +81,12 @@ out and back in.
 - Use the game's **persistent world id**: a cell/region id plus a content/instance id the streaming
   and save system already uses to re-place the actor on reload. Most streaming engines have one — it
   is how the save system re-spawns the right NPC at the right location after the cell reloads. Find it
-  via the save-system read documented in `references/phase-07-expansion.md` §3.5
+  via the save-system read documented in `references/phase-08-expansion.md` §3.5
   (property discovery → persistence / save layer).
 - **Relationships** (an NPC's home cell, a follower's owner) capture the target's persistent world id,
-  resolved in a two-pass restore at play-back time (`references/phase-04-tracking-restore.md`).
+  resolved in a two-pass restore at play-back time (`references/phase-05-tracking-restore.md`).
 
-> **Separate rule — `ObjectTypeName` parameter:** `references/phase-03-map-objects.md` §5.1 states
+> **Separate rule — `ObjectTypeName` parameter:** `references/phase-04-map-objects.md` §5.1 states
 > that the `ObjectTypeName` passed to `RoomWriter.CreateObject` must be a class path or left empty
 > (defaults to the anchor object's class) — never a custom per-instance label. That rule is about the
 > SDK registration parameter (a shared category), not about persistent world identity keys. Both
@@ -103,13 +103,13 @@ needs what reconstructs *this captured moment from the player's view*:
   moment; full quest logs; the entire map's discovery state; inventory of NPCs three regions away.
 
 When unsure whether a far-away mutation matters, apply the relevance test from
-`references/phase-07-expansion.md` §5.1: is it *visible* during this moment, or does it
+`references/phase-08-expansion.md` §5.1: is it *visible* during this moment, or does it
 *influence a tracked actor right now*? If neither, it is out of scope for the capture even though the
 save records it. Record the in/out cut in the Tracked Data plan produced during the enrichment phase.
 
 ## 6. Sampling and the stream
 
-The per-frame write loop from `references/phase-04-tracking-restore.md` §5.2 — gated on
+The per-frame write loop from `references/phase-05-tracking-restore.md` §5.2 — gated on
 `bGameplayActive && !bIsPlayerFlow` — is unchanged. Two open-world notes:
 
 - **Only resident actors sample.** A streamed-out actor's WritableObject (if you kept it, §2) has
@@ -124,11 +124,11 @@ The per-frame write loop from `references/phase-04-tracking-restore.md` §5.2 �
 ## 7. Restoration interaction (forward pointer)
 
 On play flow, the world is rebuilt from the Ludeo, then streamed around the restored player. The
-restore (`references/phase-08-polish.md`) recreates the captured neighborhood and world/cell
+restore (`references/phase-09-polish.md`) recreates the captured neighborhood and world/cell
 state from the saved buckets; the game's **load-save plumbing** is the natural vehicle — a Ludeo is
 effectively "a save from elsewhere" (see `references/game-patterns/open-world.md` §6). Actors that
 stream in *after* restore are normal live spawns in the play flow and are **not** tracked (the
-`bIsPlayerFlow` Creator-only guard from `references/phase-04-tracking-restore.md` §5.2 handles this).
+`bIsPlayerFlow` Creator-only guard from `references/phase-05-tracking-restore.md` §5.2 handles this).
 Capture the persistent world ids from §4 precisely so restore can re-place actors into the correct
 cells.
 
@@ -151,7 +151,7 @@ unregister on death/removal events from the game's world or persistence layer, *
 
 ## 9. After this file
 
-Back to `references/phase-07-expansion.md` §3.4 (entity discovery) to finalize the
+Back to `references/phase-08-expansion.md` §3.4 (entity discovery) to finalize the
 per-type tracked set, and to the genre file(s) the game blends for the action catalog and genre
 checklist (via `references/game-patterns/`). This file only added the **streaming delta**: presence ≠
 existence, world/cell objectTypes, persistent-world-id identity, and scope-to-the-moment.
@@ -160,16 +160,16 @@ existence, world/cell objectTypes, persistent-world-id identity, and scope-to-th
 
 ## Mechanisms referenced in this doc
 
-**DataWriter / WritableObject lifecycle** (authority: `references/phase-04-tracking-restore.md`):
+**DataWriter / WritableObject lifecycle** (authority: `references/phase-05-tracking-restore.md`):
 `RoomWriter.CreateObject` / `RoomWriter.DestroyObject` / `WriteData` inside
 `FScopedLudeoDataReadWriteEnterObjectGuard` — no open-world-only SDK surface; this is a usage
 pattern over the baseline tracking model.
 
-**Enrichment entity + property discovery** (`references/phase-07-expansion.md`):
+**Enrichment entity + property discovery** (`references/phase-08-expansion.md`):
 §3.4 Entity Discovery · §3.5 Per-Entity State Mapping · §5.1 Entity Inventory Table (lifecycle
 classification: *Streamed* = loaded/unloaded via `ULevelStreaming` or World Partition).
 
-**Enrichment implementation** (`references/phase-07-expansion.md`):
+**Enrichment implementation** (`references/phase-08-expansion.md`):
 §5.1 New Entity Writable Object Registration · §5.2 Scoped Guard for Multi-Entity Writes —
 the bot registration pattern there applies equally to streamed-world NPC collections.
 
