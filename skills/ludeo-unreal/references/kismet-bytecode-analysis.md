@@ -13,7 +13,7 @@ always matches the engine version. Compiled out of Shipping/Test.
 
 ## When to use
 
-- Phase 7/8 (expansion / Player Flow polish) when per-property restore leaves
+- Phase 8/9 (expansion / Player Flow polish) when per-property restore leaves
   "limbo" states or re-fired one-shots and the responsible logic is in BP graphs.
 - Before designing objective/mission-state restore semantics for a new title.
 - Per new map/mission of an already-integrated title, to enumerate its scripting
