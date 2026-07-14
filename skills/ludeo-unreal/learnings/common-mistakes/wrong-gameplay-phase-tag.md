@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: Lyra
-phase: 2
+phase: 3
 question: "What are the exact gameplay tag strings used for phase transitions? Grep for the actual tag values in config files and data assets — do not assume tag names from class/subsystem names."
 sanitized: true
 ---

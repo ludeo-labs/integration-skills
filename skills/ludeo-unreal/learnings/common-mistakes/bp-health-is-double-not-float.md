@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: VoyagerV2
-phase: 3
+phase: 4
 question: "Is this a Blueprint-only project? If so, BP 'float' properties are stored as FDoubleProperty (double) in UE5, not FFloatProperty (float). Use CastField<FDoubleProperty> first, with FFloatProperty fallback."
 sanitized: true
 ---

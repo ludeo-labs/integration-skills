@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: TacticsGame
-phase: 1
+phase: 2
 question: "Is the game turn-based (initiative order, action points, grid movement)? If yes: agree with the team whether captures are constrained to turn boundaries — it removes whole categories of restore work."
 sanitized: true
 ---

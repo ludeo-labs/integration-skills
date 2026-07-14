@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: ActionGame
-phase: 2
+phase: 3
 question: null
 sanitized: true
 ---

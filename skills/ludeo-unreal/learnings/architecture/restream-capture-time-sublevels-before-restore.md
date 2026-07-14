@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: StoryPuzzleGame
-phase: 4
+phase: 5
 question: "Can the player walk into a streamed sub-area (a memory, a polaroid scene, a sub-level loaded on a trigger) that is part of the slice's coverage but is NOT auto-loaded when the restore map boots? If yes, capture which sublevels are loaded+visible and re-stream them before applying the player transform."
 sanitized: true
 ---

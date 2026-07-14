@@ -2,7 +2,7 @@
 category: architecture
 tier: universal
 sourceGame: TacticsGame
-phase: 4
+phase: 5
 question: null
 sanitized: true
 ---

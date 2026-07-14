@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: Lyra
-phase: 4
+phase: 5
 question: "Does the game use GAS (Gameplay Ability System) for health? If so, health cannot be set via a simple setter — it requires a gameplay effect or direct attribute modification."
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: ActionGame
-phase: 3
+phase: 4
 question: "Does the host engine create per-instance / per-PlayerState modified copies of asset data (e.g., for skill modifiers, RPG attributes, loadout customization)? If yes, capture the original asset path, not the modified instance pointer."
 sanitized: true
 ---

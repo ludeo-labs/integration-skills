@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: Lyra
-phase: 2
+phase: 3
 question: "Does the integration OPEN the Creator room at level load (component BeginPlay), or does it delay OpenRoom until a 'gameplay start' phase/state? Open at level load (matches the reference sample); gate only BeginGameplay on the phase. NOTE: this is a cleanliness/consistency rule, NOT a fix for 'OnRoomReady never fires'."
 sanitized: true
 ---

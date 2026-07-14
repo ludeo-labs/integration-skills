@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: ActionGame
-phase: 3
+phase: 4
 question: "For each gameplay decision that needs to replay deterministically (vehicle spawn rolls, drop rolls, AI behavior rolls), check whether the code uses FMath::FRand (system C-runtime rand) or FRandomStream(MissionState->GetMixedRandomSeed(N)). If FMath::FRand, replays will diverge from live regardless of seed restoration."
 sanitized: true
 ---

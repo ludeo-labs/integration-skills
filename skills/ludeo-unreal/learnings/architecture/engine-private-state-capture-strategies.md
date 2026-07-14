@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: ActionGame
-phase: 3
+phase: 4
 question: "When the integration needs to capture private/internal members of an engine class, which strategy will it use per class: (A) UPROPERTY(Transient) + reflection (LudeoSaveSystem-friendly), or (B) in-class friend FArchive snapshot (Manual-friendly)? Pick consciously per class — never silently mix."
 sanitized: true
 ---

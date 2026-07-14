@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Did you `NewObject<UObject>(Outer, ResolvedClass)` to create the instance, and do you need to downcast to a non-API-exported subclass?"
 sanitized: true
 ---

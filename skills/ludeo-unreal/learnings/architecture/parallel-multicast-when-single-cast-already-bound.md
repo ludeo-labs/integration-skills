@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: ActionGame
-phase: 5
+phase: 6
 question: "Is the engine event hook you want to bind to a SINGLE-CAST delegate (DECLARE_DELEGATE_*, not DECLARE_MULTICAST_DELEGATE_*) that another game system has already BindUObject'd? If yes, you cannot bind from the plugin without overwriting the existing handler — add a parallel multicast next to it."
 sanitized: true
 ---

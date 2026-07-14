@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: universal
 sourceGame: FPSGameStarterKit
-phase: 2
+phase: 3
 question: "Does this BP-only project have CommonUI enabled? If yes, UBT auto-generates .Target.cs and Source/ must NOT be created. If no, Source/ with minimal .Target.cs files IS required for packaging."
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: architecture
 tier: universal
 sourceGame: FTPS_Online
-phase: 2
+phase: 3
 question: null
 sanitized: true
 ---

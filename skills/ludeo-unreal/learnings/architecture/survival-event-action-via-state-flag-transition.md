@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 5
+phase: 6
 question: "Does the game have a 'player survives a scripted hazard' moment worth capturing as an action — a grab-and-press-key struggle, a QTE, a downed-then-revived state, a finisher you can break out of? If so, find the boolean flag set when the hazard begins and cleared when it ends, and gate the success emission on the player being alive so you don't confuse escape with death."
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Does the target's .Target.cs set CppStandard = CppStandardVersion.Cpp17 (or Cpp20)? If not, avoid C++17-only syntax."
 sanitized: true
 ---

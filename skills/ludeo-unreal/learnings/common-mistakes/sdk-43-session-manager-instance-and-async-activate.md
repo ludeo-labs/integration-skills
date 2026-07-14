@@ -2,14 +2,14 @@
 category: common-mistakes
 tier: universal
 sourceGame: Lyra
-phase: 2
+phase: 3
 question: "For SDK 4.3.0+, did you verify that session creation goes through FLudeoManager::GetSessionManager() (instance), and that Activate/OpenRoom/CloseRoom/GetLudeo are ASYNC with completion delegates — not the static/synchronous forms in the phase-02 reference skeleton?"
 sanitized: true
 ---
 
 # LudeoUESDK 4.3.0: session manager is instance-based and Activate is async (reference skeleton is stale)
 
-The `references/phase-02-lifecycle.md` §3.14 / §5.3 skeleton models the session API as static and
+The `references/phase-03-lifecycle.md` §3.14 / §5.3 skeleton models the session API as static and
 synchronous. Verified against the 4.3.0 headers
 (`Plugins/LudeoUESDK/Source/LudeoUESDK/Public/LudeoUESDK/...`), the real API differs in ways that
 do NOT compile if copied verbatim:

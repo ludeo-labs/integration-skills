@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: ActionRoguelike
-phase: 1
+phase: 2
 question: "Does this game have an explicit game phase/state enum? If not, recommend adding one rather than relying on implicit state detection (e.g., health > 0 = playing)."
 sanitized: true
 ---

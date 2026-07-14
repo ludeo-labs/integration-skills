@@ -2,7 +2,7 @@
 category: save-systems
 tier: universal
 sourceGame: VoyagerV2
-phase: 7
+phase: 8
 question: "Are the game's SaveGame-flagged properties on BP components (HealthComp, EnergyComp) or directly on the actor class?"
 sanitized: true
 ---

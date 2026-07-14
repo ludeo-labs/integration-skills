@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 6
+phase: 7
 question: "Do you need integration diagnostics from a Ludeo cloud/cast run (not just local PIE)? If so, are your diagnostic lines written to stdout (printf + fflush), or only to UE_LOG / OutputDebugString — the latter may never reach the durable central log store."
 sanitized: true
 ---

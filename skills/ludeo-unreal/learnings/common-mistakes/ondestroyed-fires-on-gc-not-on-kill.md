@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Do AI characters stay in the world after death (ragdoll, pooling)?"
 sanitized: true
 ---

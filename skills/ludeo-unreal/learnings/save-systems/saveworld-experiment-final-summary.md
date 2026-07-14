@@ -2,7 +2,7 @@
 category: save-systems
 tier: generalizable
 sourceGame: VoyagerV2
-phase: 3
+phase: 4
 question: "Do the game's Blueprint/USaveGame properties have the SaveGame flag checked? If NO, SDK-automated serialization (SaveWorld, SaveGameToSlot, the CPF_SaveGame filter) yields empty attributes and manual WritableObject.WriteData is required — UNLESS you set the SaveGame flags programmatically (bp_inspector.py set-savegame), which can flip this precondition. The AllProperty filter and component cross-references crash (line 448) regardless of flags."
 sanitized: true
 ---

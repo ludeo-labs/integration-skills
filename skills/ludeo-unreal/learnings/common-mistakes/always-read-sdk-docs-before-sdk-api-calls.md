@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: FTPS_Online
-phase: 4
+phase: 5
 question: null
 sanitized: true
 ---
@@ -34,7 +34,7 @@ This check takes 30 seconds and prevents hours of debugging. The agent's pattern
 
 | Error | SDK doc that would have prevented it | Skill reference that would have prevented it |
 |---|---|---|
-| Missing auth | `TrackGameplay` page → auth section; `phase-02-lifecycle.md` §5.3 | `learnings/common-mistakes/missing-explicit-auth.md` |
+| Missing auth | `TrackGameplay` page → auth section; `phase-03-lifecycle.md` §5.3 | `learnings/common-mistakes/missing-explicit-auth.md` |
 | Wrong ObjectType | `State Management` page → `params.objectType = "Player"` | None (new learning) |
 | Wrong SendAction PlayerID | `TrackGameplay` page → "use the same playerId when reporting actions" | None (new learning) |
 

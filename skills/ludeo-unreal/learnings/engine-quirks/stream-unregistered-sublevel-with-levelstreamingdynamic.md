@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: StoryPuzzleGame
-phase: 4
+phase: 5
 question: "Does Player Flow (or a slice-load entry point) need to stream a sublevel that is NOT listed in the restore map's Streaming Levels? If the game reaches that sub-area via its own LoadStreamLevel* call, that call only TOGGLES already-registered sublevels — it cannot stream an unregistered one."
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: StoryPuzzleGame
-phase: 5
+phase: 6
 question: "Are you about to detect an 'entered a sub-area / flashback / memory' action by polling which sublevels are loaded+visible? STOP — do in-place set-pieces/cinematics in the main area ALSO stream sublevels? If so, 'a sublevel appeared' is a false positive. If entering the sub-area teleports the player far away, poll player distance instead."
 sanitized: true
 ---

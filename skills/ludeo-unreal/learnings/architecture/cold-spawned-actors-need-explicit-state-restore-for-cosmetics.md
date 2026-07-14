@@ -2,7 +2,7 @@
 category: architecture
 tier: universal
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Does this actor have a state-driven cosmetic event (`BP_OnStateChanged`-style)? If yes: capture the state, restore it via a public setter post-spawn so the BP cosmetic chain runs."
 sanitized: true
 ---

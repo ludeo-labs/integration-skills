@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: TacticsGame
-phase: 4
+phase: 5
 question: "Is the game turn-based AND did the team agree captures land at turn starts? If so, quantize state WRITES to turn boundaries instead of per-tick — and make the cadence a config-driven policy so it can flip to per-tick later without code surgery."
 sanitized: true
 ---

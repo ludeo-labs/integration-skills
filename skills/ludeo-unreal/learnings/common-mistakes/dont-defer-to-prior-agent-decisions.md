@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "When a Ludeo integration has prior-agent-added engine helpers (Ludeo_RestoreState, etc.), how much should we defer to those design decisions?"
 sanitized: true
 ---

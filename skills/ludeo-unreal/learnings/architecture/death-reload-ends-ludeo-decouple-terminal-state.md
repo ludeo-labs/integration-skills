@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 2
+phase: 3
 question: "Does the game end a run on player death by reloading the level / returning to a load screen / tearing down the gameplay world? If so, that reload ends the Ludeo regardless of its fail-on-death config — is the terminal condition decoupled from the game's own reload?"
 sanitized: true
 ---

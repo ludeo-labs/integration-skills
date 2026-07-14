@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: ActionGame
-phase: 2
+phase: 3
 question: "Does the game have non-gameplay worlds (main menu, lobby, transition levels) that also spawn a GameState?"
 sanitized: true
 ---

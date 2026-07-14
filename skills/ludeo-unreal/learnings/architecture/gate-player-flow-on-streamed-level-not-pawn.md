@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 4
+phase: 5
 question: "Does the game load the playable map via level streaming or a loading-screen system (a persistent/root map that streams the gameplay sublevel)? If so, gate Player Flow readiness on the STREAMED level being loaded — pawn-possessed fires before the sublevel streams in."
 sanitized: true
 ---

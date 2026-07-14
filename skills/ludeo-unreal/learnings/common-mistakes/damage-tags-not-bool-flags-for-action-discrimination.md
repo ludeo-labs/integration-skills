@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: ActionGame
-phase: 5
+phase: 6
 question: "Does the game use a damage event struct that exposes BOTH per-hit boolean flags (bIsCritical, bIsKillshot, ...) AND a damage-type tag container? If yes, derive kill-method actions from the tags, not from the booleans + auxiliary pointers."
 sanitized: true
 ---

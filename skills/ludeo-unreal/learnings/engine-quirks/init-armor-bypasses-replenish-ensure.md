@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Does the host engine's GAS attribute set use chunk-based bookkeeping (e.g., armor stored as Chunks × ChunkValue, replenish-to-next-chunk-boundary semantics)? If yes, the GAS `SetNumericAttributeBase` path may not be safe for restore — look for the `Init*` accessor instead."
 sanitized: true
 ---

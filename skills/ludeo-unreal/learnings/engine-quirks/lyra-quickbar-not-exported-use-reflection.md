@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: game-specific
 sourceGame: Lyra
-phase: 4
+phase: 5
 question: "Is the game's weapon/equipment component exported with the module API macro?"
 sanitized: true
 ---

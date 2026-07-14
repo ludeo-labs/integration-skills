@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Does the game have an intro/cinematic sequence that checks a skip flag during map load?"
 sanitized: true
 ---

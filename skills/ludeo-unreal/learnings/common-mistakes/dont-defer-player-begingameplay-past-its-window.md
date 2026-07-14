@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: ActionGame
-phase: 2
+phase: 3
 question: "Are you tempted to delay `Player->BeginGameplay()` until after some post-room-ready cleanup completes? Don't — call it as soon as your N-way gate (Room Ready + Player Added + Game Phase) latches. Cleanup runs after."
 sanitized: true
 ---

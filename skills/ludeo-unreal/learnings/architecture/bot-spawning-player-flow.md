@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: ActionRoguelike
-phase: 1
+phase: 2
 question: "Does this game have dynamically spawned bots with unstable identity? If so, the Ludeo component should spawn bots directly during Player Flow rather than relying on the game's native spawner."
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: Lyra
-phase: 4
+phase: 5
 question: "Does Player Flow need to call an exported game API (e.g. StartPhase) whose parameter is a TSubclassOf<SomeUnexportedAbilityType>? If so, add a UClass*-taking wrapper in the GAME module instead of constructing the TSubclassOf in the plugin."
 sanitized: true
 ---

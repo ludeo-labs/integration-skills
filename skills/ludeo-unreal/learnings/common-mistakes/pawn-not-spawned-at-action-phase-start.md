@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Does the game's action phase start BEFORE the player pawn is spawned?"
 sanitized: true
 ---

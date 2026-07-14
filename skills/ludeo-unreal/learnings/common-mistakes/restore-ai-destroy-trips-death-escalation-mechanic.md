@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: CoopShooter
-phase: 4
+phase: 5
 question: "Does this game escalate a GLOBAL alert/phase/reinforcement state as a SIDE EFFECT of AI death or destruction (an alarm on an unanswered kill, a 'call it in' radio, aggro/panic spread, a reinforcement timer)? If yes, your Player-Flow restore that destroys or replaces AI actors will trip that mechanic — suppress it across the whole restore window."
 sanitized: true
 ---

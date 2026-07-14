@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: universal
 sourceGame: VoyagerV2
-phase: 2
+phase: 3
 question: "Is this a Blueprint-only project? Check Intermediate/Source/ for auto-generated .Target.cs files. If they exist (CommonUI etc.), do NOT create Source/. If they DON'T exist, you MUST create Source/ with minimal .Target.cs files or packaging will silently skip plugin DLLs."
 sanitized: true
 ---

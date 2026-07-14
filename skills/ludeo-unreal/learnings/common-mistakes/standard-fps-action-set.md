@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: Lyra
-phase: 5
+phase: 6
 question: "Which actions beyond Kill + Death does the curated slice support? Check for: weapon pickup, ability activation, accolades/streaks."
 sanitized: true
 ---

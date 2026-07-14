@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: FPSGameStarterKit
-phase: 2
+phase: 3
 question: "Does the game need to be packaged (not just editor-playable)? If yes, does it have a Source/ directory and a non-Editor .Target.cs? If no to either, plan for a minimal game module or a target-generating plugin (e.g., CommonUI) BEFORE implementation, not after packaging fails."
 sanitized: true
 ---

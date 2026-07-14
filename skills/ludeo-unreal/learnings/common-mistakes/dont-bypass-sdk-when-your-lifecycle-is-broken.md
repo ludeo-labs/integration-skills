@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "An SDK notification (OnRoomReady, pause/resume, etc.) worked on the first room/session but is missing on a LATER one — before bypassing the SDK, adding a timeout, or theorizing an SDK limitation"
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: CoopShooter
-phase: 4
+phase: 5
 question: "Are your manually-written attributes not showing up in the captured/exported ludeo data? Put them on a dedicated writable object instead of riding an existing entity object."
 sanitized: true
 ---

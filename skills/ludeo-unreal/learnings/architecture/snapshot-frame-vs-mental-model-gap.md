@@ -2,7 +2,7 @@
 category: architecture
 tier: universal
 sourceGame: ActionGame
-phase: 3
+phase: 4
 question: "Which captured state is frame-local (true at the snapshot instant) vs time-cumulative (a running tally across the recording)? Cumulative state will surprise the user when the picked frame is earlier than they remember playing."
 sanitized: true
 ---
