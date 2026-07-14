@@ -95,6 +95,7 @@ When in doubt, track it — and put it in the earliest wave its load-bearing-nes
 | Category | Examples | Priority |
 |---|---|---|
 | **Player** | Player character, stats, inventory, transform | CRITICAL |
+| **Camera / viewpoint** | Camera pitch/yaw, orbit distance, free-look angle, zoom/FOV | **CRITICAL when the view is independently controllable** (mouse/free-look, manual orbit, aim, zoom) — the replay must open on that exact view; **skip a fixed camera** (static top-down/isometric — a constant, §9.3) and a **pure follow-cam derived from restored player state** (recompute it) (§9.4) |
 | **NPCs / Enemies** | AI entities, health, state, transform | CRITICAL |
 | **Interactive objects** | Pickups, doors, switches, vehicles | CRITICAL |
 | **Projectiles** | Bullets, grenades (if persistent/visible) | IMPORTANT |
@@ -468,6 +469,7 @@ Track if (1) AND (2 OR 3-not-derivable) AND (4-has-meaning).
 | Object type | Typical | Caveat |
 |---|---|---|
 | Player | Track | Split-screen/co-op: track all players |
+| Camera / view rig | Track its **control state** (pitch/yaw, orbit distance, zoom/FOV) — §10.6 — **only when the view is independently controllable** | **Skip** if the camera is **fixed** (static top-down/isometric — a constant, §9.3) or a follow-cam **fully** determined by restored player state (recompute it). Otherwise capture the rig's angles (not just the camera's world transform) so a follow/orbit rig reconstructs the exact view; capture any *independent* freedom (free-look yaw, aim pitch, manual orbit), and restore must **snap, not ease**, to it (`07 §5`/§7) |
 | AI enemy / NPC | Track | Pooled: register on pull, not on prefab construction (§2.3) |
 | AI perception / target (property) | Track | Drives visible behavior; suppress dev-only debug mutations |
 | Hitscan bullet (no tracer) | Skip | Kill-cam / tracer / travel-time flips this to Track |
@@ -550,6 +552,19 @@ obj => {
     obj.SetAttribute(K.WaveIndex, m_waveIndex);          // in-progress sequence/wave
     obj.SetAttribute(K.TimeRemaining, m_countdown);      // timers/cooldowns: REMAINING, not elapsed (§9.4)
 };
+
+// 10.6 Camera / viewpoint (singleton — bucket[0]; the exact view the moment must OPEN on). ONLY when the
+// view is independently controllable — skip a fixed camera (constant) or a follow-cam fully derived from
+// restored player state (§9.4). Capture the RIG'S control state, not only the derived world transform, so a
+// follow/orbit rig reconstructs the view. Restore SNAPS to these (no smoothing/lerp), else the replay eases
+// in from a default view (07 §5/§7).
+obj => {
+    obj.SetAttribute(K.CamPitch, m_rig.pitch);           // [SDK] float — look/aim pitch
+    obj.SetAttribute(K.CamYaw, m_rig.yaw);               // [SDK] float — look/free-look yaw
+    obj.SetAttribute(K.OrbitDistance, m_rig.distance);   // [SDK] float — third-person zoom/orbit (if the rig has it)
+    obj.SetAttribute(K.Fov, cam.fieldOfView);            // [SDK] float — only if it changes (ADS/zoom)
+    obj.SetAttribute(K.CamPosition, cam.transform.position);  // [SDK] Vector3 — only if the camera moves FREELY of the player (spectator/detached)
+};
 ```
 
 ---
@@ -588,6 +603,9 @@ registration not amortized) or at scene transition (mass despawn in one burst).
 **Scope & types**
 - [ ] Tracked set passes §9; attributes are typed (`Vector3`/`Quaternion`/`int`/…), blobs only where warranted (§1.4).
 - [ ] Attribute names come from a `LudeoKeys` `[Layer]` class shared with restore.
+- [ ] Camera/viewpoint control state captured (pitch/yaw/orbit/FOV, §10.6) **when the view is independently
+      controllable** — skip a fixed camera or one fully derived from restored player state; restore snaps to
+      it (`07 §5.5`).
 
 **State & perf**
 - [ ] Capture suspends in menus/cutscenes (sampling gate, §8); overlay pause handled separately (CR-011).
