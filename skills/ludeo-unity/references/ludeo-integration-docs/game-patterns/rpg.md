@@ -149,6 +149,9 @@ not the whole save). Sections are tiered by restoration priority:
 - [ ] Target entity (by stable key)
 - [ ] Dialogue/quest state if it gates behavior
 - [ ] Is alive/dead (a killed-not-respawned NPC is a **state flag**, not just an unregister — `06 §9.4`)
+- [ ] Mid-cast / in-flight spell state (casting phase, cast progress, spell id, target, live projectile) —
+      a **later-wave** fidelity add, not Wave 1 (`06 §9.6`); `SpellCast` is *also* an action (§1), but the
+      mid-cast is **state**, so reconstruct it and let the action re-fire (don't double-represent it)
 
 ### Quests / World State — IMPORTANT (world flags that gate the visible moment are CRITICAL)
 - [ ] Active quest ids + current stage/objective (as their own objectType)

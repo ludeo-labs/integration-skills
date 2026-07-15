@@ -151,10 +151,13 @@ After object tracking is implemented (phase 9), verify these are covered. Types 
 - [ ] Is equipped
 - [ ] Position (if a world item)
 
-### Projectiles (if persistent/visible) — OPTIONAL
-- [ ] Position, velocity
+### Projectiles / in-flight attacks (if persistent/visible) — OPTIONAL (later-wave fidelity, `06 §9.6`)
+An attack **in flight at the captured instant** (a rocket/grenade mid-air, an enemy mid-swing) sharpens
+*presented* reconstruction, but it's a **later-wave** add — the moment is coherent without it, and it's the
+hardest class to capture (pooled, short lifetime, restore-time velocity/animator deferral). See `06 §9.6`.
+- [ ] Position, velocity (velocity **deferred** at restore — `07 §7`)
 - [ ] Projectile type
-- [ ] Owner ID
+- [ ] Owner ID (resolve two-pass — `07 §6`)
 - [ ] Damage value
 
 ### Pickups / Items — OPTIONAL
