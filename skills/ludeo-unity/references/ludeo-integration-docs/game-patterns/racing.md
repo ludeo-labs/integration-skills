@@ -147,6 +147,7 @@ After object tracking is implemented (phase 9), verify these are covered. Types 
 - [ ] Boost / nitro charge
 - [ ] Vehicle damage / condition
 - [ ] Fuel / tire state (sim racers)
+- [ ] Appearance (vehicle livery/skin, driver/character cosmetics — by content id). Constant through the clip but **visible**; the `06 §9.3` step-1 carve-out — a default-livery replay is visibly wrong
 
 ### Race State — CRITICAL
 - [ ] Race phase (countdown, racing, finished)

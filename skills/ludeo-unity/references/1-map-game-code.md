@@ -124,6 +124,10 @@ window. Probe for the **enter/exit sites**:
 **7. Object model (spawn / despawn)**
 - `Grep("Instantiate\(|Destroy\(|DestroyImmediate\(")`
 - `Grep("ObjectPool|PrefabPool|Spawn|Pool")` — centralized spawn paths.
+- `Grep("Wardrobe|Cosmetic|Skin|Outfit|Appearance|Customization|Loadout|Equip|SkinnedMeshRenderer\.sharedMesh|\.material =")` —
+  the **appearance/loadout subsystem**. Clothing/skins/equipped-cosmetics usually live *off* the player
+  entity (a manager, a ScriptableObject, a mesh/material swap), so a player-only property sweep misses
+  them — record where visible appearance is set so phases 3–4 can track it (it's Wave 1, `06 §9.3`).
 - `Glob("**/*.prefab")` (sample; do not enumerate exhaustively) — prefab-driven entity types.
 
 **8. Event systems**

@@ -455,7 +455,15 @@ Unsure which branch? Track it — the cost is small.
 ```
 
 ### 9.3 Decision flow — a single property
-1. **Does its value change during gameplay?** No → skip (it's a constant).
+1. **Does its value change during gameplay?** No → skip (it's a constant) — **UNLESS a viewer can see
+   it and it was chosen *before* the captured moment** (equipped loadout/weapon, outfit/skin,
+   character-model or color variant). This state never "changes during gameplay" — it's set off-camera
+   and stays constant through the clip — yet it defines how the moment *looks*. A Ludeo is a shareable
+   **video**: the player rendered in the default skin instead of the outfit they had equipped is a
+   visibly wrong replay. Capture it (as content/item ids or enums, `§9.4`). This is the one case where a
+   constant is still load-bearing — and the persistent-singleton baseline reset (`00 CR-006`) makes the
+   miss worse: it strips the live player back to default and re-applies only captured fields, so an
+   uncaptured outfit is actively erased, not merely absent.
 2. **Can a viewer or another tracked object's logic notice the change?** No → skip.
 3. **Is it derivable from other tracked state?** Yes → skip — *only if* restoration will actually
    derive it (e.g. world pos = parent.pos + local offset).
@@ -489,6 +497,7 @@ Track if (1) AND (2 OR 3-not-derivable) AND (4-has-meaning).
 | Inventory | Track as array of item ids | Never references to item objects |
 | Cooldown / timer | Track **remaining**, not elapsed | Restore sets "time until" |
 | Animation frame / blend | Usually skip (derivable) | Track if a stuck pose would look wrong |
+| Appearance / loadout (skin, outfit, equipped-gear id, model variant) | Track as ids/enums | Set before the moment & constant during it, but **visible** — default skin instead of the player's outfit is a visibly wrong clip. The §9.3 step-1 carve-out; survives the baseline reset only if captured |
 | Reference to another object | Never as a reference | Track the target's stable key (§4) |
 
 ### 9.5 When the table is wrong
