@@ -294,6 +294,14 @@ under Open Questions and keep going. Note write cadence:
 - Health / ammo / score → per-tick (or guard skip-unchanged, `06 §11`).
 - References → capture the **target's stable key** (§4).
 
+> **Combat entities — flag mid-action / in-flight attack state (`06 §9.6`).** For any attacker (enemy,
+> boss, the player), note whether the moment can be captured **mid-attack**: a casting phase, a swing's
+> animator normalized-time, or live projectiles the entity owns. Record these as their own rows/objectType,
+> but assign them a **later wave** — they degrade fidelity when missing rather than breaking the replay, and
+> are the hardest class to capture (short lifetime, pooling, restore-time physics/animation deferral). The
+> **exception** is a game whose signature captured moment *is* the incoming attack (bullet-hell / boss
+> parry): surface that at the Part-A census so it's promoted up front, not backfilled.
+
 ### Step B4: Map cross-entity references (within / into the wave)
 For every reference-kind property fill a Cross-Entity References row (From / To / Field / Capture /
 Restoration). Capture the target's stable key; at restore (phase 12, two-pass per CR-006) it's resolved

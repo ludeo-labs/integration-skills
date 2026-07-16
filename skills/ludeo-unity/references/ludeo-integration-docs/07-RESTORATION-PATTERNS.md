@@ -420,6 +420,38 @@ void RestoreLudeoState(LudeoStateObjectRestore r) {
     m_rig.SetAngles(pitch, yaw);  m_rig.SetDistance(dist);   // [Unity] rig control state, not the derived transform
     m_rig.SnapToTarget();        // [Unity] SNAP — no smoothing/lerp this frame, or the view eases in from a default (§7)
 }
+
+// ── In-flight attacks & mid-action state (LATER-WAVE; inverse of 06 §10.7–§10.9, see 06 §9.6) ──
+
+// 5.6 In-flight projectile (collection; the spawn primitive is the game's pooled Get)  inverse of 06 §10.7
+void RestoreLudeoState(LudeoStateObjectRestore r) {
+    r.TryGetAttribute(K.RunId, out int runId);   keyMap[runId] = gameObject;           // Pass 1 key (§4/§6)
+    r.TryGetAttribute(K.Position, out Vector3 pos);
+    r.TryGetAttribute(K.Damage, out int dmg);
+    r.TryGetAttribute(K.RemainingLifetime, out float ttl);
+    transform.position = pos;  m_damage = dmg;  m_ttl = ttl;
+    // r.TryGetAttribute(K.Velocity, ...) → DEFER to §7 — applied at spawn, first FixedUpdate zeroes it
+    //                                       (the shot stops dead at the restore frame).
+    // r.TryGetAttribute(K.OwnerId / K.TargetId, ...) → resolve in Pass 2 via keyMap (§6).
+}
+
+// 5.7 In-flight spell — the caster's mid-cast state (a traveling effect uses 5.6)      inverse of 06 §10.8
+void RestoreLudeoState(LudeoStateObjectRestore r) {
+    r.TryGetAttribute(K.IsCasting, out bool casting);
+    r.TryGetAttribute(K.CastProgress, out float p);
+    r.TryGetAttribute(K.SpellId, out int spellId);
+    ApplyCastState(casting, p, (SpellId)spellId);   // RESUME the cast mid-flight — don't restart it from 0
+    // r.TryGetAttribute(K.TargetId, ...) → resolve in Pass 2 via keyMap (§6)
+}
+
+// 5.8 Mid-animation special attack                                                     inverse of 06 §10.9
+void RestoreLudeoState(LudeoStateObjectRestore r) {
+    r.TryGetAttribute(K.AttackPhase, out int phase);
+    r.TryGetAttribute(K.HitboxActive, out bool hitbox);
+    m_attackPhase = (AttackPhase)phase;  m_hitboxActive = hitbox;
+    // r.TryGetAttribute(K.AttackStateHash / K.AttackNormalizedTime, ...) → DEFER to §7:
+    //   Animator.Play(hash, 0, normalizedTime) AFTER the entry transition, or the swing snaps to idle.
+}
 ```
 
 > **⚠️ Snap the camera to the captured view — never let a follow/`SmoothDamp` rig ease into it.** The
@@ -451,6 +483,11 @@ else
 `null` produces a silently broken replay (enemy targets nothing, weapon orphaned). Every reference row in
 `OBJECT_TRACKING.md`'s Cross-Entity References table must have a resolution step here.
 
+> **In-flight attacks resolve here too.** A restored projectile's `OwnerId`/`TargetId` (§5.6) and a
+> mid-cast's `TargetId` (§5.7) are ordinary Pass-2 references — the shooter/caster is often itself a
+> restored enemy (a collection entry), so it must exist in `keyMap` before this runs. If the owner was
+> **dropped** as terminal (`06 §3.4`), repoint or clear the reference rather than leaving it dangling.
+
 ---
 
 ## 7. Deferred Properties
@@ -460,8 +497,8 @@ Apply them **after Pass 2, before `Begin`**, in a recorded order:
 
 | Property | Why it must defer | Apply after |
 |---|---|---|
-| `Rigidbody.velocity` / `angularVelocity` `[Unity]` | body inactive at spawn; first `FixedUpdate` can zero it | physics body active, before first sim step |
-| `Animator` state / normalized time `[Unity]` | overwritten by the entry-state transition | `Animator` enabled + past entry |
+| `Rigidbody.velocity` / `angularVelocity` `[Unity]` | body inactive at spawn; first `FixedUpdate` can zero it — an **in-flight projectile** (§5.6) applied at spawn stops dead at the restore frame | physics body active, before first sim step |
+| `Animator` state / normalized time `[Unity]` | overwritten by the entry-state transition — a restored **mid-attack** swing/cast (§5.8) snaps back to idle and its telegraphed hit never lands | `Animator` enabled + past entry |
 | `NavMeshAgent` position/path `[Unity]` | must be on the NavMesh (use `Warp`) | agent placed on NavMesh |
 | Ability / cooldown timers | a `Start`/`OnEnable` re-initializer resets them | re-initializers have run |
 | Camera follow/look rig (smoothing) `[Unity]` | a `SmoothDamp`/lerp `LateUpdate` eases from the default toward target over several frames | player placed; snap the rig to the captured pitch/yaw/distance (§5.5), no smoothing that frame |
@@ -714,6 +751,7 @@ anything this run set.
 - [ ] Every entity/property in `OBJECT_TRACKING.md` has a `RestoreLudeoState` read using the **same `LudeoKeys`** + `objectType`.
 - [ ] Cross-Entity References table fully resolved in Pass 2 (§6).
 - [ ] Deferred properties applied after Pass 2, before `Begin`, in recorded order (§7).
+- [ ] In-flight attacks (§5.6–§5.8, `06 §9.6`): projectile velocity + mid-attack animator time **deferred** (§7); owner/target resolved in Pass 2 (§6); the resulting hit left to re-fire as an action, not hand-replayed.
 - [ ] **If** camera view state was captured (`06 §10.6` — independently-controllable view): restored to the
       captured pitch/yaw/distance and **snapped** (no smoothing/lerp) so the first frame opens on the captured
       view, not a default the rig eases out of (§5.5/§7). (Fixed / player-derived cameras capture nothing here.)
