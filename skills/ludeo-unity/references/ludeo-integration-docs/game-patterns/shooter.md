@@ -160,6 +160,35 @@ hardest class to capture (pooled, short lifetime, restore-time velocity/animator
 - [ ] Owner ID (resolve two-pass — `07 §6`)
 - [ ] Damage value
 
+There's no new machinery here — a projectile is a **pooled collection object** (register on `Get` /
+unregister on `Release`, `06 §2.3`) with a handful of attributes, one deferred:
+
+```csharp
+// CAPTURE — on the pooled projectile
+obj => {
+    obj.SetAttribute(K.RunId, m_runId);                  // stable key (06 §4)
+    obj.SetAttribute(K.Position, transform.position);
+    obj.SetAttribute(K.Velocity, rb.velocity);           // DEFERRED at restore (07 §7)
+    obj.SetAttribute(K.OwnerId, m_owner != null ? m_owner.RunId : -1);  // reference by key (06 §4)
+    obj.SetAttribute(K.RemainingLifetime, m_ttl);        // REMAINING, not elapsed (06 §9.4)
+    obj.SetAttribute(K.ProjectileType, (int)m_type);
+};
+
+// RESTORE — Pass 1 writes the scalars + key; velocity DEFERS to §7, OwnerId resolves in Pass 2 (§6)
+void RestoreLudeoState(LudeoStateObjectRestore r) {
+    r.TryGetAttribute(K.RunId, out int runId);  keyMap[runId] = gameObject;
+    r.TryGetAttribute(K.Position, out Vector3 pos);  transform.position = pos;
+    r.TryGetAttribute(K.RemainingLifetime, out float ttl);  m_ttl = ttl;
+    // K.Velocity → apply in the deferred pass (07 §7), or the first FixedUpdate zeroes it (shot stops dead)
+    // K.OwnerId  → resolve in Pass 2 via keyMap (07 §6); the owner may itself be a restored enemy
+}
+```
+
+A mid-cast enemy or mid-swing boss is the same idea on the enemy object — extra attributes (cast
+progress, or animator state-hash + normalized-time) with the **animator time deferred** exactly like
+velocity. The hit the attack lands is an **action, not state** (`06 §7`): reconstruct the attack, let the
+hit re-fire as the replay plays forward.
+
 ### Pickups / Items — OPTIONAL
 - [ ] Position
 - [ ] Item type

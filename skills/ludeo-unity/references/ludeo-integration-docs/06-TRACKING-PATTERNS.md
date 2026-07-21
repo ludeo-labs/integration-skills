@@ -487,8 +487,8 @@ Track if (1) AND (2 OR 3-not-derivable) AND (4-has-meaning).
 | Camera / view rig | Track its **control state** (pitch/yaw, orbit distance, zoom/FOV) — §10.6 — **only when the view is independently controllable** | **Skip** if the camera is **fixed** (static top-down/isometric — a constant, §9.3) or a follow-cam **fully** determined by restored player state (recompute it). Otherwise capture the rig's angles (not just the camera's world transform) so a follow/orbit rig reconstructs the exact view; capture any *independent* freedom (free-look yaw, aim pitch, manual orbit), and restore must **snap, not ease**, to it (`07 §5`/§7) |
 | AI enemy / NPC | Track | Pooled: register on pull, not on prefab construction (§2.3) |
 | AI perception / target (property) | Track | Drives visible behavior; suppress dev-only debug mutations |
-| Hitscan bullet (no tracer) | Skip | Kill-cam / tracer / travel-time flips this to Track — but an attack **in flight at capture** is a **later-wave** add, and a sub-tick flash can't be captured at all (§9.6 / §10.7) |
-| Grenade / ballistic projectile | Track | Capture owner key to attribute kills; tracking it **in flight** (pooled, restore defers velocity) is a **later wave** (§9.6 / §10.7, `07 §7`) |
+| Hitscan bullet (no tracer) | Skip | Kill-cam / tracer / travel-time flips this to Track — but an attack **in flight at capture** is a **later-wave** add, and a sub-tick flash can't be captured at all (§9.6) |
+| Grenade / ballistic projectile | Track | Capture owner key to attribute kills; tracking it **in flight** (pooled, restore defers velocity) is a **later wave** (§9.6, `07 §7`) |
 | Respawning pickup | Track | Track "available/consumed" + respawn timer |
 | Static decorative prop | Skip | Check for hidden physics/destructibility first |
 | Destructible | Track | "Destroyed" is a **state flag**, not an unregister — *when the wreckage stays in the world* (§3.4); if it's removed/replaced, drop it |
@@ -503,7 +503,7 @@ Track if (1) AND (2 OR 3-not-derivable) AND (4-has-meaning).
 | Enum state (alive/dead, AI mode) | Track as `int` | Serialize the enum to int; document meaning |
 | Inventory | Track as array of item ids | Never references to item objects |
 | Cooldown / timer | Track **remaining**, not elapsed | Restore sets "time until" |
-| Animation frame / blend | Usually skip (derivable) | Track if a stuck pose would look wrong — a **mid-attack** swing/cast (windup→hit must continue) is a **later-wave** add: §9.6 / §10.9 |
+| Animation frame / blend | Usually skip (derivable) | Track if a stuck pose would look wrong — a **mid-attack** swing/cast (windup→hit must continue) is a **later-wave** add: §9.6 |
 | Reference to another object | Never as a reference | Track the target's stable key (§4) |
 
 ### 9.5 When the table is wrong
@@ -521,48 +521,30 @@ re-apply §9.1–§9.3 from scratch rather than patching the table.
 §9.4's "skip hitscan / skip animation frame" is a **resting-state** default. A Ludeo is captured
 mid-fight, so an attack **in progress at the captured instant** — a projectile mid-air, a spell mid-cast,
 a boss swing mid-wind-up — is visible state a viewer notices, and capturing it sharpens *presented*
-reconstruction. But it belongs in a **later wave, not Wave 1**, for two reasons:
+reconstruction. Two things to know; the rest is composition.
 
-1. **The moment is coherent without it.** Wave 1's spine (world + player + the in-view combatants) already
-   rebuilds and resumes the fight; a single missing in-flight projectile *degrades fidelity, it does not
-   break the replay*. In-flight attacks are **breadth/enrichment**, added once the spine round-trips — not
-   the restorable spine (§1.1). Don't put them in Wave 1, and don't treat a late-wave gap here as a Wave-1
-   backfill (the §1.1 guardrail).
-2. **They are the hardest class to capture correctly** — short lifetime, pooling, and physics/animation
-   timing on restore (below). Prove the spine before taking them on.
+**It's a later wave, not Wave 1.** Wave 1's spine (world + player + in-view combatants) rebuilds and
+resumes the fight; a missing in-flight projectile *degrades fidelity, it does not break the replay*. It's
+breadth/enrichment on the spine (§1.1), and it's the hardest class to capture (short lifetime, pooling,
+restore-time physics/animation timing). Prove the spine first. Don't treat a late-wave gap here as a
+Wave-1 backfill. **Exception, decided at the census (`phase 8`), not by backfill:** if a game's signature
+moment *is* the incoming attack (bullet-hell dodge, parry-the-boss beat), the census promotes it up front
+(§9.5).
 
-> **⚠️ Exception — decided at the census (`phase 8`), not by backfill.** If a *specific* game's signature
-> captured moment **is** the incoming attack (a bullet-hell dodge, a parry-the-boss beat), that attack is
-> load-bearing *for that game*, and the census promotes it to an earlier wave (§9.5, "when the table is
-> wrong"). That is a deliberate up-front call — not carrying load-bearing state forward later.
+> **⚠️ SDK constraint — an attack must outlive one internal tick to exist at all.** Values are
+> **diff-sent on the SDK's internal tick** (doc 12), and reconstruction rebuilds the single captured frame
+> (`07 §1.1`), so an in-flight attack is reconstructable **only if it is alive at the capture instant and
+> has lived through at least one sample+tick**. A sub-tick hitscan flash **cannot** be captured — leave it
+> on §9.4's "skip"; don't add machinery to chase it.
 
-> **⚠️ SDK constraint — an attack must outlive one internal tick to exist at all.** `SetAttribute` only
-> caches; values are **diff-sent on the SDK's internal tick** (doc 12), so a state object *created and
-> destroyed between two ticks is never sent* — it won't be in the restore. Reconstruction rebuilds the
-> **single captured frame** (`07 §1.1`), so an in-flight attack is reconstructable **only if it is alive at
-> the capture instant and has lived through at least one sample+tick**. A sub-tick hitscan flash therefore
-> **cannot** be captured — leave it on §9.4's "skip"; don't add machinery to chase it.
-
-**Three shapes** (capture snippets §10.7–§10.9; restore inverses `07 §5.6–§5.8`):
-- **In-flight projectile** (bullet/arrow/grenade/rocket) — a collection object, almost always **pooled**:
-  register on pool-`Get` after re-init, unregister on `Release` (§2.3) — never on a per-shot `Destroy`.
-  Capture position, velocity, owner key, target key (homing), damage, remaining lifetime, type.
-- **In-flight magic / spell** — usually **two** state objects: the caster's **mid-cast** state on the
-  enemy (casting flag, cast progress / cast-anim normalized time, spell id, target, committed mana) **and**
-  the effect (traveling projectile → same as above; forming AoE → center/radius/elapsed; channeled beam →
-  origin/target/elapsed).
-- **Mid-animation special attack** (melee swing, boss slam, wind-up) — on the enemy object: animator state
-  hash, animator normalized time, attack-phase enum, hitbox-active flag.
-
-**Three interactions that bite on restore** (each already has a home):
-- **Defer the physics/animation write** (`07 §7`): a projectile's velocity or a mid-swing's animator time
-  applied at spawn is wiped by the first `FixedUpdate` / entry transition — the shot stops dead, the swing
-  snaps to idle.
-- **Owner/target resolve two-pass** (§4, `07 §6`): the shooter may itself be a restored enemy; fail loud on
-  a keyMap miss, and if the owner was dropped (§3.4) repoint/clear rather than dangle.
-- **The resulting hit is an action, not more state** (§7, both flows): reconstruct the *attack*; the
-  kill/hit it produces re-fires at its own call site as the replay plays forward. Don't also `SendAction`
-  for "attack launched", and don't hand-replay the hit — it happens naturally.
+**An in-flight attack is not a new object class — compose it from rules you already have.** Whether it's a
+projectile, a mid-cast enemy, or a mid-swing boss, model it as a pooled collection object with a few extra
+attributes: register on pool-`Get` / unregister on `Release` (**§2.3**), owner/target by stable key
+(**§4**, resolved two-pass at `07 §6`), remaining-lifetime not elapsed (**§9.4**), and **defer** velocity
+or animator normalized-time on restore (`07 §7`) or the shot stops dead / the swing snaps to idle. The
+hit it lands is an **action, not state** (§7) — reconstruct the attack and let the hit re-fire at its own
+call site; don't `SendAction` it or hand-replay it. Worked projectile example:
+`game-patterns/shooter.md`.
 
 ---
 
@@ -626,40 +608,6 @@ obj => {
     obj.SetAttribute(K.OrbitDistance, m_rig.distance);   // [SDK] float — third-person zoom/orbit (if the rig has it)
     obj.SetAttribute(K.Fov, cam.fieldOfView);            // [SDK] float — only if it changes (ADS/zoom)
     obj.SetAttribute(K.CamPosition, cam.transform.position);  // [SDK] Vector3 — only if the camera moves FREELY of the player (spectator/detached)
-};
-
-// ── In-flight attacks & mid-action combat state (LATER-WAVE, §9.6) ─────────────────────────────
-
-// 10.7 In-flight projectile (collection; POOLED → register on Get / unregister on Release, §2.3)
-obj => {
-    obj.SetAttribute(K.RunId, m_runId);                  // [SDK] your stable key (§4)
-    obj.SetAttribute(K.Position, transform.position);    // [SDK] Vector3
-    obj.SetAttribute(K.Velocity, rb.velocity);           // [SDK] Vector3 — restore DEFERS this (07 §7)
-    obj.SetAttribute(K.OwnerId,  m_owner  != null ? m_owner.RunId  : -1);  // reference by key (§4)
-    obj.SetAttribute(K.TargetId, m_target != null ? m_target.RunId : -1);  // homing only
-    obj.SetAttribute(K.Damage, m_damage);                // int
-    obj.SetAttribute(K.RemainingLifetime, m_ttl);        // float — REMAINING, not elapsed (§9.4)
-    obj.SetAttribute(K.ProjectileType, (int)m_type);     // enum → int
-};
-
-// 10.8 In-flight spell — the CASTER's mid-cast state on the enemy (a traveling effect, if any, uses 10.7)
-obj => {
-    // …enemy identity + transform/HP as §10.2…
-    obj.SetAttribute(K.IsCasting, m_isCasting);          // bool
-    obj.SetAttribute(K.CastProgress, m_castNormalizedTime); // float 0..1 (or the cast-anim normalized time)
-    obj.SetAttribute(K.SpellId, (int)m_spellId);         // enum → int
-    obj.SetAttribute(K.TargetId, m_target != null ? m_target.RunId : -1); // reference by key (§4)
-    obj.SetAttribute(K.ManaCommitted, m_manaCommitted);  // if the cast reserves mana
-};
-
-// 10.9 Mid-animation special attack (melee swing, boss slam, wind-up) — on the enemy object
-obj => {
-    // …enemy identity + transform/HP as §10.2…
-    var st = m_animator.GetCurrentAnimatorStateInfo(0);  // [Unity]
-    obj.SetAttribute(K.AttackStateHash, st.fullPathHash);        // int — which attack state
-    obj.SetAttribute(K.AttackNormalizedTime, st.normalizedTime); // float — restore DEFERS this (07 §7)
-    obj.SetAttribute(K.AttackPhase, (int)m_attackPhase);         // windup/active/recovery enum → int
-    obj.SetAttribute(K.HitboxActive, m_hitboxActive);            // bool
 };
 ```
 
