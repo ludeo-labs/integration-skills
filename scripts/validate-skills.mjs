@@ -7,6 +7,7 @@
 import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SKILLS_DIR = join(ROOT, 'skills');
@@ -87,6 +88,21 @@ for (const folder of skillFolders) {
   }
 
   checkLinks(md, skillDir, folder);
+}
+
+// Delegate deep, skill-specific checks to any skill that ships its own validator
+// (scripts/validate-skill.mjs). This is where a skill's learnings invariants —
+// codename allowlist, INDEX.md freshness, client-identifier leak guard — are
+// enforced, so they run on every `npm run validate` / pre-commit rather than only
+// when a maintainer remembers to run them by hand.
+for (const folder of skillFolders) {
+  const perSkill = join(SKILLS_DIR, folder, 'scripts', 'validate-skill.mjs');
+  if (!existsSync(perSkill)) continue;
+  console.log(`\n── ${folder}: scripts/validate-skill.mjs ──`);
+  const res = spawnSync(process.execPath, [perSkill], { stdio: 'inherit' });
+  if (res.status !== 0) {
+    errors.push(`[${folder}] per-skill validator failed (scripts/validate-skill.mjs — see output above)`);
+  }
 }
 
 for (const w of warnings) console.warn('WARN  ' + w);

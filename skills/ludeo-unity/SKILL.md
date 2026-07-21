@@ -44,6 +44,11 @@ later phase bakes in the Unity reality it needs.
 Review **`references/ludeo-integration-docs/00-CRITICAL-REQUIREMENTS.md`** before phase 0 — the
 mandatory rules, recalibrated for the C# wrapper.
 
+This skill has an **institutional memory** in `learnings/` — sanitized corrections from prior
+integrations. **Load the relevant learnings at the start of every phase, and capture new ones the
+moment you discover them.** See **[Learnings](#learnings)** below for the load/capture discipline; it
+is not optional.
+
 ## Workflow
 
 The integration is a sequential workflow, now sequenced by the **8-phase guideline order** (the table's
@@ -138,8 +143,84 @@ file — so the user experiences each as a single phase.
 - **Fresh session recommended.** Each phase produces a lot of context. If a phase has been running
   long, suggest the user start a fresh agent session for the next phase.
 
+## Learnings
+
+`learnings/` is the skill's institutional memory: sanitized corrections from prior integrations,
+organized into `architecture/`, `common-mistakes/`, `engine-quirks/` (Unity/C# quirks), and
+`save-systems/`. Each file is one lesson with frontmatter (`category`, `tier`, `sourceGame`, `phase`,
+`question`, `sanitized`).
+
+### Load — at the start of every phase
+
+The corpus grows with every integration; reading every file each phase burns the context the phase's
+real work needs. Load it **index-first**:
+
+1. **Read `learnings/INDEX.md` in full.** One line per learning: `path | tier | phase | hook`. The hook
+   is the learning's precondition question (or its title when it has none). An index line is a
+   **pointer, not the lesson** — never cite or apply a learning from its index line alone.
+2. **Read the full body of every entry whose `phase` matches the current phase**, regardless of tier.
+   Phase tags are conservative, so this is the floor, not the whole job.
+3. **Scan every other hook against what you know about this project** (menu-gated or boots straight to
+   gameplay? pooled objects? no save system? blob vs. attribute tracking?) and read the body of anything
+   plausibly relevant. **Err toward reading** — a body read is cheap; wrongly skipping a learning is how
+   integrations break.
+4. **Re-query the index mid-phase.** When you hit a new topic (consent/overlay, restore ordering, pooled
+   spawns, action emission…), grep the index for it and read the matches before improvising.
+5. **Cross-check completeness:** compare the index's `Total:` count against
+   `Glob(pattern: "**/*.md", path: "<skill-base-dir>/learnings")` (glob from the learnings dir directly —
+   a `learnings/**` prefix fails on Windows; subtract `INDEX.md` itself). If files exist that the index
+   misses, read them too — the index is stale; regenerate it (`node scripts/generate-learnings-index.mjs`)
+   or append the missing lines by hand.
+
+**Tier semantics (STRICT):** `universal` = applies to **every** Unity Ludeo integration with **no**
+preconditions. `generalizable` = applies only when a stated precondition holds (the `question` field is
+that precondition — verify it in *this* project before applying). `game-specific` = tied to one game;
+do not reuse across games.
+
+**Before citing any learning in a decision:** read the full body, identify its precondition, and
+**verify it holds here with concrete evidence** (files read, questions answered, tests run). If the
+precondition can't be verified, the learning does not apply — don't cite it. A conclusion that is
+absolute ("the ONLY way", "NEVER do X") yet tagged `universal` is a red flag — check whether it should
+be `generalizable` first.
+
+### Capture — on discovery, not at phase end
+
+**Learnings are append-only.** Add new files under `learnings/{category}/`; never delete or overwrite an
+existing one without explicit human approval. Write the learning **before continuing** whenever: a fix
+took more than one attempt or the root cause wasn't what you assumed; the SDK/engine/environment behaved
+differently than the docs implied; the human corrected you; or you found a non-obvious precondition,
+ordering requirement, or exact API signature. Deferring loses the specifics that make it reusable.
+
+1. **Categorize** (`architecture` / `common-mistakes` / `engine-quirks` / `save-systems`) and **classify
+   the tier** (see semantics above).
+2. **Write `learnings/{category}/<slug>.md`** with frontmatter:
+   ```yaml
+   ---
+   category: common-mistakes
+   tier: generalizable
+   sourceGame: FPSSample      # abstract codename only — see config/learning-policy.json
+   phase: 4
+   question: "..."            # the precondition to re-check on future integrations (null if universal)
+   sanitized: true            # attest you ran the sanitization checklist
+   ---
+   ```
+3. **Register it in the index:** run `node scripts/generate-learnings-index.mjs` (or append the line to
+   `learnings/INDEX.md` by hand in the same format if you can't run node). The Load step reads the index
+   first — a learning missing from it is invisible to future phases.
+4. **Sanitize before saving — mandatory.** Learnings are read on future integrations *for other clients*;
+   anything client-specific that survives leaks one client's code to every other client. Capture the
+   transferable pattern, never the client's payload: `sourceGame` must be an allowlisted abstract
+   codename, client namespaces/`.asmdef`/class names become neutral role-based names, and Ludeo SDK +
+   stock Unity identifiers stay verbatim. **The test:** could a reader name the client, or copy-paste
+   something that's theirs? If yes, it is not sanitized. This applies to **every committed file**, not
+   just `learnings/`. **Full rule + checklist: `references/learning-sanitization.md` — read it before
+   writing any learning.** `scripts/validate-skill.mjs` enforces the structural parts (codename
+   allowlist, index freshness, client-identifier guard).
+
 ## Reference material
 
+- `references/learning-sanitization.md` — how to write a learning without leaking client IP (pattern,
+  not payload); the pre-save checklist. `config/learning-policy.json` holds the codename allowlist.
 - `references/ludeo-integration-docs/` — primary integration guides (build, lifecycle, tracking,
   restoration, API reference, research templates, game-pattern playbooks), all Unity/C#.
 - `references/ludeo-integration-docs/unity/` — Unity-specific material:
