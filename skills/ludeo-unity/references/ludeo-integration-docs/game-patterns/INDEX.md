@@ -10,7 +10,7 @@ All catalogs here are game-design knowledge (WHAT to capture); the **how** — U
 
 ---
 
-## Pattern Files Come in Two Shapes
+## Pattern Files Come in Three Shapes
 
 - **Genre patterns** (shooter, rts, racing) describe *what* a Gameplay Session captures — actions,
   search keywords, tracking checklists.
@@ -18,10 +18,15 @@ All catalogs here are game-design knowledge (WHAT to capture); the **how** — U
   when the genre catalog isn't enough — because the game has no per-level scenes (`open-world.md` +
   `open-world-tracking.md`), or because its scenes are **containers whose content is assembled at load
   from data + RNG** (`procedural-world.md`).
+- **Gameplay-structure patterns** (bosses) describe a *scripted, stateful encounter* that cuts across
+  genre — a fight with phases, cutscenes, a locked arena, summoned adds, and a unique spawn trigger, whose
+  behavioral state is normally established by one-shot triggers that restoration must reconstruct without
+  re-firing (`bosses.md`).
 
 A streaming-world RPG loads **both** open-world shapes plus the relevant genre file(s). A roguelike
-loads `procedural-world.md` plus its combat genre file(s). The structural axes are **orthogonal** — a
-game can be procedural *and* level-based, or procedural *and* streaming; load whatever applies.
+loads `procedural-world.md` plus its combat genre file(s). A game with boss fights loads `bosses.md` on
+top of its genre file(s). The axes are **orthogonal** — a game can be procedural *and* level-based, or
+level-based *with* bosses; load whatever applies.
 
 ## Available Patterns
 
@@ -35,6 +40,7 @@ game can be procedural *and* level-based, or procedural *and* streaming; load wh
 | [open-world.md](./open-world.md) | Structural (boundaries) | Open-world RPG / sandbox / MMO / streaming world | No per-level scenes; boundaries are state-machine or event-driven, not `SceneManager.LoadScene` / `StartMatch` |
 | [open-world-tracking.md](./open-world-tracking.md) | Structural (tracking) | Same — when mapping/implementing object tracking | The world streams in/out; you're in phase 8–9 and need the streaming-world tracking delta over `06` |
 | [procedural-world.md](./procedural-world.md) | Structural (assembly + identity) | Roguelike / roguelite / procedural dungeon / wave-survival / daily-seed | The scene is a **container**; run content is assembled at load from data + RNG, so capturing "which scene" can't relocate the moment and reload **re-rolls** content. Load when a run/level *builder* or *pool* + `Random`/seed drives level content |
+| [bosses.md](./bosses.md) | Gameplay-structure (scripted encounter) | Any game with boss / named / scripted-encounter enemies | The intake or census flags bosses. A boss fight is a scripted, stateful sequence (phases, cutscene, locked arena, adds, unique spawn trigger) whose state is set by one-shot triggers restoration must reconstruct without re-firing. Load **in addition to** the genre file(s) |
 
 ## How the Agent Should Use These Files
 
@@ -57,6 +63,8 @@ game can be procedural *and* level-based, or procedural *and* streaming; load wh
    (Daggerfall/Skyrim) → `rpg.md`; survival/sandbox (Valheim/Minecraft) → `survival-sandbox.md`;
    open-world action (GTA/Red Dead) → `shooter.md` + `racing.md` (driving) + `rpg.md` (progression);
    MMORPG → `rpg.md`. Always pair these with the structural files from step 1 when the game streams.
+   **If the game has boss / scripted-encounter enemies** (the intake or census says so), also load
+   [bosses.md](./bosses.md) on top of the genre file(s) — bosses are a cross-genre gameplay-structure.
 4. **Use the action catalog as _candidates_, not a checklist — read the Tier column.** Capture **T1**
    by default; capture **T2** only if it's scored or a notable one-shot beat in *this* game; treat **T3**
    (movement, reloads, orders, pickups of tracked state — high-frequency noise or state) as drop unless
