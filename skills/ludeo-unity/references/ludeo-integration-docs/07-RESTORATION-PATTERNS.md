@@ -591,6 +591,25 @@ creator flow uses `06 §6` batch *registration* instead.
 > whole play flow is the simple correct choice; where the replay plays through later waves, gate only the
 > re-create trigger.
 
+> **⚠️ Restore invariants, not just objects — the ungated primitive replays its bookkeeping too.** The
+> spawn primitive you were just told to keep ungated does more than place an object: the game's
+> `Spawn` / inventory-add / door-open path also maintains **derived aggregates** that live on a *manager*,
+> not on any tracked object — an alive-enemy tally, a remaining-objectives counter, a spawn budget. Pass 1
+> calls that primitive **once per restored entity**, so each such side effect **replays N times**; and any
+> creator step you *suppressed* (§10.1) may have been the very thing that **reset** that aggregate (its
+> self-heal), which now nothing runs. Both drift the same counter in opposite directions — and a counter is
+> invisible, so the replay *looks* perfect on the first frame while its win/lose condition is silently
+> unreachable. **Don't try to make N incremental side effects sum correctly.** After reconstruction,
+> **recompute each derived aggregate from ground truth** — e.g. `numEnemiesRemaining = count of restored
+> still-killable entities` — rather than trusting the primitive's per-call accounting. This is the
+> aggregate-level analogue of the §4 baseline reset: §4 recovers *per-object* state a fresh `Instantiate`
+> would have zeroed; this recovers *manager-level* state the borrowed/suppressed flow would have maintained.
+> **Count the right subset:** games overload one pipeline (structures, minions, props all as
+> `EnemyController`), so a classification flag (`isStructure`, `IsMinion` — captured, or read off the
+> restored `EnemyType`/bucket) must travel with any count the restore recomputes, or the recomputed total is
+> wrong too. (Audit this for *any* borrowed path, not just spawn: whatever reconstruction re-drives, list its
+> side effects and ask whether the snapshot already accounts for them or you're double-applying.)
+
 ---
 
 ## 10. Wait-For-Player, Freeze & Overlay (CR-010/011)
@@ -719,6 +738,9 @@ anything this run set.
       view, not a default the rig eases out of (§5.5/§7). (Fixed / player-derived cameras capture nothing here.)
 - [ ] World/level definitions restored to drive spawning; environment after entities; exclusion list recorded (§8).
 - [ ] Scene-placed objects reconciled match-vs-spawn — no double-spawn (§9).
+- [ ] **Derived aggregates recomputed from ground truth** after reconstruction (alive-enemy tally, objective
+      counter, spawn budget) — not trusted to sum from the ungated primitive's per-call side effects; the
+      count uses the right subset (classification flags travel with it) (§9).
 
 **Freeze & overlay**
 - [ ] Restored state protected during apply (CR-010): **synchronous apply → freeze whole apply**; **async

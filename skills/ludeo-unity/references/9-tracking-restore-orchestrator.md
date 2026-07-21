@@ -219,6 +219,12 @@ green**, and is **fully complete when the last wave in the plan is green**.
       geometry (task 4 gate). Catches displaced-world-frame bugs the symptom way, regardless of genre.
 - [ ] **Replay→replay** (in one session) tears the prior run down cleanly and shows the **second** Ludeo's
       state — no stale-flag deadlock, no dropped-`Start` defaults, no persistent-singleton leak (tasks 3–4).
+- [ ] **The restored moment plays to completion, not just "looks right" on the first frame** — drive it to
+      its win/lose condition. Win conditions ride on invisible **derived counters** (alive-enemy tally,
+      objective count — `07 §9`) that a first-frame snapshot check cannot see, so a replay can look perfect
+      and still be unwinnable. A cheap **heartbeat diagnostic** — log redundant state against ground truth
+      every few seconds (e.g. `numEnemiesRemaining` vs actual alive count) — surfaces counter drift instantly;
+      wire it temporarily for any state-heavy restore and remove it once the wave is green.
 
 **Wave 1 additionally (the guideline phase-4 criteria + one-time flow):**
 - [ ] **Flow reaches the restore entry point on a real captured Ludeo** (task 3 gate).
