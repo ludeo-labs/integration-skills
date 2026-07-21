@@ -265,7 +265,69 @@ are illustrative; use your project's.)
 
 ---
 
-## 5. IL2CPP / platform notes
+## 5. Mirror Unity logs onto the SDK's cloud log channel (required)
+
+**Required for every Unity integration.** On the cloud runner (Windows/Proton), the SDK core emits its
+logs via `kernel32!OutputDebugString`, which Wine harvests into the collected-log folder — but Unity's
+`Debug.Log` goes to `-logFile`/`Player.log`/stdout, which the runner doesn't collect. So a cloud build
+yields SDK logs with no game logs. Forwarding Unity logs onto `OutputDebugString` co-locates both streams
+in the harvested folder. (SDK side: `OSSystems.win64.cs`; capture shows `…OutputDebugStringW L"…Core:LOG:…"`.)
+
+Add one file beside the game's other Ludeo scripts, in their namespace:
+
+```csharp
+// Ludeo: forward Unity logs onto OutputDebugString — the channel the SDK core uses and the cloud
+// runner (Proton/Wine) harvests. Co-locates game + SDK logs regardless of Unity's -logFile.
+#if <LUDEO_DEFINE> && !UNITY_EDITOR && UNITY_STANDALONE_WIN
+using System.Runtime.InteropServices;
+using UnityEngine;
+
+namespace <GameNamespace>.Ludeo
+{
+    public static class LudeoLogMirror
+    {
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+        static extern void OutputDebugStringW(string message);
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void Install()
+        {
+            Application.logMessageReceivedThreaded += (condition, stackTrace, type) =>
+            {
+#if !LUDEO_LOG_VERBOSE
+                if (type == LogType.Log) return; // default: warnings + errors only — define LUDEO_LOG_VERBOSE to also mirror info
+#endif
+                OutputDebugStringW(type == LogType.Log
+                    ? $"[GAME] {condition}\n"
+                    : $"[GAME:{type}] {condition}\n{stackTrace}");
+            };
+        }
+    }
+}
+#endif
+```
+
+Notes:
+- **Gate on the Ludeo *build* define, not `DEVELOPMENT_BUILD`/`Debug.isDebugBuild`.** The uploaded cloud
+  build is a release build (`13-upload-build.md`), so a dev/release gate strips the mirror from the build
+  that actually runs on the cloud. Use the define the integration already sets for Ludeo builds (e.g.
+  `LUDEO_BUILD` via `extraScriptingDefines`); with no such define (default — disable is runtime, §4), the
+  `!UNITY_EDITOR && UNITY_STANDALONE_WIN` guards alone are fine.
+- **Warnings + errors by default.** Info-level `Debug.Log` is dropped so a per-frame log can't flood the
+  capture or the global lock; define `LUDEO_LOG_VERBOSE` for a verbose repro.
+- **Tag lines `[GAME]`/`[GAME:…]`** to stay greppable against the SDK's `:Core:LOG:` format.
+
+**Verify (cloud-only).** Grep the collected SDK-log for `[GAME]` after a cloud run — there's no local sink
+for `OutputDebugString` (short of attaching DebugView/VS Output), so it can't be checked in the Editor or a
+bare local run.
+
+> **Caveat.** `OutputDebugString` takes a process-global lock (`DBWinMutex`) even with no listener, so
+> `LUDEO_LOG_VERBOSE` under heavy multi-threaded logging can serialize log calls — leave it off outside a
+> repro (or lower `ludeoLogLevel`). Commit the generated `.meta` with the `.cs`.
+
+---
+
+## 6. IL2CPP / platform notes
 
 - **IL2CPP builds:** keep the package's `link.xml` (it prevents stripping of SDK types reached via
   native callbacks). If you maintain a project-level `link.xml`, don't remove Ludeo's entries.
@@ -277,7 +339,7 @@ are illustrative; use your project's.)
 
 ---
 
-## 6. Verify the install
+## 7. Verify the install
 
 - [ ] Package visible in **Package Manager** (or `Assets/LudeoSDK/` present for `.unitypackage`).
 - [ ] `using LudeoSDK;` compiles in a project script with **no** added asmdef reference/define.
