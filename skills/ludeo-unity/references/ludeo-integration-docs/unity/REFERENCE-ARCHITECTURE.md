@@ -28,6 +28,12 @@ a clean on/off switch (dummy implementations for CR-001), consent gating (CR-012
 per-object tracking contract. Scattering `LudeoSDK` calls across gameplay code makes CR-007 (all
 exit paths) and CR-001 (disabled build) nearly impossible to satisfy.
 
+**Generalize this past SDK calls where you cleanly can:** keep integration logic in these layer files and
+edit the game's own source as little as the integration allows. This is a **preference, not a mandate —
+correctness wins over file count**; never distort the integration to shave a game-file edit. Where a hook
+into game code is needed, keeping it to a single façade call or event subscription (logic in the layer)
+keeps the integration reviewable and removable.
+
 ## Components
 
 | Class | Responsibility |
@@ -169,18 +175,20 @@ public class LudeoController
     private readonly Action<bool> m_onInitDone;       // arg: starting in Ludeo (play) flow?
     private readonly Action m_onBeginRestore;         // fires at Ludeo-SELECTION, before the room opens (see HandleGetLudeoDone)
     private readonly Action m_onRoomReady, m_onStopGame, m_onExitToMainMenu;
+    private readonly Action<Action> m_activateWhenReady;   // implicit-auth gate: game fires the supplied Activate once Steam is ready (null = activate inline)
     private bool m_gameplayStarted;
     private bool m_roomReady;              // leg 1 of the begin gate (see HandleRoomReady)
     private bool m_sceneReadyForRestore;   // leg 3 (restore only): the gameplay scene the apply writes into has finished loading
 
     public LudeoController(Action<bool> onInitDone, Action onRoomReady,
                            Action onStopGame, Action onExitToMainMenu,
-                           Action onBeginRestore = null)
+                           Action onBeginRestore = null, Action<Action> activateWhenReady = null)
     {
         Instance = this;
         m_onInitDone = onInitDone; m_onRoomReady = onRoomReady;
         m_onStopGame = onStopGame; m_onExitToMainMenu = onExitToMainMenu;
         m_onBeginRestore = onBeginRestore;   // restore-only; null in create-only games
+        m_activateWhenReady = activateWhenReady;   // implicit-auth (Steam) gate; null → Activate inline (explicit / cloud / Steam already up)
         m_switch = new LudeoFlowSwitch(m_data);
         LudeoManager.InitLudeoSession(HandleInitSessionDone);
     }
@@ -257,10 +265,16 @@ public class LudeoController
         s.AddNotifyMuteRequest(d => { /* mute audio = d.isMuted */ });
         s.AddNotifyLocalizationChanged(d => { /* set language = d.language */ });
 
-        // Activate authenticates. With implicit auth (runWithoutLauncher = false, the Steam default),
-        // the SDK auto-detects Steam but does NOT init it — the game must have Steam running BEFORE
-        // this call or the callback returns InvalidAuth (UPM-INSTALL-AND-DEFINES.md §3).
-        s.Activate(HandleActivateDone);
+        // Activate authenticates, and auth resolves HERE (not at init). With implicit auth
+        // (runWithoutLauncher = false, the Steam default) the SDK auto-detects Steam but does NOT init
+        // it — Steam must already be running or Activate's callback returns InvalidAuth. Steam usually
+        // comes up LATE/async (e.g. a login scene) while this controller bootstraps EARLY, so calling
+        // Activate inline here races ahead of Steam. The game injects an optional auth-ready gate so it
+        // can defer Activate until Steam is up; the controller itself holds NO Steam dependency. No gate
+        // (explicit auth / cloud token / Steam already up) → Activate inline. See "Implicit auth: gate
+        // Activate on Steam-ready" below and UPM-INSTALL-AND-DEFINES.md §3.
+        if (m_activateWhenReady != null) m_activateWhenReady(() => s.Activate(HandleActivateDone));
+        else s.Activate(HandleActivateDone);
     }
 
     private void HandleActivateDone(LudeoSessionActivateCallbackData data)
@@ -383,6 +397,126 @@ public class LudeoController
 > `InitRoom` runs, the **flows receive `m_data` at construction** (`LudeoFlowSwitch` ctor) — a
 > lazy-assign-in-`InitRoom` makes the first restore-read a latent `NullReferenceException` (the original
 > "old ludeo" crash, BL/A-1).
+
+---
+
+## Boot-straight-to-gameplay: the SDK-readiness gate (no-menu launch model)
+
+The skeleton above assumes a **main menu** sits between boot and gameplay — it absorbs the async
+`Activate` + consent latency and is where `onInitDone` is consumed. A game that **auto-starts a run on
+the first scene's `Start()`** has no such wait, so a creator `OpenRoom` can fire while
+`LudeoFlowSwitch` is still `Disabled` → `DisabledLudeoFlow.InitRoom` **no-ops** (silent: no room, no
+capture). Replace the menu's implicit wait with an explicit **bounded readiness gate** — load the
+level immediately, but hold the first interactive/recorded frame until Activate + consent resolve.
+Full doctrine + the player path in [`LAUNCH-AND-READINESS.md`](./LAUNCH-AND-READINESS.md); the wiring
+additions to *this* skeleton:
+
+```csharp
+// Construct the controller from [RuntimeInitializeOnLoadMethod(BeforeSceneLoad)] or a build-index-0
+// boot scene so it exists BEFORE the gameplay scene's Start() — else the auto-start races the gate.
+private bool m_creatorGateReleased;
+
+// (replaces the create branch of HandleActivateDone for the boot-straight model)
+private void HandleActivateDone(LudeoSessionActivateCallbackData data)
+{
+    // Auth failure (e.g. InvalidAuth — Steam not up for implicit auth) is non-fatal: fall through to
+    // the bounded creator gate, which releases to an UNCAPTURED run. Log so it isn't a silent no-Ludeo.
+    if (data.resultCode != LudeoResult.Success) Debug.LogWarning($"Ludeo activate: {data.resultCode}; continuing uncaptured.");
+    m_data.isInLudeo = data.resultCode == LudeoResult.Success && data.isLudeoSelected;
+    if (m_data.isInLudeo) m_onInitDone(isStartingInLudeoFlow: true);      // PLAY: suppress auto-start; LudeoSelected → restore
+    else TryReleaseCreatorGate();                                         // CREATE / auth-failed: may still be waiting on consent
+}
+
+private void HandleConsentUpdated(LudeoSessionConsentUpdatedCallbackData data)   // CR-012
+{
+    m_switch.SetFlags(data.canCreateLudeo, data.canPlayLudeo);
+    m_data.isDisplayPlayableMoment = data.canCreateLudeo || data.canPlayLudeo;
+    if (!m_data.isInLudeo) TryReleaseCreatorGate();   // consent is the second half of the create-path gate
+}
+
+// Releases the creator gate EXACTLY ONCE — when Activate has resolved create AND consent has decided,
+// OR on a bounded timeout / init failure. The game's onInitDone(false) handler then either opens the
+// creator room + starts gameplay on Begin (canCreate) or starts UNCAPTURED (CR-001). The bound is
+// mandatory: an unbounded wait hangs the game at the loading cover when offline / auth fails.
+private void TryReleaseCreatorGate()
+{
+    if (m_creatorGateReleased) return;
+    m_creatorGateReleased = true;
+    m_onInitDone(isStartingInLudeoFlow: false);   // create branch — see "How the game wires it"
+}
+// Wire a timeout (reuse m_data.cancellationTokenSource) that also calls TryReleaseCreatorGate() on
+// expiry/failure, so the game falls through to an uncaptured run instead of hanging.
+```
+
+> **The gate is opt-in.** Classic menu-gated games keep the plain `HandleActivateDone` above (one
+> unconditional `m_onInitDone(data.isLudeoSelected)`); the menu is the wait. Add the gate only when the
+> launch model is boot-straight — or when a classic menu is fast/skippable enough to race consent
+> ([`LAUNCH-AND-READINESS.md`](./LAUNCH-AND-READINESS.md) §6).
+
+---
+
+## Implicit auth: gate `Activate` on Steam-ready (don't call it inline)
+
+Implicit (Steam) auth is a **code-ordering** problem, not just the `runWithoutLauncher` toggle. Auth
+resolves at `Activate`, and the SDK does **not** initialize Steam — so Steam must be up *first*. But the
+controller bootstraps **early** (a bootstrap `Awake` / base scene) while Steam typically initializes
+**late and async** (a login scene, via a Steam wrapper). Calling `Activate` inline in
+`HandleInitSessionDone` therefore races ahead of Steam → the callback returns `InvalidAuth`.
+
+The fix is the injected `activateWhenReady` gate above: the **game** decides when auth is ready and
+fires the supplied `Activate`; the controller stays Steam-agnostic. The gate is **bounded** — on
+timeout it activates anyway (and logs) so a no-Steam machine is never blocked forever.
+
+```csharp
+// GAME bootstrap — owns Steam; the controller does not. Pass a gate ONLY when implicit/Steam auth is in
+// play; otherwise pass null so Activate fires inline. The Steam-wrapper defines are ILLUSTRATIVE — use
+// whatever your project / wrapper (Steamworks.NET, Facepunch, …) actually defines.
+#if STEAMWORKS_NET && !STEAMWORKS_OFF        // real player-facing Steam build
+    Action<Action> authGate = activate => CoroutineRunner.Start(ActivateWhenSteamReady(activate));
+#else                                        // cloud token build / no Steam compiled in
+    Action<Action> authGate = null;          // nothing to wait for — Activate immediately
+#endif
+    m_controller = new LudeoController(onInitDone, onRoomReady, onStopGame, onExitToMainMenu,
+                                       onBeginRestore, authGate);
+
+#if STEAMWORKS_NET && !STEAMWORKS_OFF
+IEnumerator ActivateWhenSteamReady(Action activate)
+{
+    // Explicit auth (a launcherUserId, incl. a LUDEO_DEV runtime override) needs no Steam — go now.
+    var settings = Resources.Load<LudeoSettings>("LudeoSettings");
+    if (settings != null && settings.runWithoutLauncher) { activate(); yield break; }
+
+    float deadline = Time.realtimeSinceStartup + AUTH_READY_TIMEOUT_SECONDS;   // e.g. 15s
+    // Use SteamAPI.InitEx(out string) — not SteamAPI.Init(). InitEx returns ESteamAPIInitResult plus
+    // an English message that names the actual failure; Init() returns a bare bool with no context.
+    // Must be idempotent — Steam may already be up; guard with a ready-check before calling.
+    if (!SteamApiIsReady()) {
+        var initResult = SteamAPI.InitEx(out string initMsg);
+        if (initResult != ESteamAPIInitResult.k_ESteamAPIInitResult_OK)
+            Debug.LogError($"[Ludeo] SteamAPI.InitEx failed: {initResult} — {initMsg}");
+    }
+    while (!SteamApiIsReady() && Time.realtimeSinceStartup < deadline) yield return null;
+    if (!SteamApiIsReady())
+        Debug.LogError("[Ludeo] Steam not ready before timeout; activating anyway — implicit auth will " +
+                       "likely return InvalidAuth. See UPM-INSTALL-AND-DEFINES.md §3 / READING-UNITY-LOGS.md.");
+    activate();   // fire Activate EXACTLY ONCE, ready or timed-out — never leave the game unauthenticated forever
+}
+#endif
+```
+
+- **Cloud / no-Steam builds pass `null`** (or take the `#else`) and `Activate` immediately — the cloud
+  supplies the token. The three auth modes (implicit/Steam, explicit/`launcherUserId`, cloud-token), the
+  conditional-compilation axis, and why implicit auth **can't be validated from a cloud build** are in
+  [`UPM-INSTALL-AND-DEFINES.md §4`](./UPM-INSTALL-AND-DEFINES.md).
+- **Editor caveat:** the Editor can confirm auth **succeeds**, but capture won't (the recorder needs a
+  real player window) — "implicit auth works" and "capture works locally" are separate verifications.
+- **`steam_appid.txt` resolves the AppID but doesn't grant ownership.** Placing a `steam_appid.txt`
+  next to the executable lets `SteamAPI.InitEx` resolve the AppID for a process not launched through
+  Steam, but the **logged-in Steam account still needs to own that AppID**. If the account owns a
+  different AppID (e.g. the demo, not the full game), `SteamAPI.InitEx` returns `FailedGeneric` and
+  the message contains `ConnectToGlobalUser failed` — this is a license problem, not a code or timing
+  problem. Test on an account that owns the exact AppID in `steam_appid.txt`, or launch through Steam.
+  See `READING-UNITY-LOGS.md` for the full diagnosis.
 
 ---
 
@@ -584,8 +718,12 @@ public static class LudeoPlayerKeys {
 
 ```csharp
 // In a bootstrap MonoBehaviour in the init scene (Awake/Start):           [Unity]
+// BOOT-STRAIGHT (no init scene): construct from [RuntimeInitializeOnLoadMethod(BeforeSceneLoad)] or a
+// build-index-0 boot scene, and read onInitDone as the gate signal (see LAUNCH-AND-READINESS.md):
+//   startingInLudeo == true  → suppress the scene's auto-start; LudeoSelected drives restore.
+//   startingInLudeo == false → release the "ready" cover: OpenRoom(creator) if canCreate, else play UNCAPTURED.
 m_ludeo = new LudeoController(                                            // [Layer]
-    onInitDone:      startingInLudeo => { if (startingInLudeo) {/* go to level for replay */} else {/* main menu */} },
+    onInitDone:      startingInLudeo => { if (startingInLudeo) {/* go to level for replay */} else {/* main menu, OR boot-straight: release the readiness gate */} },
     // SYNCHRONOUS apply: apply WHILE frozen, then Begin, then unfreeze (07 §10.1). Never unfreeze before apply.
     onRoomReady:     () => { ApplyRestoredState(); m_ludeo.BeginGameplay(() => Time.timeScale = 1f); }, // [Unity]+[Layer] CR-010
     onStopGame:      () => Time.timeScale = 0f,   // [Unity] CR-011 pause

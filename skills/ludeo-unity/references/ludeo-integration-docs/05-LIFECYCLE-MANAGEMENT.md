@@ -32,6 +32,17 @@ branch into the play/restore flow. Map it onto **scenes + MonoBehaviour callback
 > → `Begin`) — no third gate. Read [`game-patterns/open-world.md`](./game-patterns/open-world.md)
 > before mapping `OpenRoom` for these games.
 
+> **No main menu — game boots straight into gameplay?** The classic flow leans on a main menu as an
+> implicit **waiting room**: it absorbs the async `InitLudeoSession → Activate` and **consent**
+> latency before the first creator `OpenRoom`, and it's where the create-vs-play branch resolves. A
+> game that auto-starts a run on the first scene's `Start()` has no such wait — open a creator room
+> before consent flips `LudeoFlowSwitch` on and it **silently no-ops** (no room, no capture, passes a
+> smoke test). You replace the menu with an explicit **SDK-readiness gate**: load the level
+> immediately, but hold the first interactive/recorded frame until Activate + consent resolve (or a
+> bounded timeout falls through to an *uncaptured* game). Read
+> [`unity/LAUNCH-AND-READINESS.md`](./unity/LAUNCH-AND-READINESS.md) before planning the lifecycle for
+> these games — and for any classic game with a fast/skippable menu.
+
 ---
 
 ## Where each step lives (scene mapping)
@@ -75,10 +86,15 @@ LudeoManager.InitLudeoSession(cb)                         [SDK]
    > production default — Steam must already be initialized before this call.** The SDK auto-detects
    > Steam but does **not** initialize it; if Steam isn't running, `Activate` returns
    > `LudeoResult.InvalidAuth`. So the real startup order is **Init → register notifications → (game's
-   > Steam init) → Activate** — Steam must be up before `Activate`, not before init. Explicit auth
-   > (`runWithoutLauncher = true` + `launcherUserId`) needs no Steam. Full toggle reference:
-   > [`unity/UPM-INSTALL-AND-DEFINES.md §3`](./unity/UPM-INSTALL-AND-DEFINES.md). A bounded timeout
-   > fallback (proceed without Ludeo if no callback within N seconds) keeps the player unstuck.
+   > Steam init) → Activate** — Steam must be up before `Activate`, not before init. **Because Steam
+   > usually initializes late/async (a login scene) while the SDK bootstraps early, don't call
+   > `Activate` inline — gate it on a game-owned "auth ready" signal** with a bounded fallback (see
+   > [`unity/REFERENCE-ARCHITECTURE.md`](./unity/REFERENCE-ARCHITECTURE.md) → "Implicit auth: gate
+   > Activate on Steam-ready"). Explicit auth (`runWithoutLauncher = true` + `launcherUserId`) needs no
+   > Steam. Full toggle reference: [`unity/UPM-INSTALL-AND-DEFINES.md §3`](./unity/UPM-INSTALL-AND-DEFINES.md).
+   > A bounded timeout fallback (proceed without Ludeo if no callback within N seconds) keeps the player
+   > unstuck. `InvalidAuth` triage (two cause-families + red-herring logs):
+   > [`unity/READING-UNITY-LOGS.md`](./unity/READING-UNITY-LOGS.md).
 4. **Consent** via `AddNotifyConsentUpdated` `[SDK]` feeds `LudeoFlowSwitch.SetFlags(...)` `[Layer]`.
 
 ---

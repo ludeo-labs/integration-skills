@@ -411,7 +411,24 @@ void RestoreLudeoState(LudeoStateObjectRestore r) {
     r.TryGetAttribute(K.OpenProgress, out float p);
     ApplyDoorState(open, p);     // restore mid-animation pose if the replay can pause there
 }
+
+// 5.5 Camera / viewpoint (singleton — bucket[0])                                    inverse of 06 §10.6
+void RestoreLudeoState(LudeoStateObjectRestore r) {
+    r.TryGetAttribute(K.CamPitch, out float pitch);
+    r.TryGetAttribute(K.CamYaw, out float yaw);
+    r.TryGetAttribute(K.OrbitDistance, out float dist);
+    m_rig.SetAngles(pitch, yaw);  m_rig.SetDistance(dist);   // [Unity] rig control state, not the derived transform
+    m_rig.SnapToTarget();        // [Unity] SNAP — no smoothing/lerp this frame, or the view eases in from a default (§7)
+}
 ```
+
+> **⚠️ Snap the camera to the captured view — never let a follow/`SmoothDamp` rig ease into it.** The
+> viewpoint is the *first thing the viewer sees*, so a rig that spawns at a default orientation and
+> `SmoothDamp`s toward its target over the next second means the replay **opens on the wrong view and slides
+> into place** — visibly wrong even when every object is correctly restored. Restore the rig's control state
+> (pitch/yaw/distance from `06 §10.6`) and force it to its final pose in one frame (disable smoothing for
+> that frame, or call the rig's snap/teleport path) **before `Begin`**, while frozen (§10). This is the same
+> "first frame must be the finished scene" invariant as §2.1(5), applied to the camera.
 
 ---
 
@@ -447,6 +464,7 @@ Apply them **after Pass 2, before `Begin`**, in a recorded order:
 | `Animator` state / normalized time `[Unity]` | overwritten by the entry-state transition | `Animator` enabled + past entry |
 | `NavMeshAgent` position/path `[Unity]` | must be on the NavMesh (use `Warp`) | agent placed on NavMesh |
 | Ability / cooldown timers | a `Start`/`OnEnable` re-initializer resets them | re-initializers have run |
+| Camera follow/look rig (smoothing) `[Unity]` | a `SmoothDamp`/lerp `LateUpdate` eases from the default toward target over several frames | player placed; snap the rig to the captured pitch/yaw/distance (§5.5), no smoothing that frame |
 
 If deferred properties depend on each other, record the **queue order** in `RESTORATION_PLAN.md` — don't
 infer it at runtime. The freeze (§10) holds until these are applied, so the player never sees the pre-defer
@@ -477,7 +495,7 @@ layout, spawn definitions, world/environment state (time-of-day, weather, audio,
 // play-flow spawn driver (inverse of the creator's level-start):                  [Layer]
 LudeoTrackedDefinitions defs = LudeoController.Instance.GetLudeoTrackedDefinitions();
 SpawnLevel(defs.gameConfig, defs.levelIdx);   // rebuild obstacles/level from restored config
-SetMusic(defs.gameMusic);
+SetMusic(defs.gameMusic);                     // (RE)START the captured track — the game's own scene-start music is suppressed during restore (callout below)
 // then spawn + restore entities (§4) into that rebuilt world
 ```
 
@@ -485,6 +503,21 @@ SetMusic(defs.gameMusic);
 just-spawned entity; restore **level/spawn definitions before** entities (you need them to know *what* to
 spawn). State the order in the plan. **Exclusion list:** UI history, local prefs/settings, graphics options —
 don't restore them; record why.
+
+> **⚠️ Restore the soundtrack explicitly — the game won't start it for you.** Games normally kick off level
+> music from scene-start / `Start()` / `OnEnable`, and restore **suppresses exactly that class of
+> start-of-run logic** (`10-plan-state-restoration.md` Step 3, gated on `IsInLudeoFlow`) so it can't clobber
+> restored state. The side effect: the classic state restores perfectly but **the soundtrack never starts**
+> — the reported "state restores but music doesn't" bug. So the world/definitions restore must **(re)start
+> the captured track itself** (`SetMusic(defs.gameMusic)` above), reading the **active-track id** captured
+> on the definitions/world singleton (§8 capture). Make it **idempotent** — don't stack a second track if
+> one is already playing.
+> - **Presence, not position.** Perfect reconstruction here only needs the *right track playing* —
+>   restarting it **from the top is fine**. Resuming at the captured `AudioSource.time` is a **separate,
+>   time-driven-only** concern (§10.5 / time-base-continuity, `06 §1.2`); don't conflate the two.
+> - **Required for completeness on every integration, but NOT load-bearing.** The moment isn't *visibly*
+>   wrong without it on the first frame, so assign its capture to a **later wave (2+)**, never Wave 1
+>   (`8-map-game-objects.md` Step A5) — and do **not** drop it just because it's deferred.
 
 > **⚠️ The world-identity key is restore step 1 — fail loud, and distinguish two failures.** Rebuilding the
 > world needs the captured **world/level identity** (scene name, level index, chunk/room/seed — `phase 9`'s
@@ -512,11 +545,16 @@ don't restore them; record why.
 > **Procedural / non-deterministic assembly** (roguelike / procedural dungeon / wave-survival —
 > `game-patterns/procedural-world.md`): the scene is a **container** and **loading it re-rolls content**.
 > Restoring "definitions" here means **re-driving the generator from the captured `RunMetadata`** — the
-> selection id (chunk/room/seed), sub-roll id (encounter/wave-set), progress cursor (wave/depth), and
-> scaling counter (combat level) — and **suppressing the re-roll** so the builder reproduces the captured
+> selection id (chunk/room/seed), sub-roll id (encounter/wave-set), progress cursor (wave/depth),
+> scaling counter (combat level), **and — when the generator rolls the world *transform* (connector
+> alignment + per-transition offset), not just the content — the resolved per-room placement (transforms
+> / connector indices)** — and **suppressing the re-roll** so the builder reproduces the captured
 > assembly instead of rolling fresh. The clean mechanism is the same `IsInLudeoFlow` `[Layer]` gate used
-> for pre-match suppression: under it, `RandomChunk`/`GetEncounterByLevel`/wave-rolls return the captured
-> id. Restore the scaling counter **before** any post-restore spawn, and assemble the container **before**
+> for pre-match suppression: under it, `RandomChunk`/`GetEncounterByLevel`/wave-rolls **and the
+> connector/placement roll** return the captured value. **Placement is a distinct layer:** suppress the
+> layout/content roll and the room still lands at a fresh world transform unless you also replay its
+> captured placement, so the absolute entity positions you restore via the two-pass point into the void.
+> Restore the scaling counter **before** any post-restore spawn, and assemble the container **before**
 > the two-pass entity restore (§4). "Load the scene" alone is **not** restoration for these games.
 
 ---
@@ -695,6 +733,9 @@ anything this run set.
 - [ ] Every entity/property in `OBJECT_TRACKING.md` has a `RestoreLudeoState` read using the **same `LudeoKeys`** + `objectType`.
 - [ ] Cross-Entity References table fully resolved in Pass 2 (§6).
 - [ ] Deferred properties applied after Pass 2, before `Begin`, in recorded order (§7).
+- [ ] **If** camera view state was captured (`06 §10.6` — independently-controllable view): restored to the
+      captured pitch/yaw/distance and **snapped** (no smoothing/lerp) so the first frame opens on the captured
+      view, not a default the rig eases out of (§5.5/§7). (Fixed / player-derived cameras capture nothing here.)
 - [ ] World/level definitions restored to drive spawning; environment after entities; exclusion list recorded (§8).
 - [ ] Scene-placed objects reconciled match-vs-spawn — no double-spawn (§9).
 - [ ] **Derived aggregates recomputed from ground truth** after reconstruction (alive-enemy tally, objective

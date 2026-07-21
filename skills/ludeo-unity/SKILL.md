@@ -16,6 +16,10 @@ object tracking, state restoration, and runtime verification.
 > instead. The two share the same workflow methodology; everything here is expressed in Unity/C#
 > idioms (MonoBehaviour lifecycle, scenes, prefabs, the `LudeoSDK` managed API).
 
+> **Recommend a frontier model before starting.** Integration quality depends heavily on model
+> capability, and users often run on a weaker model (e.g. Sonnet). At the **start of the integration**,
+> recommend the user switch to **Opus 4.8** (or an equivalent frontier model) before proceeding.
+
 ## When to use
 
 Activate this skill when the user says any of:
@@ -112,6 +116,13 @@ file — so the user experiences each as a single phase.
 - **The SDK ticks itself.** The plugin instantiates a `LudeoUnityManager` that drives the SDK Tick.
   Do **not** wire SDK Tick into an Update loop. The game only drives its own `UpdateStateObjects()`
   attribute-sampling cadence.
+- **Prefer the Ludeo layer; edit few game files when you can (a preference, not a hard rule).**
+  **Integration correctness comes first** — never contort the integration, skip a needed hook, or fight the
+  game's architecture just to avoid touching game code. That said, when there's a clean choice, keep logic
+  in the game's Ludeo integration folder (the `[Layer]` classes — `unity/REFERENCE-ARCHITECTURE.md`) and
+  keep edits to the game's own source small and mechanical (ideally a single façade call or event
+  subscription). Fewer, smaller game-file edits make the integration easier to review, isolate, and remove
+  — strive for it, but let correctness win whenever the two pull apart.
 - **Disabling Ludeo is primarily a runtime concern, not conditional compilation.** Once the package
   is installed it is auto-referenced (no asmdef wiring needed). Route all SDK use through interfaces
   so that consent-off / uninitialized states fall back to `Dummy*`/`Disabled*` implementations and
@@ -135,6 +146,8 @@ file — so the user experiences each as a single phase.
   - `REFERENCE-ARCHITECTURE.md` — the prescribed integration layer (`LudeoController` /
     `LudeoFlowSwitch` / `LudeoGameplaySessionManager` / `ILudeoStateHandler` / `LudeoKeys`).
   - `UPM-INSTALL-AND-DEFINES.md` — install paths, scripting defines, the dummy-impl pattern.
+  - `LAUNCH-AND-READINESS.md` — launch models (menu-gated vs. boot-straight-to-gameplay) + the
+    SDK-readiness gate that replaces the menu's implicit Activate/consent wait.
   - `CONSENT-AND-OVERLAY.md` — consent gating, gallery, pause/resume overlay notifications.
   - `READING-UNITY-LOGS.md` — locating and reading `Editor.log` / `Player.log` for the compile/run gates.
 

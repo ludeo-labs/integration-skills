@@ -151,12 +151,39 @@ Implement the notification-driven entry (`07 §3.3`) — **never call these from
   pause flags to an unfrozen baseline, `07 §10.3`) BEFORE `InitRoom`**, then `InitRoom` `[Layer]`
   (`OpenRoom(forLudeo) → AddGamePlayer`).
 
+> **Teardown must also reset the *game's own* world singletons the begin-gate depends on — not just the
+> Ludeo layer.** The gate (`RoomReady ∧ AddGamePlayer ∧ sceneLoaded`) transitively rests on game-side
+> statics: a player/world reference, a network runner, a persistent world-controller singleton. If those are
+> **never nulled** on teardown, the 2nd replay's gate can latch onto the **dying prior world** — it begins
+> against the previous run's runner/world/player. Symptom: replay #1 is clean; replay #2 begins but plays
+> against the wrong (previous) world. Add the game's own never-nulled singletons to the teardown reset list.
+> (This is the engine/world-level analogue of the persistent-singleton baseline reset task 4 does per-entity.)
+
 The `onBeginRestore` hook fires before the room opens (the world id is already in the buckets here; the
 room chain would surface it too late to start an async load). Its scene loader must call
 `NotifySceneReadyForRestore()` `[Layer]` on completion — the begin-gate's third leg. **Read the entry
 identity** (which scene to load) from the world/definitions bucket here, with a direct `TryGetAttribute` —
-this is flow-owned and does not need task 4's per-entity apply. **At the menu / startup there is no player
+this is flow-owned and does not need task 4's per-entity apply.
+
+> **Arm *everything the scene/room `Setup` consumes during load* here — not just the scene id.** A
+> run-scaling counter (combat level / depth), a procedural room list, an RNG-suppression flag: the world
+> reads these *as it builds*, which is **before** `ApplyRestoredState()` runs. They're already in the cached
+> `LudeoRestoredData` (the buckets exist from `HandleGetLudeoDone`), so set them at `onBeginRestore`,
+> pre-LoadScene. `ApplyRestoredState()` owns only **live-object** state (the two-pass entity apply), which
+> the world consumes *after* the scene is up — arming a load-consumed value there is a frame too late, and
+> the world builds against fresh/zeroed values. Symptom: the layout/scene is right but difficulty,
+> wave-scaling, or suppressed re-rolls are off.
+
+**At the menu / startup there is no player
 or world — you *boot* one here**, not restore into the menu (it silently no-ops, `07 §2`).
+
+> **Boot-straight launch model (`CODE_MAP.launch_model`):** the assumption above ("no player or world
+> yet") flips. When the game boots straight into gameplay, the first scene may have **already
+> instantiated the default new-game world — and possibly auto-started a creator run** — before
+> `LudeoSelected` resolves. So here you **reset / reload the already-live scene** rather than boot a
+> fresh one, and the re-entrant teardown (§2.2) must tear down that auto-started creator run. The
+> play-path auto-start is suppressed under `IsInLudeoFlow` (Step 5). See
+> `unity/LAUNCH-AND-READINESS.md` §3.2.
 
 Map `m_onStopGame` onto this game's "freeze the active run" hook. The gallery entry point
 (`OpenLudeoGallery` `[Layer]`, consent-gated) comes from CONSENT-AND-OVERLAY — confirm it's wired.

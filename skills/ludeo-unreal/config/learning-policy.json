@@ -9,6 +9,8 @@
     "VoyagerV2",
     "EndlessFPS",
     "TacticsGame",
+    "StoryPuzzleGame",
+    "CoopShooter",
     "multiple"
   ],
   "$sourceGameAllowlist_note": "sourceGame: frontmatter MUST be one of these abstract codenames. A real studio/title name is itself a leak. Add a new codename here at the START of each new client engagement.",

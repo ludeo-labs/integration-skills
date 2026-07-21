@@ -95,12 +95,13 @@ When in doubt, track it — and put it in the earliest wave its load-bearing-nes
 | Category | Examples | Priority |
 |---|---|---|
 | **Player** | Player character, stats, inventory, transform | CRITICAL |
+| **Camera / viewpoint** | Camera pitch/yaw, orbit distance, free-look angle, zoom/FOV | **CRITICAL when the view is independently controllable** (mouse/free-look, manual orbit, aim, zoom) — the replay must open on that exact view; **skip a fixed camera** (static top-down/isometric — a constant, §9.3) and a **pure follow-cam derived from restored player state** (recompute it) (§9.4) |
 | **NPCs / Enemies** | AI entities, health, state, transform | CRITICAL |
 | **Interactive objects** | Pickups, doors, switches, vehicles | CRITICAL |
 | **Projectiles** | Bullets, grenades (if persistent/visible) | IMPORTANT |
-| **Environment state** | Destructibles, lighting, weather | IMPORTANT |
-| **Time-base / continuity** | Session/music clock (`AudioSource.time`), scheduler/beat index, active timers & cooldowns (remaining), in-progress sequence/wave index | **CRITICAL when the moment is time-driven** (rhythm/timed/scheduler games — without it the replay restarts the clock); otherwise IMPORTANT |
-| **UI/Audio state** | HUD mode, music **intensity** (the cosmetic layer, not the clock above) | OPTIONAL |
+| **Environment state** | Destructibles, lighting, weather, **active soundtrack / music track id** (*which* track is playing — restore re-starts it; §8, §9.4) | IMPORTANT |
+| **Time-base / continuity** | Session/music clock **position** (`AudioSource.time`), scheduler/beat index, active timers & cooldowns (remaining), in-progress sequence/wave index | **CRITICAL when the moment is time-driven** (rhythm/timed/scheduler games — without it the replay restarts the clock); otherwise IMPORTANT |
+| **UI/Audio state** | HUD mode, music **intensity** (the cosmetic mixing layer — *not* which track is playing (environment, above) nor the clock position (time-base, above)) | OPTIONAL |
 
 ### 1.3 Tracking vs actions
 
@@ -435,12 +436,27 @@ lobby, loading screen, shop/inventory overlay, safe zone/hub, cutscene.
 ## 9. What to Track — Decision Guide
 
 ### 9.1 The principle
-**Track every object whose state change a viewer would notice, or that another tracked object depends
-on.** Three failure modes:
+**Capture what the moment needs to PLAY FORWARD, not just what reproduces the picture.** The Ludeo is a
+continuous playable reconstruction (§1.1), so "would a viewer notice this frame-1?" is the wrong single
+test — much of what a run needs to continue correctly is **invisible on the first frame yet governs how
+it plays on**: character stats/skills, cooldowns, quest/world flags, reputation, hidden inventory. So the
+rule has two limbs: **track every object whose state a viewer would notice, OR whose state changes how the
+run plays forward** (including state another tracked object depends on). Four failure modes:
 1. **Over-tracking** is cheap — a slightly larger capture. It doesn't break the replay.
 2. **Under-tracking visible state** → loudly broken replay (missing objects, stuck doors). Easy to catch.
 3. **Under-tracking derived state** → subtly broken replay (enemy targets the wrong player, physics
    drifts). These slip through testing.
+4. **Under-tracking invisible forward-play state** → the moment *looks* right on frame 1 and passes a
+   behavioral restore gate, then diverges as it plays (skills/inventory/cooldowns/flags missing). The
+   costliest miss, because the gate green-lights it. A viewer-centric read (§9.2) is what drops it.
+
+> **Visibility decides PRIORITY (which wave), never INCLUSION.** Invisible forward-play state is in
+> scope; if it's not load-bearing for the current wave's replay it is **deferred to a later wave with a
+> reason**, not dropped. Prove inclusion structurally, not by eye: enumerate each entity's full
+> state-field surface (the save-serialized fields — §2.5/§2.7 — or its runtime-mutable component fields)
+> and give **every field a disposition** — `capture | defer→wave N | exclude(static/settings/derivable)`.
+> This is the phase-8 Step B3 completeness gate; it catches failure mode 4, which no "does it look right"
+> check can. (`settings`/meta is excluded, not captured — it leaks across Ludeos.)
 
 **When in doubt, track.** Over-tracking's cost is measurable; under-tracking's cost is a silently
 wrong replay.
@@ -468,6 +484,7 @@ Track if (1) AND (2 OR 3-not-derivable) AND (4-has-meaning).
 | Object type | Typical | Caveat |
 |---|---|---|
 | Player | Track | Split-screen/co-op: track all players |
+| Camera / view rig | Track its **control state** (pitch/yaw, orbit distance, zoom/FOV) — §10.6 — **only when the view is independently controllable** | **Skip** if the camera is **fixed** (static top-down/isometric — a constant, §9.3) or a follow-cam **fully** determined by restored player state (recompute it). Otherwise capture the rig's angles (not just the camera's world transform) so a follow/orbit rig reconstructs the exact view; capture any *independent* freedom (free-look yaw, aim pitch, manual orbit), and restore must **snap, not ease**, to it (`07 §5`/§7) |
 | AI enemy / NPC | Track | Pooled: register on pull, not on prefab construction (§2.3) |
 | AI perception / target (property) | Track | Drives visible behavior; suppress dev-only debug mutations |
 | Hitscan bullet (no tracer) | Skip | Kill-cam / tracer / travel-time flips this to Track |
@@ -476,11 +493,11 @@ Track if (1) AND (2 OR 3-not-derivable) AND (4-has-meaning).
 | Static decorative prop | Skip | Check for hidden physics/destructibility first |
 | Destructible | Track | "Destroyed" is a **state flag**, not an unregister — *when the wreckage stays in the world* (§3.4); if it's removed/replaced, drop it |
 | Door / switch / lever | Track | Mid-animation progress matters if replay can pause |
-| Particle / VFX / audio / HUD | Skip the visual | Track the **underlying state** it shows — and for music that state is the **clock/position** (`AudioSource.time`), not the waveform: track it (§10.5) |
+| Particle / VFX / audio / HUD | Skip the visual | Track the **underlying state** it shows. For music that is **two separate things**: *which track is playing* (environment — **every game**, so restore can re-start it; §8) and, **only for time-driven moments**, its *clock/position* (`AudioSource.time`, §10.5). Not the waveform. |
 
 | Property kind | Typical | Caveat |
 |---|---|---|
-| Position / rotation / scale | Track (`Vector3`/`Quaternion`) | Attached objects: track the attachment relationship instead |
+| Position / rotation / scale | Track (`Vector3`/`Quaternion`) | Attached objects: track the attachment relationship instead. **Absolute world position is only restorable if the world's spatial frame is rebuilt identically** — for procedural / streamed / randomized layouts (or a runtime **floating-origin / origin-rebasing** shift, which trips even an **authored** world) the geometry sits at a different origin/rotation than at capture, so capture/replay the resolved placement (`game-patterns/procedural-world.md` §3 Placement, §5) or store positions relative to a stable reconstructed frame. Detected up front by phase 1's world-frame probe → `CODE_MAP.session_boundaries.world_frame` |
 | Velocity | Usually track | Skip only if restoration reconstructs motion from position-over-time |
 | Health / ammo / resource | Track (current, not max) | Max is usually static |
 | Enum state (alive/dead, AI mode) | Track as `int` | Serialize the enum to int; document meaning |
@@ -550,6 +567,19 @@ obj => {
     obj.SetAttribute(K.WaveIndex, m_waveIndex);          // in-progress sequence/wave
     obj.SetAttribute(K.TimeRemaining, m_countdown);      // timers/cooldowns: REMAINING, not elapsed (§9.4)
 };
+
+// 10.6 Camera / viewpoint (singleton — bucket[0]; the exact view the moment must OPEN on). ONLY when the
+// view is independently controllable — skip a fixed camera (constant) or a follow-cam fully derived from
+// restored player state (§9.4). Capture the RIG'S control state, not only the derived world transform, so a
+// follow/orbit rig reconstructs the view. Restore SNAPS to these (no smoothing/lerp), else the replay eases
+// in from a default view (07 §5/§7).
+obj => {
+    obj.SetAttribute(K.CamPitch, m_rig.pitch);           // [SDK] float — look/aim pitch
+    obj.SetAttribute(K.CamYaw, m_rig.yaw);               // [SDK] float — look/free-look yaw
+    obj.SetAttribute(K.OrbitDistance, m_rig.distance);   // [SDK] float — third-person zoom/orbit (if the rig has it)
+    obj.SetAttribute(K.Fov, cam.fieldOfView);            // [SDK] float — only if it changes (ADS/zoom)
+    obj.SetAttribute(K.CamPosition, cam.transform.position);  // [SDK] Vector3 — only if the camera moves FREELY of the player (spectator/detached)
+};
 ```
 
 ---
@@ -588,6 +618,9 @@ registration not amortized) or at scene transition (mass despawn in one burst).
 **Scope & types**
 - [ ] Tracked set passes §9; attributes are typed (`Vector3`/`Quaternion`/`int`/…), blobs only where warranted (§1.4).
 - [ ] Attribute names come from a `LudeoKeys` `[Layer]` class shared with restore.
+- [ ] Camera/viewpoint control state captured (pitch/yaw/orbit/FOV, §10.6) **when the view is independently
+      controllable** — skip a fixed camera or one fully derived from restored player state; restore snaps to
+      it (`07 §5.5`).
 
 **State & perf**
 - [ ] Capture suspends in menus/cutscenes (sampling gate, §8); overlay pause handled separately (CR-011).

@@ -9,7 +9,8 @@ State recorded in `integration.json → vcs.git`:
 
 ## `create_isolation(name)`
 
-All integration work goes on a dedicated branch. Propose the name and ask the human to confirm:
+All integration work goes on a dedicated branch. **Tell the human explicitly that you are about to
+create a new git branch for the integration**, propose the name, and ask them to confirm before running it:
 
 ```bash
 git -C "<project>" checkout -b ludeo-integration/<game-name>
@@ -21,7 +22,7 @@ If the repo has a branch-naming convention, follow it instead (e.g. `feature/lud
 
 The **LudeoUESDK** plugin installs at `Plugins/LudeoUESDK`; the **Ludeo C SDK** belongs at `Plugins/LudeoUESDK/Source/LudeoSDK/SDK`. Source URLs and the release info are in `config/sdk-sources.json`. If already present → confirm. Otherwise ask the human which method:
 
-- **Download & include (recommended):** download the self-contained release zip. The repo is **public** — no auth needed. With `gh`: `gh release download <tag> -R ludeo-labs/unreal-plugin-releases -p '*.zip'` (omit `<tag>` for the latest). **Without `gh`:** a plain HTTPS GET works — `curl -L -O <downloadUrl>` (or `wget`/`Invoke-WebRequest`), or open `…/releases/latest` in a browser; to resolve the latest asset URL programmatically, read `.assets[].browser_download_url` from `https://api.github.com/repos/ludeo-labs/unreal-plugin-releases/releases/latest`. See `config/sdk-sources.json → ludeoUESDKPlugin.release` (`ghDownload` / `noGhDownload` / `downloadUrl`). Extract into `Plugins/LudeoUESDK`, commit directly. The release **bundles the C SDK** at `Source/LudeoSDK/SDK/` — a single download satisfies both components (no separate C SDK step). Prefer this release asset over GitHub's source-archive zip (the latter won't resolve LFS binaries). (If an anonymous GET 404s, the public flip may be pending — fall back to authenticated `gh`; see the config's `privateNote`.)
+- **Download & include (recommended):** download the self-contained release zip. The repo is **public** — no auth needed. **Resolve the latest tag from the repo first** (`gh release list -R ludeo-labs/unreal-plugin-releases -L 1`); don't pin a stale/remembered version unless the human asked for one — see `config/sdk-sources.json → ludeoUESDKPlugin.release.acquireLatest`. With `gh`: `gh release download -R ludeo-labs/unreal-plugin-releases -p '*.zip'` (omit the tag = the latest; append a tag only to honor a human-pinned version). **Without `gh`:** a plain HTTPS GET works — `curl -L -O <downloadUrl>` (or `wget`/`Invoke-WebRequest`), or open `…/releases/latest` in a browser; to resolve the latest asset URL programmatically, read `.assets[].browser_download_url` from `https://api.github.com/repos/ludeo-labs/unreal-plugin-releases/releases/latest`. See `config/sdk-sources.json → ludeoUESDKPlugin.release` (`ghDownload` / `noGhDownload` / `downloadUrl`). Extract into `Plugins/LudeoUESDK`, commit directly. The release **bundles the C SDK** at `Source/LudeoSDK/SDK/` — a single download satisfies both components (no separate C SDK step). Prefer this release asset over GitHub's source-archive zip (the latter won't resolve LFS binaries). (If an anonymous GET 404s, the public flip may be pending — fall back to authenticated `gh`; see the config's `privateNote`.)
 - **Git submodule:** add the plugin as a submodule, then the C SDK as a **nested** submodule (you cannot add it from the parent root — `cd` into the plugin with an absolute path and combine with `&&`):
   ```bash
   git -C "<project>" submodule add <plugin-repo-url> Plugins/LudeoUESDK

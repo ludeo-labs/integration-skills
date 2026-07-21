@@ -23,8 +23,13 @@ task-5 compile+run gate.
 - [ ] Context files read:
   - `ludeo-integration-docs/00-CRITICAL-REQUIREMENTS.md` — CR-001/003/007/009/010/011/012/013.
   - `ludeo-integration-docs/05-LIFECYCLE-MANAGEMENT.md` — the flow to reproduce.
-  - `ludeo-integration-docs/unity/REFERENCE-ARCHITECTURE.md` — the **canonical code** for each class.
+  - `ludeo-integration-docs/unity/REFERENCE-ARCHITECTURE.md` — the **canonical code** for each class
+    (incl. the boot-straight **readiness-gate** additions: `TryReleaseCreatorGate` + the gated
+    `HandleActivateDone`/`HandleConsentUpdated`).
   - `ludeo-integration-docs/12-SDK-API-REFERENCE.md` — exact `[SDK]` signatures (reproduce verbatim).
+  - **If the plan includes a readiness gate** (`SDK_LIFECYCLE_PLAN` step 3.5 /
+    `CODE_MAP.launch_model.readiness_gate_required`), also read
+    `ludeo-integration-docs/unity/LAUNCH-AND-READINESS.md`.
 
 > **No config step here.** No `LudeoConfig.h`/`ludeo.ini`/auth questionnaire — the package reads
 > `LudeoSettings.asset` (phase 0). If the apiKey is a placeholder, point the user back to
@@ -72,6 +77,14 @@ m_ludeo.SetGameplayerId(localPlayerId);
 ```
 `ApplyRestoredState()` / `LoadRestoreSceneThenNotify()` are stubs — scene-load wiring is phase 11, the
 two-pass body is phase 12. A **create-only** game may omit `onBeginRestore`.
+
+> **Boot-straight (readiness gate, per the plan):** there is no init scene — construct the controller
+> from a `RuntimeInitializeOnLoadMethod(BeforeSceneLoad)` hook or a build-index-0 boot scene, before the
+> gameplay scene's `Start()`. Wire `TryReleaseCreatorGate` + the gated
+> `HandleActivateDone`/`HandleConsentUpdated` (REFERENCE-ARCHITECTURE), keep the gameplay scene
+> frozen/suppressed behind a "ready" cover until release, fire the creator `OpenRoom` on
+> release-with-`canCreate`, and add the **bounded timeout fallthrough** to an uncaptured run. The play
+> branch suppresses the scene's auto-start under `IsInLudeoFlow`. See `unity/LAUNCH-AND-READINESS.md`.
 
 ### 4. Edit the game hook points (🎮 game-initiated only)
 From the plan's hook table. **Back up edited files first** (`.bak` or rely on the branch). Route
