@@ -130,6 +130,7 @@ are tiered by restoration priority:
 - [ ] Health, Hunger, Thirst, Stamina, Temperature (and any survival meter — `int`/`float`)
 - [ ] Is alive/dead (`bool`)
 - [ ] Equipped tool/weapon (by item/content id)
+- [ ] Appearance / equipped cosmetics (outfit, skin, armor look — by content id). Constant through the clip but **visible**; the `06 §9.3` step-1 carve-out — a default-appearance replay is visibly wrong
 - [ ] Inventory / hotbar (array of item ids + counts; never references — `06 §9.4`)
 - [ ] Unlocked recipes / tech (if it gates the moment)
 

@@ -152,6 +152,7 @@ After object tracking is implemented (phase 9), verify these are covered. Types 
 - [ ] Tech level / age / era
 - [ ] Score
 - [ ] Team / faction
+- [ ] Appearance (faction color/scheme, hero/unit skins — by content id; MOBA-style hero skins matter most). Constant through the clip but **visible**; the `06 §9.3` step-1 carve-out
 
 ### Units — CRITICAL (the army *is* the moment in an RTS)
 - [ ] Position (`Vector3`)

@@ -206,6 +206,13 @@ entity, fill one restoration block:
 - **Per-property apply** — for every property `phase 3` captured, name the setter and whether it applies
   in Pass 2 or is **deferred** (Step 7). Reference properties get a Pass-2 `keyMap` lookup. Each is a
   `TryGetAttribute(K.Name, out value)` `[SDK]` read against the **same `LudeoKeys` constant** capture used.
+  > **Appearance/loadout is not a plain field setter.** Applying a captured outfit/skin/equipped-gear id
+  > usually means **invoking the game's own equip/apply method** (`ApplyOutfit(id)`, `Equip(itemId)`,
+  > `SetSkin(id)`) — which swaps a `SkinnedMeshRenderer`/material or spawns cosmetic prefabs — not writing
+  > a `float`. Name that method here (from phase 1's cosmetics grep). Writing the id to a backing field
+  > without calling the apply path re-equips *logically* but the character still renders in the default
+  > look — the exact "clothing didn't restore" failure. This is the reconstruction half of the `06 §9.3`
+  > carve-out.
 - **Approach** — `reconciliation` (route through the game's recreate/load path, §5.1) or `manual`
   (explicit `TryGetAttribute` → setter, §5.2), taken from the matrix — never re-decided here by policy.
 

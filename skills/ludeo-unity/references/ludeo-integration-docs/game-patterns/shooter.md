@@ -135,6 +135,7 @@ After object tracking is implemented (phase 9), verify these are covered. Types 
 - [ ] Ammo (current + reserve)
 - [ ] Score / kills / deaths
 - [ ] Team ID
+- [ ] Appearance / equipped cosmetics (skin, outfit, character-model or team-color variant — by content id). Constant through the clip but **visible**; the `06 §9.3` step-1 carve-out — a default-skin replay is visibly wrong
 
 ### Enemies / NPCs — IMPORTANT
 - [ ] Position, rotation

@@ -105,6 +105,15 @@ Combine the genre checklist with codebase discovery. Apply `06 §9.2` to each ca
 gameplay? influences a tracked object? referenced by a tracked object? If any → track; else skip. **When
 in doubt, track** (`06 §9.1`).
 
+> **Go find the appearance/loadout subsystem — don't wait for it to show up as a player field.** How a
+> visible character *looks* (equipped cosmetics, outfit, skin, model/color variant) is load-bearing for a
+> clip, but it usually lives **off** the entity — a wardrobe/customization manager, a `ScriptableObject`,
+> or a mesh/material swap (see phase 1's cosmetics grep). A viewer-centric sweep (`§9.2`) or a player-only
+> property list will miss it. Record **where the player's (and any in-view character's) appearance is
+> set** as a tracked source now — either the owning subsystem as its own type, or an explicit note on the
+> character type pointing at it — so Part B Step B3 captures it. It belongs to **Wave 1** with the
+> character it dresses.
+
 For each **type** record (census level — *not* full properties/keys; those are Part B): class, file:line,
 spawn pattern (dynamic / scene-placed / both), whether it streams in/out (+ its **persistent world id**,
 `open-world-tracking.md §4`), and a **load-bearing flag**:
@@ -120,9 +129,14 @@ spawn pattern (dynamic / scene-placed / both), whether it streams in/out (+ its 
 
 > **Load-bearing** = the curated moment is **visibly wrong or unresumable** without this type on the first
 > replayed frame (the player; the world/level identity; the time-base/continuity clock; the primary
-> antagonists/interactables in view). **Not load-bearing** = the replay still reads correctly without it on
-> frame 1 (background props, distant populations, cosmetic systems, secondary modes). This flag drives the
-> wave assignment in Step A5; getting it wrong is the failure the iterative model guards against.
+> antagonists/interactables in view — **including whatever subsystem determines how those visible
+> characters *look***: a wardrobe / skin / equipped-cosmetic system driving the player's or an in-view
+> character's appearance). **Not load-bearing** = the replay still reads correctly without it on frame 1
+> (background props, distant populations, **ambient** cosmetic VFX, secondary modes). Mind the split
+> *within* "cosmetic": ambient cosmetic systems (screen-space particles, decorative FX) are not
+> load-bearing, but a system that sets a **visible character's appearance is** — a default-skin player is
+> a visibly wrong clip (`06 §9.3`). This flag drives the wave assignment in Step A5; getting it wrong is
+> the failure the iterative model guards against.
 
 > **⚠️ Always identify a world/level IDENTITY type — every game.** Restoration's *first* step rebuilds the
 > world the capture happened in (`07 §8`), so a **world/level identity** key is mandatory: scene name /
@@ -172,8 +186,9 @@ Tag each type `wave: 1 | 2 | 3 | …`:
   from the genre §3 checklist). Wave 1 is the smallest set that produces a *coherent* replay — not just the
   singletons, and not the whole game.
 - **Later waves (2, 3, …)** — every remaining type, **ordered by load-bearing-ness** (most-load-bearing
-  next). Background populations, cosmetic systems, secondary modes, and the **soundtrack-presence
-  attribute** (required for completeness, not load-bearing — the callout above) come last.
+  next). Background populations, ambient cosmetic VFX, secondary modes, and the **soundtrack-presence
+  attribute** (required for completeness, not load-bearing — the callout above) come last. (A **visible
+  character's** appearance/wardrobe is *not* here — it's Wave 1 with the character it dresses.)
 - **Rule:** a type flagged **load-bearing = yes** may **not** sit in a late wave behind non-load-bearing
   types. If you find yourself deferring load-bearing state, it belongs in Wave 1 (this is the guardrail —
   see §5).
@@ -292,6 +307,9 @@ under Open Questions and keep going. Note write cadence:
   split "register now, key later" — `06 §3.1`).
 - Position / rotation / velocity → per-tick sample.
 - Health / ammo / score → per-tick (or guard skip-unchanged, `06 §11`).
+- Appearance / loadout (skin, outfit, equipped-gear id, model variant) → capture as ids/enums even
+  though it's **set before the moment and constant through it**. It's visible, so it's load-bearing
+  for a video clip (`06 §9.3` step-1 carve-out); the persistent-singleton reset otherwise strips it.
 - References → capture the **target's stable key** (§4).
 
 ### Step B4: Map cross-entity references (within / into the wave)
