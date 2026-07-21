@@ -6,7 +6,7 @@ This questionnaire captures **design, UX, and environment decisions that cannot 
 
 Structural tools (BP Inspector, code-map, grep) answer *what classes/delegates exist*. They cannot answer: *what must the first frame of Player Flow look like?* Those are UX calls the game team has to state — and in practice they surface as mid-project corrections that each cost a rebuild cycle.
 
-This document covers 5 question groups. Every question is **wired to a downstream gate** — answers become mandatory checks in a specific later phase. Questions that don't have a downstream gate don't belong here.
+This document covers 6 question groups. Every question is **wired to a downstream gate** — answers become mandatory checks in a specific later phase. Questions that don't have a downstream gate don't belong here.
 
 Derived from the ActionGame retrospective (Apr 2026) and dry-run-validated against Lyra.
 
@@ -22,7 +22,7 @@ Derived from the ActionGame retrospective (Apr 2026) and dry-run-validated again
 
 ## 3. Steps
 
-### Step 1 — Run the Five Question Groups
+### Step 1 — Run the Six Question Groups
 
 Work through each question group below in order. For each question, ask the human, record their answer to `.ludeo/integration.json` under the `intake` block, and flag unknowns as risks.
 
@@ -36,6 +36,7 @@ Write every answer to `.ludeo/integration.json` under a new `intake` block:
     "playbackUXBar": { ... Group 3 answers ... },
     "captureTimingRules": { ... Group 4 answers ... },
     "eventDrivenScriptedSystems": { ... Group 5 answers ... },
+    "launchModel": { ... Group 6 answers ... },
     "completedAt": "2026-MM-DD",
     "risks": ["unknown:<question-id>", ...]
   }
@@ -222,6 +223,34 @@ The skill previously deferred these systems to Phase 7 (enrichment) — which is
 
 ---
 
+#### Group 6 — Launch Model & SDK-Readiness
+
+**Why this matters:** A classic frontend menu silently does three jobs for the SDK — it absorbs `Init`→`Activate` latency, it absorbs **async consent** latency (the flow flips from disabled to enabled before the first Creator `OpenRoom`), and it is where the create-vs-play branch is consumed. A game that **boots straight into a gameplay level** — no menu — has none of that cover, so it needs an explicit **SDK-readiness idle gate**: hold the first interactive/recorded frame until `Activate` + consent resolve, **bounded** with a fallthrough so an offline / no-Steam machine still launches (uncaptured) instead of hanging. This is a lifecycle-*shape* decision that can't be read from code alone, and if missed it surfaces late as "the first room never records."
+
+**Questions:**
+
+| ID | Question |
+|----|----------|
+| `LM-1` | On launch, does the game drop the player straight into a playable level, or through a frontend menu (main menu / lobby / press-start) first? If there's a menu, is it a deliberate click-through, or does "Play" immediately load-and-start? |
+| `LM-2` | Does the game ever auto-continue, skip the intro, or boot directly into a session (a "continue" path, a debug auto-enter)? These blow past the menu's implicit wait the same way a menu-less boot does. |
+| `LM-3` | For playing back a Ludeo: does the player pick one from a gallery/menu, or can the game be launched with a specific moment **pre-selected** (boot straight into the restored moment)? |
+
+**Record as:**
+```json
+"launchModel": {
+  "creatorLaunch": "menu-gated | boot-straight | fast-menu-autostart",
+  "menuDwell": "clickthrough | immediate-load-start",
+  "playerLaunch": "gallery | preselected",
+  "readinessGateRequired": true
+}
+```
+
+**→ Wired to:** Phase 2 lifecycle. When `creatorLaunch` is `boot-straight` / `fast-menu-autostart` (or a menu whose "Play" is `immediate-load-start`), Phase 2 MUST add the SDK-readiness idle gate — the game's own pause / in-game surface realized as the "ready & waiting" state, opening no Creator room until an explicit start trigger, **bounded** with a fallthrough that starts uncaptured on consent-denied / init-failure / timeout. Phase 1 cross-checks this answer against the default-map / boot-flow code and flags a mismatch. See `learnings/architecture/cloud-needs-idle-ready-state-before-room-open.md` and `learnings/architecture/sdk-activation-competes-with-game-boot.md`.
+
+**Evidence:** A menu-less game has nothing to absorb `Activate` / consent latency; a Creator `OpenRoom` fired synchronously at level `BeginPlay` races ahead of consent and silently no-ops (no room, no `OnRoomReady`, no error). Surfaced on cloud-build integrations of boot-straight games — the same failure the classic menu hides by accident.
+
+---
+
 ### Step 2 — Record Answers and Flag Risks
 
 1. **Record answers to `integration.json → intake`** at end of the kickoff session.
@@ -232,7 +261,7 @@ The skill previously deferred these systems to Phase 7 (enrichment) — which is
 
 ## 4. Questions to Ask the Human
 
-All questions are embedded in the five groups in §3. There are no additional questions beyond the groups — each group is a structured question set to be asked verbatim (after stripping Ludeo-internal vocabulary per the audience note in §2).
+All questions are embedded in the six groups in §3. There are no additional questions beyond the groups — each group is a structured question set to be asked verbatim (after stripping Ludeo-internal vocabulary per the audience note in §2).
 
 ---
 
@@ -280,3 +309,5 @@ This questionnaire was validated by replaying it against two integrations:
 **Lyra** (independent validation): 1 of 10 recent phase-1-through-7 decisions would have been cleanly prevented (warmup-phase skip — exactly Group 3 / `PUX-2`). 2 more borderline (ExperienceName dynamic metadata partial match with Group 2). The other 7 are engine quirks, export strategies, and technical architecture — correctly out of intake scope.
 
 **Signal:** Groups 1-4 catch real UX/design failures on both AAA and sample-game integrations without bloating into territory better handled by structural tools or later-phase discovery.
+
+**Group 6 (Launch Model)** was added from cross-engine parity work — a boot-straight game has no menu to absorb `Activate`/consent latency, so it needs the SDK-readiness idle gate up front. It wires to the same Phase 2 lifecycle rule already captured in `learnings/architecture/cloud-needs-idle-ready-state-before-room-open.md`; surfacing it at intake turns a mid-project "first room never records" correction into a kickoff answer.
