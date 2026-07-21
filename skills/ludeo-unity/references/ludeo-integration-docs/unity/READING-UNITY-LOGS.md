@@ -54,6 +54,8 @@ you tail the log.)
 | Compile errors | `error CS` |
 | Runtime exceptions | `Exception`, `NullReferenceException` |
 | SDK objects in use | `LudeoManager`, `LudeoSession`, `LudeoStateObject` |
+| Restore two-pass counts / activation | `\[Ludeo\]` + `restore`, `spawned`, `applied`, `activate` |
+| Freeze / unfreeze resolved state | `timeScale`, `restoreFreeze`, `overlayPause` |
 
 ## Diagnosing `InvalidAuth` (implicit / Steam auth)
 
@@ -87,6 +89,23 @@ license problem. Fix: test on an account that owns the exact AppID, or launch th
   `ConnectToGlobalUser failed`, which is exclusively a license/ownership problem.
 
 (Exact wording varies by SDK / wrapper version — match loosely.)
+
+## Debugging a restore that "does nothing" — instrument before theorizing
+
+Restore bugs (inert boss, cutscene didn't show, player mis-placed) invite confident-but-wrong theories a
+single log disproves. **Read the log before hypothesizing** — get the per-restore instrumentation
+(`07 §10.5`): two-pass counts, the resolved pause state, each re-driven activation.
+
+- **Per-tick silence during the freeze is *expected*, not a hang.** A frozen/suppressed entity (CR-010)
+  emits nothing from its `Update`/`FixedUpdate`/AI tick while the restore window holds. Do **not** read that
+  gap as a stall.
+- **Distinguish it from the real deadlock by the unfreeze, not the ticks.** If `timeScale` returns to `1`
+  (or suppression lifts) at `RoomReady → Begin` and ticks resume, the earlier silence was correct. Only if
+  the **unfreeze is never logged** — no `Begin`, `FixedUpdate` never resumes — on an **async** apply is it
+  the genuine `timeScale = 0` deadlock (`07 §10.1`). The signal is the **absent unfreeze**, not the silence.
+- **Inert vs jammed vs dead-input** all present alike; the logs separate them: inert = activation never
+  fired (`07 §9.1`), jammed = a transient flag stuck `true` (`07 §1.5`), dead-input = one of three gates
+  (`07 §10.4`).
 
 ## Notes
 

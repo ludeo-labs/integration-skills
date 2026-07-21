@@ -294,6 +294,16 @@ under Open Questions and keep going. Note write cadence:
 - Health / ammo / score → per-tick (or guard skip-unchanged, `06 §11`).
 - References → capture the **target's stable key** (§4).
 
+> **⚠️ Capture trigger-gated *activation* state, not just physical properties (`07 §9.1`).** An encounter's
+> **active / aggro / boss-phase / objective-armed / AI-enabled** state is a real attribute, but it's easy to
+> miss because a *physical trigger* (door / proximity volume / arena gate), not the object itself, normally
+> sets it — and the replay skips that trigger. If you don't capture it, the restored boss/enemies **exist but
+> sit inert** (the two-pass places them; nothing turns them on), and restore's only recourse is a `Begin`-time
+> re-drive hook (`10` Step 3 option b). Capturing the activation flag here is the **preferred** fix — it makes
+> the mirror restore it verbatim. For any entity whose "live-ness" is trigger-gated, add its activation
+> attribute to this table (per-tick `bool`/`int`), and flag it **load-bearing** when the captured moment is
+> the encounter itself.
+
 ### Step B4: Map cross-entity references (within / into the wave)
 For every reference-kind property fill a Cross-Entity References row (From / To / Field / Capture /
 Restoration). Capture the target's stable key; at restore (phase 12, two-pass per CR-006) it's resolved
