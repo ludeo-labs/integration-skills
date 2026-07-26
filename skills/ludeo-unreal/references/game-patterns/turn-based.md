@@ -11,11 +11,11 @@
 > `learnings/architecture/turn-based-capture-at-turn-boundaries.md`.
 >
 > Action names below map to the Ludeo subsystem / DataWriter `SendAction` call (see
-> `references/phase-05-actions.md` and `references/sdk-reference/`).
+> `references/phase-06-actions.md` and `references/sdk-reference/`).
 
-> **MVP scope (curated-first):** In Phases 3–5, treat this catalog as a menu — implement only the
+> **MVP scope (curated-first):** In Phases 4–6, treat this catalog as a menu — implement only the
 > actions/objects present in your **curated slice** (`integration.json → curatedSlice`). The full
-> catalog applies at **expansion** (Phase 7), when coverage broadens to the whole game.
+> catalog applies at **expansion** (Phase 8), when coverage broadens to the whole game.
 
 ---
 
@@ -130,9 +130,9 @@ score, points, reward, rank
 
 ## 3. Tracking Checklist
 
-After object tracking is implemented (phases 3/4), verify these are covered. Types map to the
-Unreal DataWriter set-attribute calls; see `references/phase-04-tracking-restore.md` and
-`references/phase-05-actions.md` for the exact API.
+After object tracking is implemented (phases 4/5), verify these are covered. Types map to the
+Unreal DataWriter set-attribute calls; see `references/phase-05-tracking-restore.md` and
+`references/phase-06-actions.md` for the exact API.
 
 ### Per Unit (CRITICAL)
 - [ ] Grid position — cell coordinates (`FIntPoint`) and/or world position (`FVector`)
@@ -222,8 +222,8 @@ In a turn-based game, **WHEN the restore applies is mechanics, not polish.** Lan
 the middle of the turn choreography — mid-animation, mid-action-queue, or by directly overwriting
 the turn system — produces demo-breaking **limbo**: an intermittent empty ability bar, **wedged
 input**, or **turns that will not advance** — none of which correct DATA can fix. Treat restore
-timing as **Phase 4** work (core playability of the restored moment), not Phase 8 polish. Defer to
-Phase 8 only genuinely cosmetic timing (animation blending, camera easing, late-loading visuals).
+timing as **Phase 5** work (core playability of the restored moment), not Phase 9 polish. Defer to
+Phase 9 only genuinely cosmetic timing (animation blending, camera easing, late-loading visuals).
 See `learnings/architecture/restore-timing-can-be-core-not-polish.md`.
 
 Three rules, all driven by the **game's own signals** — never wall-clock guesses:

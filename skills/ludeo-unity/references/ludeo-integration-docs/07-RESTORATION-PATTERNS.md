@@ -458,7 +458,24 @@ void RestoreLudeoState(LudeoStateObjectRestore r) {
     r.TryGetAttribute(K.OpenProgress, out float p);
     ApplyDoorState(open, p);     // restore mid-animation pose if the replay can pause there
 }
+
+// 5.5 Camera / viewpoint (singleton — bucket[0])                                    inverse of 06 §10.6
+void RestoreLudeoState(LudeoStateObjectRestore r) {
+    r.TryGetAttribute(K.CamPitch, out float pitch);
+    r.TryGetAttribute(K.CamYaw, out float yaw);
+    r.TryGetAttribute(K.OrbitDistance, out float dist);
+    m_rig.SetAngles(pitch, yaw);  m_rig.SetDistance(dist);   // [Unity] rig control state, not the derived transform
+    m_rig.SnapToTarget();        // [Unity] SNAP — no smoothing/lerp this frame, or the view eases in from a default (§7)
+}
 ```
+
+> **⚠️ Snap the camera to the captured view — never let a follow/`SmoothDamp` rig ease into it.** The
+> viewpoint is the *first thing the viewer sees*, so a rig that spawns at a default orientation and
+> `SmoothDamp`s toward its target over the next second means the replay **opens on the wrong view and slides
+> into place** — visibly wrong even when every object is correctly restored. Restore the rig's control state
+> (pitch/yaw/distance from `06 §10.6`) and force it to its final pose in one frame (disable smoothing for
+> that frame, or call the rig's snap/teleport path) **before `Begin`**, while frozen (§10). This is the same
+> "first frame must be the finished scene" invariant as §2.1(5), applied to the camera.
 
 ---
 
@@ -494,6 +511,7 @@ Apply them **after Pass 2, before `Begin`**, in a recorded order:
 | `Animator` state / normalized time `[Unity]` | overwritten by the entry-state transition | `Animator` enabled + past entry |
 | `NavMeshAgent` position/path `[Unity]` | must be on the NavMesh (use `Warp`) | agent placed on NavMesh |
 | Ability / cooldown timers | a `Start`/`OnEnable` re-initializer resets them | re-initializers have run |
+| Camera follow/look rig (smoothing) `[Unity]` | a `SmoothDamp`/lerp `LateUpdate` eases from the default toward target over several frames | player placed; snap the rig to the captured pitch/yaw/distance (§5.5), no smoothing that frame |
 
 If deferred properties depend on each other, record the **queue order** in `RESTORATION_PLAN.md` — don't
 infer it at runtime. The freeze (§10) holds until these are applied, so the player never sees the pre-defer
@@ -620,35 +638,24 @@ creator flow uses `06 §6` batch *registration* instead.
 > whole play flow is the simple correct choice; where the replay plays through later waves, gate only the
 > re-create trigger.
 
-### 9.1 Re-drive trigger-gated activation (restore skips your triggers)
-
-Replay drops the player into the **middle** of a scene, **past** the physical trigger that normally starts
-an encounter — a door, a shrine, a proximity volume, an arena gate, a cutscene zone. Two-pass (§4) makes the
-boss/enemies/hazard **exist** with the right HP and position, but the code that **activates** them (enables
-the AI, arms the objective, starts the boss phase/music, opens the arena) was wired to fire **when the player
-crossed that trigger** — and that crossing never happens on a replay. Result: everything is present but
-**inert** — the boss stands idle, the wave never starts, the objective never arms.
-
-This is the **complement of the §9 spawn-trigger callout**, not a duplicate. There the danger is a live
-trigger firing during play-forward and **re-creating** what you restored (suppress it). Here the danger is an
-activation trigger that **never fires**, so a state the snapshot needs is **never established** (re-drive it).
-Same triggers, opposite failure — and the skill's pervasive "suppress start-of-run machinery" (§10.1,
-`11` Step 5) makes **this** one easy to over-suppress into inertness.
-
-**Do this — drive activation directly, don't wait for the trigger:**
-- **Prefer capturing activation as state.** "Encounter active", "boss phase", "aggro", "objective armed",
-  "AI enabled" are just attributes — capture them in `phase 9` and restore them verbatim in Pass 2 like any
-  durable field (§1.5). This is the cleanest fix: the mirror covers it once the attribute exists, entirely
-  inside the two-pass apply.
-- **When activation isn't captured as a flag, re-drive it on restore-complete.** Add an explicit *"restore
-  finished — activate what should already be active"* hook that runs **after the freeze lifts / on
-  `RoomReady → Begin`** (§10.2) and call the game's own activation entry point directly
-  (`encounter.Activate()`, `boss.EnterCombat()`, `objective.Arm()`) — the code path the crossed trigger would
-  have invoked, **minus** any repositioning branch (§10.1). Never rely on the physical trigger to fire.
-
-Enumerate these in `RESTORATION_PLAN.md` (`10` Step 3) as a distinct row class — *trigger-gated activations
-to re-drive* — separate from *triggers to suppress*. **A restored entity that exists but never acts is this
-gap until proven otherwise.**
+> **⚠️ Restore invariants, not just objects — the ungated primitive replays its bookkeeping too.** The
+> spawn primitive you were just told to keep ungated does more than place an object: the game's
+> `Spawn` / inventory-add / door-open path also maintains **derived aggregates** that live on a *manager*,
+> not on any tracked object — an alive-enemy tally, a remaining-objectives counter, a spawn budget. Pass 1
+> calls that primitive **once per restored entity**, so each such side effect **replays N times**; and any
+> creator step you *suppressed* (§10.1) may have been the very thing that **reset** that aggregate (its
+> self-heal), which now nothing runs. Both drift the same counter in opposite directions — and a counter is
+> invisible, so the replay *looks* perfect on the first frame while its win/lose condition is silently
+> unreachable. **Don't try to make N incremental side effects sum correctly.** After reconstruction,
+> **recompute each derived aggregate from ground truth** — e.g. `numEnemiesRemaining = count of restored
+> still-killable entities` — rather than trusting the primitive's per-call accounting. This is the
+> aggregate-level analogue of the §4 baseline reset: §4 recovers *per-object* state a fresh `Instantiate`
+> would have zeroed; this recovers *manager-level* state the borrowed/suppressed flow would have maintained.
+> **Count the right subset:** games overload one pipeline (structures, minions, props all as
+> `EnemyController`), so a classification flag (`isStructure`, `IsMinion` — captured, or read off the
+> restored `EnemyType`/bucket) must travel with any count the restore recomputes, or the recomputed total is
+> wrong too. (Audit this for *any* borrowed path, not just spawn: whatever reconstruction re-drives, list its
+> side effects and ask whether the snapshot already accounts for them or you're double-applying.)
 
 ---
 
@@ -812,10 +819,14 @@ entity that never acts is then a **one-line** diagnosis — *inert* = activation
 - [ ] Every entity/property in `OBJECT_TRACKING.md` has a `RestoreLudeoState` read using the **same `LudeoKeys`** + `objectType`.
 - [ ] Cross-Entity References table fully resolved in Pass 2 (§6).
 - [ ] Deferred properties applied after Pass 2, before `Begin`, in recorded order (§7).
+- [ ] **If** camera view state was captured (`06 §10.6` — independently-controllable view): restored to the
+      captured pitch/yaw/distance and **snapped** (no smoothing/lerp) so the first frame opens on the captured
+      view, not a default the rig eases out of (§5.5/§7). (Fixed / player-derived cameras capture nothing here.)
 - [ ] World/level definitions restored to drive spawning; environment after entities; exclusion list recorded (§8).
 - [ ] Scene-placed objects reconciled match-vs-spawn — no double-spawn (§9).
-- [ ] Trigger-gated activation re-driven — restored encounters/bosses/objectives are **active**, not inert;
-      activation captured as state or driven directly on restore-complete, never left to a skipped trigger (§9.1).
+- [ ] **Derived aggregates recomputed from ground truth** after reconstruction (alive-enemy tally, objective
+      counter, spawn budget) — not trusted to sum from the ungated primitive's per-call side effects; the
+      count uses the right subset (classification flags travel with it) (§9).
 
 **Freeze & overlay**
 - [ ] Restored state protected during apply (CR-010): **synchronous apply → freeze whole apply**; **async

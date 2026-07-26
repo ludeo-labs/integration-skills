@@ -137,6 +137,7 @@ not the whole save). Sections are tiered by restoration priority:
 - [ ] Is alive/dead (`bool`)
 - [ ] Level, XP, attributes/skills (current values)
 - [ ] Equipped gear (weapon, armor — by item/content id, not reference)
+- [ ] Appearance / equipped cosmetics (outfit, skin, dye/transmog, character-model variant — by content id). Set before the moment & constant, but **visible**; the `06 §9.3` step-1 carve-out — a default-appearance replay is visibly wrong
 - [ ] Inventory (array of item ids + counts; never object references — `06 §9.4`)
 - [ ] Gold / currency
 - [ ] Current region/cell id (open-world)

@@ -31,6 +31,9 @@ Required artifacts / pre-flight:
 > `phase 5` for the loop + the `error CS` table.
 
 ### Step 0a — Create an integration branch ⭐ FIRST
+**Tell the user explicitly, before running the command, that you are about to create a new git branch
+for the integration** — name the branch you'll create and note that all integration work will happen
+there. Then create it:
 ```bash
 git checkout -b feature/ludeo-integration-#1   # increment #N if it exists
 ```

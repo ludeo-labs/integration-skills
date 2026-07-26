@@ -95,6 +95,7 @@ When in doubt, track it — and put it in the earliest wave its load-bearing-nes
 | Category | Examples | Priority |
 |---|---|---|
 | **Player** | Player character, stats, inventory, transform | CRITICAL |
+| **Camera / viewpoint** | Camera pitch/yaw, orbit distance, free-look angle, zoom/FOV | **CRITICAL when the view is independently controllable** (mouse/free-look, manual orbit, aim, zoom) — the replay must open on that exact view; **skip a fixed camera** (static top-down/isometric — a constant, §9.3) and a **pure follow-cam derived from restored player state** (recompute it) (§9.4) |
 | **NPCs / Enemies** | AI entities, health, state, transform | CRITICAL |
 | **Interactive objects** | Pickups, doors, switches, vehicles | CRITICAL |
 | **Projectiles** | Bullets, grenades (if persistent/visible) | IMPORTANT |
@@ -435,12 +436,27 @@ lobby, loading screen, shop/inventory overlay, safe zone/hub, cutscene.
 ## 9. What to Track — Decision Guide
 
 ### 9.1 The principle
-**Track every object whose state change a viewer would notice, or that another tracked object depends
-on.** Three failure modes:
+**Capture what the moment needs to PLAY FORWARD, not just what reproduces the picture.** The Ludeo is a
+continuous playable reconstruction (§1.1), so "would a viewer notice this frame-1?" is the wrong single
+test — much of what a run needs to continue correctly is **invisible on the first frame yet governs how
+it plays on**: character stats/skills, cooldowns, quest/world flags, reputation, hidden inventory. So the
+rule has two limbs: **track every object whose state a viewer would notice, OR whose state changes how the
+run plays forward** (including state another tracked object depends on). Four failure modes:
 1. **Over-tracking** is cheap — a slightly larger capture. It doesn't break the replay.
 2. **Under-tracking visible state** → loudly broken replay (missing objects, stuck doors). Easy to catch.
 3. **Under-tracking derived state** → subtly broken replay (enemy targets the wrong player, physics
    drifts). These slip through testing.
+4. **Under-tracking invisible forward-play state** → the moment *looks* right on frame 1 and passes a
+   behavioral restore gate, then diverges as it plays (skills/inventory/cooldowns/flags missing). The
+   costliest miss, because the gate green-lights it. A viewer-centric read (§9.2) is what drops it.
+
+> **Visibility decides PRIORITY (which wave), never INCLUSION.** Invisible forward-play state is in
+> scope; if it's not load-bearing for the current wave's replay it is **deferred to a later wave with a
+> reason**, not dropped. Prove inclusion structurally, not by eye: enumerate each entity's full
+> state-field surface (the save-serialized fields — §2.5/§2.7 — or its runtime-mutable component fields)
+> and give **every field a disposition** — `capture | defer→wave N | exclude(static/settings/derivable)`.
+> This is the phase-8 Step B3 completeness gate; it catches failure mode 4, which no "does it look right"
+> check can. (`settings`/meta is excluded, not captured — it leaks across Ludeos.)
 
 **When in doubt, track.** Over-tracking's cost is measurable; under-tracking's cost is a silently
 wrong replay.
@@ -454,7 +470,15 @@ Unsure which branch? Track it — the cost is small.
 ```
 
 ### 9.3 Decision flow — a single property
-1. **Does its value change during gameplay?** No → skip (it's a constant).
+1. **Does its value change during gameplay?** No → skip (it's a constant) — **UNLESS a viewer can see
+   it and it was chosen *before* the captured moment** (equipped loadout/weapon, outfit/skin,
+   character-model or color variant). This state never "changes during gameplay" — it's set off-camera
+   and stays constant through the clip — yet it defines how the moment *looks*. A Ludeo is a shareable
+   **video**: the player rendered in the default skin instead of the outfit they had equipped is a
+   visibly wrong replay. Capture it (as content/item ids or enums, `§9.4`). This is the one case where a
+   constant is still load-bearing — and the persistent-singleton baseline reset (`00 CR-006`) makes the
+   miss worse: it strips the live player back to default and re-applies only captured fields, so an
+   uncaptured outfit is actively erased, not merely absent.
 2. **Can a viewer or another tracked object's logic notice the change?** No → skip.
 3. **Is it derivable from other tracked state?** Yes → skip — *only if* restoration will actually
    derive it (e.g. world pos = parent.pos + local offset).
@@ -468,6 +492,7 @@ Track if (1) AND (2 OR 3-not-derivable) AND (4-has-meaning).
 | Object type | Typical | Caveat |
 |---|---|---|
 | Player | Track | Split-screen/co-op: track all players |
+| Camera / view rig | Track its **control state** (pitch/yaw, orbit distance, zoom/FOV) — §10.6 — **only when the view is independently controllable** | **Skip** if the camera is **fixed** (static top-down/isometric — a constant, §9.3) or a follow-cam **fully** determined by restored player state (recompute it). Otherwise capture the rig's angles (not just the camera's world transform) so a follow/orbit rig reconstructs the exact view; capture any *independent* freedom (free-look yaw, aim pitch, manual orbit), and restore must **snap, not ease**, to it (`07 §5`/§7) |
 | AI enemy / NPC | Track | Pooled: register on pull, not on prefab construction (§2.3) |
 | AI perception / target (property) | Track | Drives visible behavior; suppress dev-only debug mutations |
 | Hitscan bullet (no tracer) | Skip | Kill-cam / tracer / travel-time flips this to Track |
@@ -487,6 +512,7 @@ Track if (1) AND (2 OR 3-not-derivable) AND (4-has-meaning).
 | Inventory | Track as array of item ids | Never references to item objects |
 | Cooldown / timer | Track **remaining**, not elapsed | Restore sets "time until" |
 | Animation frame / blend | Usually skip (derivable) | Track if a stuck pose would look wrong |
+| Appearance / loadout (skin, outfit, equipped-gear id, model variant) | Track as ids/enums | Set before the moment & constant during it, but **visible** — default skin instead of the player's outfit is a visibly wrong clip. The §9.3 step-1 carve-out; survives the baseline reset only if captured |
 | Reference to another object | Never as a reference | Track the target's stable key (§4) |
 
 ### 9.5 When the table is wrong
@@ -550,6 +576,19 @@ obj => {
     obj.SetAttribute(K.WaveIndex, m_waveIndex);          // in-progress sequence/wave
     obj.SetAttribute(K.TimeRemaining, m_countdown);      // timers/cooldowns: REMAINING, not elapsed (§9.4)
 };
+
+// 10.6 Camera / viewpoint (singleton — bucket[0]; the exact view the moment must OPEN on). ONLY when the
+// view is independently controllable — skip a fixed camera (constant) or a follow-cam fully derived from
+// restored player state (§9.4). Capture the RIG'S control state, not only the derived world transform, so a
+// follow/orbit rig reconstructs the view. Restore SNAPS to these (no smoothing/lerp), else the replay eases
+// in from a default view (07 §5/§7).
+obj => {
+    obj.SetAttribute(K.CamPitch, m_rig.pitch);           // [SDK] float — look/aim pitch
+    obj.SetAttribute(K.CamYaw, m_rig.yaw);               // [SDK] float — look/free-look yaw
+    obj.SetAttribute(K.OrbitDistance, m_rig.distance);   // [SDK] float — third-person zoom/orbit (if the rig has it)
+    obj.SetAttribute(K.Fov, cam.fieldOfView);            // [SDK] float — only if it changes (ADS/zoom)
+    obj.SetAttribute(K.CamPosition, cam.transform.position);  // [SDK] Vector3 — only if the camera moves FREELY of the player (spectator/detached)
+};
 ```
 
 ---
@@ -588,6 +627,9 @@ registration not amortized) or at scene transition (mass despawn in one burst).
 **Scope & types**
 - [ ] Tracked set passes §9; attributes are typed (`Vector3`/`Quaternion`/`int`/…), blobs only where warranted (§1.4).
 - [ ] Attribute names come from a `LudeoKeys` `[Layer]` class shared with restore.
+- [ ] Camera/viewpoint control state captured (pitch/yaw/orbit/FOV, §10.6) **when the view is independently
+      controllable** — skip a fixed camera or one fully derived from restored player state; restore snaps to
+      it (`07 §5.5`).
 
 **State & perf**
 - [ ] Capture suspends in menus/cutscenes (sampling gate, §8); overlay pause handled separately (CR-011).
