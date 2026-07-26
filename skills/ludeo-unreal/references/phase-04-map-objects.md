@@ -1,10 +1,10 @@
-# Phase 03 — Map Game Objects (slice)
+# Phase 04 — Map Game Objects (slice)
 
 ## 1. Goal / Purpose
 
 Identify and catalogue every game object and attribute the integration will track — for the
 **curated slice only**. This phase produces an object→attribute table (discovery artefact) that
-Phase 04 implements. No code is written here; the output is a confirmed, integrator-approved
+Phase 05 implements. No code is written here; the output is a confirmed, integrator-approved
 specification.
 
 **Deliverables:**
@@ -18,12 +18,12 @@ specification.
 ## 2. Inputs (Input Contract)
 
 **Required from prior phases:**
-- `.ludeo/integration.json` with `currentPhase: 3`, Phase 02 completed
-- Plugin scaffold from Phase 02 (subsystem + component, ActivateSession working)
-- Active room with at least one player added (Phase 02 lifecycle)
+- `.ludeo/integration.json` with `currentPhase: 3`, Phase 03 completed
+- Plugin scaffold from Phase 03 (subsystem + component, ActivateSession working)
+- Active room with at least one player added (Phase 03 lifecycle)
 
 **From CODE_MAP (`.ludeo/code-map.json`):**
-- `entity_types` — all actor/pawn/object classes identified in Phase 01
+- `entity_types` — all actor/pawn/object classes identified in Phase 02
 - `lifecycle_hooks` — where gameplay begins (for knowing when to start tracking)
 - `event_systems` — delegates and message buses (for entity spawn/destroy events)
 
@@ -39,7 +39,7 @@ specification.
 
 **Scope:** Only analyze entities and properties relevant to the **curated slice** (from
 `integration.json → curatedSlice`). Full entity discovery across all maps is deferred to
-Phase 06 (enrichment).
+Phase 07 (enrichment).
 
 ### 3.1 Discover Curated Slice Entity Types
 
@@ -120,14 +120,14 @@ For transient entities, find the spawn/despawn hooks:
 | Visibility changes | Grep for `SetActorHiddenInGame`, `bHidden` modification |
 | Possession/control changes | `OnPossessedPawnChanged`, `OnNewPawn` delegates |
 
-These hooks are needed in Phase 04 to register/unregister WritableObjects for transient entities.
+These hooks are needed in Phase 05 to register/unregister WritableObjects for transient entities.
 
 ### 3.5 Verify Module API Exports
 
 For every game class method the plugin will call, verify it has the module's API export macro
 (e.g., `LYRAGAME_API`). Methods without it cause unresolved external symbol linker errors.
 
-Record any missing exports in `.ludeo/export-check.md` — they must be patched before Phase 04
+Record any missing exports in `.ludeo/export-check.md` — they must be patched before Phase 05
 implementation begins.
 
 ---
@@ -151,7 +151,7 @@ the only entities we need for the MVP.**
    the tracked property set.
 
 4. **"Does the curated slice have a warmup/countdown phase before gameplay starts?"** — If yes,
-   Player Flow (Phase 04) must skip it. Gather how the phase system handles skipping.
+   Player Flow (Phase 05) must skip it. Gather how the phase system handles skipping.
 
 5. **Write frequency: default to every tick** for MVP. Do NOT ask unless the human raised
    performance concerns.
@@ -162,7 +162,7 @@ the only entities we need for the MVP.**
 
 ### 5.1 Entity-Type Classification Table (Output Format)
 
-Produce this table for integrator approval before Phase 04 begins:
+Produce this table for integrator approval before Phase 05 begins:
 
 ```
 | Entity Type      | Class               | Strategy             | Properties to Track                    | Typed vs Blob |
@@ -178,7 +178,7 @@ Produce this table for integrator approval before Phase 04 begins:
 **Default to typed attributes.** Use SDK-native types (`FTransform`, `float`, `bool`, `int32`,
 `FString`) for every attribute where the type is known at capture time. The SDK reads these back
 by name; typed attributes are schema-validated, diffable, and compatible with version-gating
-(see Phase 04 §5.10).
+(see Phase 05 §5.10).
 
 **Blob** (raw byte buffers) is justified ONLY when the value is genuinely opaque at capture
 time — e.g., a proprietary compressed save-game blob whose internal schema is maintained by
@@ -199,7 +199,7 @@ Check every entry on both lists against the produced table:
   (fine, note it) or genuinely missed (add it).
 
 The matching genre checklist is a state-coverage validation list for the curated slice here; the
-full-game pass is in `references/phase-07-expansion.md`.
+full-game pass is in `references/phase-08-expansion.md`.
 
 ---
 
@@ -209,13 +209,13 @@ full-game pass is in `references/phase-07-expansion.md`.
 Produces:
   objectAttributeTable: markdown   — Entity → attribute table, approved by integrator,
                                      with strategy + typed/blob column
-  exportCheckMd: updated           — Any missing GAMENAME_API exports recorded for Phase 04
+  exportCheckMd: updated           — Any missing GAMENAME_API exports recorded for Phase 05
   decisions[]: Decision[]          — Appended to integration.json (which entities, which attrs,
                                      which strategy, restoration approach)
   phase03Complete: bool            — true only after integrator approves the table
 ```
 
-This phase produces NO code. Phase 04 consumes the approved table as its primary input.
+This phase produces NO code. Phase 05 consumes the approved table as its primary input.
 
 ---
 
@@ -239,7 +239,7 @@ is mandatory — run it and present the full list. Properties like `bIsAbilityAc
 ### 8.2 Scoping discovery too broadly
 
 This phase covers the **curated slice only**. Do not discover entities from all maps, all game
-modes, or all possible scenarios. Full discovery is Phase 06 (enrichment).
+modes, or all possible scenarios. Full discovery is Phase 07 (enrichment).
 
 ### 8.3 Tracking everything visible
 
@@ -252,10 +252,10 @@ classification from Section 3.2 and confirm with the integrator.
 Blob attributes hide schema problems and break version-gating. Default to typed. Only use blob
 when the value is provably opaque to the integration layer.
 
-### 8.5 Deferring export-check to Phase 04
+### 8.5 Deferring export-check to Phase 05
 
-Module API export gaps discovered late block compilation. Identify them here in Phase 03 and
-record them so Phase 04 can start with a clean build.
+Module API export gaps discovered late block compilation. Identify them here in Phase 04 and
+record them so Phase 05 can start with a clean build.
 
 ### 8.6 Skipping genre tracking checklist cross-check
 

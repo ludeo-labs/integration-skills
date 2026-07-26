@@ -159,6 +159,14 @@ Implement the notification-driven entry (`07 §3.3`) — **never call these from
 > against the wrong (previous) world. Add the game's own never-nulled singletons to the teardown reset list.
 > (This is the engine/world-level analogue of the persistent-singleton baseline reset task 4 does per-entity.)
 
+> **Purge the game's own registries here too (`07 §2.2`).** Beyond singletons, re-entry corrupts the game's
+> global **collections** — enemy roster, target/aggro lists, spatial buckets, any `static List<T>` a manager
+> keeps. Teardown destroys the objects without unregistering them, so the list hands back **destroyed**
+> (`== null`) refs next run — systems iterate ghosts, counts are wrong, capture re-tracks dead handles.
+> Purge dead entries on this teardown path and make the registry's own queries `== null`-safe — **but never
+> `Clear()`** a list that also holds **live** objects carried across teardown (a persistent player, pooled
+> objects). Wire it from the plan's *Registries to Purge* rows (`10` Step 3). *Remove the dead, keep the live.*
+
 The `onBeginRestore` hook fires before the room opens (the world id is already in the buckets here; the
 room chain would surface it too late to start an async load). Its scene loader must call
 `NotifySceneReadyForRestore()` `[Layer]` on completion — the begin-gate's third leg. **Read the entry
@@ -224,6 +232,12 @@ Map `m_onStopGame` onto this game's "freeze the active run" hook. The gallery en
   restore path suppressed it), (2) per-entity control locks (restore often re-activates the player with
   controls disabled — re-enable movement *and* non-movement handlers at gameplay start), (3)
   `Time.timeScale` (a frozen sim looks exactly like blocked input).
+- **Instrument the restore so bugs are diagnosed, not theorized (`07 §10.5`).** Log the resolved pause state
+  at the unfreeze point (`restoreFreeze` / `overlayPause` / `timeScale`) and the `RoomReady → Begin`
+  transition. This is what lets the orchestrator's log-read distinguish a genuine hang from **expected**
+  per-tick silence during the freeze — the deadlock signal is an **absent unfreeze** on an async apply, not
+  absent ticks. The agent reads it from `Editor.log`/`Player.log`
+  ([`ludeo-integration-docs/unity/READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md)).
 
 ### Step 5: Gate start-of-run mechanisms on `IsInLudeoFlow` — two categories
 Implement the suppression the plan enumerated, gated to skip when `LudeoController.Instance.IsInLudeoFlow`
@@ -231,8 +245,14 @@ Implement the suppression the plan enumerated, gated to skip when `LudeoControll
 interactive frame of the captured state** — in two distinct categories, *both* gated, not just the first:
 
 1. **State-clobbering** — mechanisms that would overwrite restored values: intro cutscenes, countdowns,
-   slow-mo intros, fly-in cameras, default-spawn teleports (`SpawnPoint`/`Respawn`), scripted scene-start
-   events, `Start`/`OnEnable` re-initializers. Skip these or the Ludeo loads at the **wrong** state.
+   slow-mo intros, fly-in cameras, default-spawn teleports (`SpawnPoint`/`Respawn`), scripted mid-scene warps
+   (teleport-to-arena / checkpoint snap), scripted scene-start events, `Start`/`OnEnable` re-initializers.
+   Skip these or the Ludeo loads at the **wrong** state. **Exception — a cutscene the viewer should see
+   (`07 §10.1`):** don't gate the whole moment off (that's the "cutscene didn't show" bug). Gate only its
+   **reposition** branch (teleport / spawn-snap / body-moving camera possession — the restored player is
+   already placed); **keep** its **presentation** branch (framing / VFX / dialogue). Implement the plan's
+   *Scripted Moments* rows; if a moment's two effects aren't separable in code, surface the split as a
+   proposed change rather than dropping the cutscene.
 2. **Flow-blocking** — UI/gates that stall progression to the playable frame *without* touching state:
    "press start"/"press any key"/"click to continue" gates, modal popups (daily-reward, news, "what's
    new"), EULA/login/age-gate prompts, tutorial overlays, confirmation dialogs, between-segment
@@ -244,6 +264,17 @@ The Ludeo must start *exactly* at the captured state, **interactive**, on the fi
 replay" check. These fire during the scene load (which `onBeginRestore` kicked) and hit the gate **before**
 the apply runs. The gate mechanism is identical for both categories; only the *what-to-look-for* widens —
 don't filter the codebase scan to state-touching mechanisms and miss a blocking modal.
+
+> **⚠️ Suppression has a complement — don't over-suppress into inertness (`07 §9.1`).** Suppressing a
+> physical trigger (proximity volume / arena gate / cutscene zone) stops it from *clobbering or re-creating*
+> the snapshot — but that same trigger is often what **activates** the encounter (enables the boss AI, arms
+> the objective, starts the boss phase). If the restore relies on the trigger firing, activation is now
+> **nobody's job** and the restored boss stands **inert**. Where the plan's *trigger-gated activations to
+> re-drive* rows chose a `Begin`-time re-drive (rather than capturing activation as a restored attribute,
+> which stays in task 4), add an explicit **"restore finished — activate what should already be active"**
+> call in the `onRoomReady` resume path (**after** `ApplyRestoredState()` / unfreeze, at `Begin`), invoking
+> the game's activation entry point (`Activate`/`EnterCombat`/`Arm`) **minus** any reposition branch. If the
+> plan left this to a captured attribute, there's nothing to wire here — task 4 restores it.
 
 ### Step 6: Self-check, then hand back (no play test here)
 You do **not** play a Ludeo — the orchestrator does. Before returning, statically self-check against §7's
@@ -314,6 +345,12 @@ Surface to the orchestrator; don't guess:
 - [ ] Start-of-run mechanisms gated on `IsInLudeoFlow` — **both** categories: state-clobbering (intros,
       spawns, re-initializers) **and** flow-blocking (press-start gates, modals/popups, EULA/login, tutorial
       overlays). The Ludeo reaches the captured state *and* is interactive on the first visible frame.
+- [ ] Viewer-facing cutscenes split reposition (skip) vs presentation (keep), not blanket-suppressed
+      (`07 §10.1`); scripted mid-scene warps added to the reposition list.
+- [ ] Teardown purges the game's own registries (dead-ref-safe queries + remove-dead-not-`Clear`), not just
+      the Ludeo layer and world singletons (`07 §2.2`).
+- [ ] Restore is instrumented (resolved pause state + `RoomReady → Begin` logged) so the orchestrator's gate
+      can tell expected freeze-silence from a real deadlock (`07 §10.5`).
 - [ ] Flows hold `m_data` from construction; no `#if` toggling (CR-001 runtime); backups for edited files.
 
 ## 8. Common Mistakes
@@ -325,6 +362,10 @@ Surface to the orchestrator; don't guess:
 - **Freezing an async apply** with `timeScale = 0` — deadlocks `FixedUpdate` (`07 §10.1`).
 - **One shared pause flag** or a bootstrap-only reset — stale flag deadlocks the replay→replay restore.
 - **`async void` scene loader with no completion signal** — `Begin`'s third leg never fires.
+- **Blanket-suppressing a viewer-facing cutscene** — gate only its reposition branch, keep presentation
+  (`07 §10.1`); else "cutscene didn't show" or the player warps off-position.
+- **Resetting only the Ludeo layer + world singletons on teardown** — the game's own registries still hand
+  back destroyed refs on the next replay (`07 §2.2`).
 - **Using the C++ `…Request` notification names** or calling `Begin` from a game event.
 
 ## Related / Next

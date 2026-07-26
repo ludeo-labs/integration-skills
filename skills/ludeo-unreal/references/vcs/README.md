@@ -1,6 +1,6 @@
 # VCS Contract
 
-The skill supports three version-control systems: **git/GitHub**, **Subversion (SVN)**, and **Perforce (p4)**. This directory abstracts every VCS-specific operation behind a small contract so the phase logic stays VCS-agnostic. Phase 0 detects the VCS once; every later phase calls operations **by name** and consults the matching implementation file.
+The skill supports three version-control systems: **git/GitHub**, **Subversion (SVN)**, and **Perforce (p4)**. This directory abstracts every VCS-specific operation behind a small contract so the phase logic stays VCS-agnostic. Phase 1 detects the VCS once; every later phase calls operations **by name** and consults the matching implementation file.
 
 - `git.md` — git/GitHub implementation of each operation.
 - `svn.md` — Subversion implementation (permanent-branch delivery model; branch creation is a server-side commit).
@@ -8,7 +8,7 @@ The skill supports three version-control systems: **git/GitHub**, **Subversion (
 
 ## How this is used
 
-1. **Phase 0** runs `detect_vcs` (below), records `integration.json → vcs.type`, then loads the matching file (`git.md`, `svn.md`, or `p4.md`).
+1. **Phase 1** runs `detect_vcs` (below), records `integration.json → vcs.type`, then loads the matching file (`git.md`, `svn.md`, or `p4.md`).
 2. **Every later session**, the Per-Session Flow reads `vcs.type` from `integration.json` and loads the matching file **before any file write**.
 3. Phase logic never hardcodes `git` or `p4` — it invokes the named operations and the loaded file supplies the commands.
 
@@ -16,9 +16,9 @@ The skill supports three version-control systems: **git/GitHub**, **Subversion (
 
 | Operation | When | Intent |
 |-----------|------|--------|
-| `detect_vcs` | Phase 0, first | Decide git vs p4 and record it |
-| `create_isolation(name)` | Phase 0 | Make an isolated place for the work (branch / stream / changelist) |
-| `acquire_component(name, dest)` | Phase 0 SDK setup | Get the LudeoUESDK plugin and the C SDK into the project |
+| `detect_vcs` | Phase 1, first | Decide git vs p4 and record it |
+| `create_isolation(name)` | Phase 1 | Make an isolated place for the work (branch / stream / changelist) |
+| `acquire_component(name, dest)` | Phase 1 SDK setup | Get the LudeoUESDK plugin and the C SDK into the project |
 | `ensure_editable(path)` | **before every Write/Edit** | Guarantee the file can be written and is tracked |
 | `open_review(summary)` | Step 8 | Put the work up for human review |
 | `guard_destructive` | always | Never run an irreversible VCS command on a single failed check |

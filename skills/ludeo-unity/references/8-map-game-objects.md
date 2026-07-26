@@ -90,6 +90,11 @@ wave — here, just the spawn/own classification + the hook sites (they decide t
   and `game-patterns/open-world-tracking.md` — the tracking delta: **presence ≠ existence** (don't
   unregister on stream-out), world/cell object types, persistent-world-id identity across stream cycles,
   scoping the tracked set to the loaded neighborhood.
+- **If the game has bosses** (INTAKE "Bosses? yes", or a boss / named / scripted-encounter type surfaces
+  during discovery), also load `game-patterns/bosses.md` — a boss fight is a load-bearing, scripted
+  encounter with a unique spawn trigger, phases/forms, an intro cutscene, and summoned adds, whose state
+  restoration must reconstruct without re-firing the trigger. It drives the boss's wave/load-bearing flags
+  below and its per-wave scoping in Part B.
 - **If `session_boundaries.assembly == "procedural"`**, also load `game-patterns/procedural-world.md` —
   add a singleton **`RunMetadata`** objectType (§3) capturing the **generation inputs** (selection id,
   sub-roll id, progress cursor, scaling counter) as stable asset names/values; default to **resolved**
@@ -105,15 +110,38 @@ Combine the genre checklist with codebase discovery. Apply `06 §9.2` to each ca
 gameplay? influences a tracked object? referenced by a tracked object? If any → track; else skip. **When
 in doubt, track** (`06 §9.1`).
 
+> **Go find the appearance/loadout subsystem — don't wait for it to show up as a player field.** How a
+> visible character *looks* (equipped cosmetics, outfit, skin, model/color variant) is load-bearing for a
+> clip, but it usually lives **off** the entity — a wardrobe/customization manager, a `ScriptableObject`,
+> or a mesh/material swap (see phase 1's cosmetics grep). A viewer-centric sweep (`§9.2`) or a player-only
+> property list will miss it. Record **where the player's (and any in-view character's) appearance is
+> set** as a tracked source now — either the owning subsystem as its own type, or an explicit note on the
+> character type pointing at it — so Part B Step B3 captures it. It belongs to **Wave 1** with the
+> character it dresses.
+
 For each **type** record (census level — *not* full properties/keys; those are Part B): class, file:line,
 spawn pattern (dynamic / scene-placed / both), whether it streams in/out (+ its **persistent world id**,
 `open-world-tracking.md §4`), and a **load-bearing flag**:
 
+> **⚠️ An entity is a SUBSYSTEM, not the single class you name here.** The `class, file:line` you record
+> is only the **anchor** — a type's state routinely lives across **several components / managers /
+> ScriptableObjects**, not on the anchor MonoBehaviour. The player especially: `PlayerController` holds
+> transform + health, but stats, skills, inventory, equipment, progression, and reputation live on
+> **separate** `Stats`/`SkillTree`/`Inventory`/`Equipment`/`Progression` components or singleton managers.
+> Note the anchor here; Part B Step B3 sweeps the **whole subsystem** for the field surface. Treating the
+> anchor class *as* the entity is the #1 way a load-bearing type ends up with a passing completeness tally
+> over an incomplete field set (`06 §9.1` mode 4).
+
 > **Load-bearing** = the curated moment is **visibly wrong or unresumable** without this type on the first
 > replayed frame (the player; the world/level identity; the time-base/continuity clock; the primary
-> antagonists/interactables in view). **Not load-bearing** = the replay still reads correctly without it on
-> frame 1 (background props, distant populations, cosmetic systems, secondary modes). This flag drives the
-> wave assignment in Step A5; getting it wrong is the failure the iterative model guards against.
+> antagonists/interactables in view — **including whatever subsystem determines how those visible
+> characters *look***: a wardrobe / skin / equipped-cosmetic system driving the player's or an in-view
+> character's appearance). **Not load-bearing** = the replay still reads correctly without it on frame 1
+> (background props, distant populations, **ambient** cosmetic VFX, secondary modes). Mind the split
+> *within* "cosmetic": ambient cosmetic systems (screen-space particles, decorative FX) are not
+> load-bearing, but a system that sets a **visible character's appearance is** — a default-skin player is
+> a visibly wrong clip (`06 §9.3`). This flag drives the wave assignment in Step A5; getting it wrong is
+> the failure the iterative model guards against.
 
 > **⚠️ Always identify a world/level IDENTITY type — every game.** Restoration's *first* step rebuilds the
 > world the capture happened in (`07 §8`), so a **world/level identity** key is mandatory: scene name /
@@ -155,6 +183,16 @@ spawn pattern (dynamic / scene-placed / both), whether it streams in/out (+ its 
 > it just because it's deferred. (The mid-song *position* clock is the separate, time-driven-only Wave-1
 > concern above.)
 
+> **⚠️ If the game has bosses — record TWO types, both load-bearing / Wave 1 (when a boss is in the
+> captured moment).** A boss is not a generic enemy: (1) the **boss entity** (flag it `IsBoss` so it's
+> never swept into or counted as the generic-enemy bucket), and (2) a **`<Boss>Encounter` fight-state
+> singleton** — phase/form index, phase timer *remaining*, scripted cursor, arena-lock, adds-alive — the
+> manager-level state a viewer-centric sweep (§9.2) misses, just like the time-base singleton. Adds the
+> boss summons are their **own** type (`IsMinion`, owner = boss key). The boss's spawn is a one-shot
+> trigger/cutscene whose side effects restoration reconstructs without re-firing — see
+> `game-patterns/bosses.md` for the full framework. Do not defer a boss in the captured moment to a late
+> wave.
+
 ### Step A5: Assign a wave to every type (NEW — the iterative plan)
 Tag each type `wave: 1 | 2 | 3 | …`:
 - **Wave 1 — the restorable spine + the must-have set.** Auto-include: the **world/level identity**, the
@@ -163,8 +201,9 @@ Tag each type `wave: 1 | 2 | 3 | …`:
   from the genre §3 checklist). Wave 1 is the smallest set that produces a *coherent* replay — not just the
   singletons, and not the whole game.
 - **Later waves (2, 3, …)** — every remaining type, **ordered by load-bearing-ness** (most-load-bearing
-  next). Background populations, cosmetic systems, secondary modes, and the **soundtrack-presence
-  attribute** (required for completeness, not load-bearing — the callout above) come last.
+  next). Background populations, ambient cosmetic VFX, secondary modes, and the **soundtrack-presence
+  attribute** (required for completeness, not load-bearing — the callout above) come last. (A **visible
+  character's** appearance/wardrobe is *not* here — it's Wave 1 with the character it dresses.)
 - **Rule:** a type flagged **load-bearing = yes** may **not** sit in a late wave behind non-load-bearing
   types. If you find yourself deferring load-bearing state, it belongs in Wave 1 (this is the guardrail —
   see §5).
@@ -222,10 +261,60 @@ Record the key source + file:line. A collection type with no stable key is an op
 is a prerequisite for tracking.
 
 ### Step B3: Inventory properties per entity (the object→attribute table)
-For each type in the wave list properties and classify each: `identity/key | static | dynamic-continuous |
-dynamic-discrete | reference`. Apply `06 §9.3` to decide what to keep.
+For each type in the wave, **enumerate its full state-field surface, then give every field a
+disposition** — do not silently list only "the properties that seem to matter." The failure this guards
+against is invisible-but-load-bearing state (skills, cooldowns, quests, reputation, hidden inventory)
+that a viewer-centric read (`06 §9.2`) tells you to drop and a behavioral restore gate never catches,
+because it only bites when the run **plays forward** (`06 §9.1`).
 
-Capture each kept property as a **discrete typed attribute by default** (`Vector3`/`Quaternion`/`int`/
+**Derive the field surface (the completeness FLOOR) from the codebase, not from intuition. First fix
+*what the entity is* — sweep the whole subsystem, not the census's anchor class:**
+
+> **The entity is the anchor GameObject's full subsystem.** Enumerate the fields of **every component on
+> the entity's GameObject (and its child objects)** plus the **managers / singletons / ScriptableObjects
+> that hold this entity's state** — not just the `class` named in the Step A4 census. For the **player**,
+> the anchor `PlayerController` usually holds only transform + health; **actively go find** the separate
+> `Stats` / `Attributes` / `SkillTree` / `Inventory` / `Equipment` / `Progression` / `Reputation`
+> components or manager singletons and fold their fields into the surface. Grep the genre file's search
+> keywords (`06 §9`, `game-patterns/<genre>.md §2`) to locate them. A field set enumerated from the anchor
+> class alone is **under-scoped** — the tally below will then pass over an incomplete surface (the exact
+> `06 §9.1` mode-4 trap).
+
+Then floor the swept surface against the codebase:
+- **Has a save/serializer for this entity?** → the fields it serializes are the floor (`06 §2.5`,
+  §2.7). Floor, not ceiling — saves omit transient/visual state (velocity, facing, in-flight, clocks)
+  a viewer notices, so add those; and include meta/settings it should *not* (stripped below). (Save-less
+  games — many roguelikes — **lack this floor**, so the subsystem sweep above is your only surface: do it
+  thoroughly.)
+- **No save?** → the **runtime-mutable** gameplay fields across the swept subsystem's components
+  (fields whose value changes during play). **Not** every `[SerializeField]` — editor-authored config /
+  prefab refs / tuning constants are static and are excluded below, not enumerated as candidates.
+
+**Then classify each field (`identity/key | static | dynamic-continuous | dynamic-discrete |
+reference`) and assign it ONE disposition — this is completeness of *disposition*, not of capture, so
+it composes with the wave model (breadth is deferred across waves; each entity is scoped in full at its
+own wave):**
+- **capture (this wave)** — apply `06 §9.3`'s keep-test; capture as a typed attribute (below).
+- **defer → wave N** — real state, but non-load-bearing for this wave's replay; record the target wave
+  + reason (the same field-level deferral the soundtrack-presence attribute uses, Step A4). Deferring is
+  allowed; *not noticing the field exists* is not.
+- **exclude** — with a one-word reason: `static` (never changes at play), `settings`/`meta` (not part
+  of *this* moment — and actively harmful to capture: leaks across Ludeos, cf. Step B2), or `derivable`
+  (`06 §9.3` step 3, *only if* restore actually re-derives it).
+
+Emit the tally in the entity's row: `N state fields = C capture + D defer + X exclude`, and **name the
+components/managers the surface was swept from** so `N`'s denominator is auditable. A field with no
+disposition is a plan defect, not a default-drop — and a **suspiciously small `N`** (a player in an
+RPG/roguelike-shaped game with only transform + health) is the tell that the sweep stopped at the anchor
+class and missed a stats/skill/inventory subsystem. Re-sweep before accepting it.
+
+> **This is not the up-front exhaustive plan the iterative model rejects.** It runs **per wave, scoped
+> to that wave's types** (Part B is invoked once per wave). The census (Part A) stays shallow —
+> types only. Widening across *waves* stays iterative; each *entity*, when its wave lands, is scoped in
+> full so a later wave never has to backfill load-bearing state into an already-verified one (`06 §1.1`
+> guardrail, §5).
+
+Capture each **capture**-disposition property as a **discrete typed attribute by default** (`Vector3`/`Quaternion`/`int`/
 `float`/`bool`/`string` — `06 §1.4`). Do **not** plan a `byte[]` blob, and don't ask the user, unless
 they requested it or the state is genuinely opaque/large/unmappable — then record the entity + reason
 under Open Questions and keep going. Note write cadence:
@@ -233,7 +322,18 @@ under Open Questions and keep going. Note write cadence:
   split "register now, key later" — `06 §3.1`).
 - Position / rotation / velocity → per-tick sample.
 - Health / ammo / score → per-tick (or guard skip-unchanged, `06 §11`).
+- Appearance / loadout (skin, outfit, equipped-gear id, model variant) → capture as ids/enums even
+  though it's **set before the moment and constant through it**. It's visible, so it's load-bearing
+  for a video clip (`06 §9.3` step-1 carve-out); the persistent-singleton reset otherwise strips it.
 - References → capture the **target's stable key** (§4).
+
+> **Combat entities — flag mid-action / in-flight attack state (`06 §9.6`).** For any attacker (enemy,
+> boss, the player), note whether the moment can be captured **mid-attack**: a casting phase, a swing's
+> animator normalized-time, or live projectiles the entity owns. Record these as their own rows/objectType,
+> but assign them a **later wave** — they degrade fidelity when missing rather than breaking the replay, and
+> are the hardest class to capture (short lifetime, pooling, restore-time physics/animation deferral). The
+> **exception** is a game whose signature captured moment *is* the incoming attack (bullet-hell / boss
+> parry): surface that at the Part-A census so it's promoted up front, not backfilled.
 
 ### Step B4: Map cross-entity references (within / into the wave)
 For every reference-kind property fill a Cross-Entity References row (From / To / Field / Capture /
@@ -351,6 +451,8 @@ block per type as its wave is scoped):
 - Persistent singleton: <no | yes — DontDestroyOnLoad/static/SO-held; reset via `<reset method @ file:line>` before restore>
 - Streams in/out: <no | yes — world id `<...>`, removal signal `<...>`>
 - Pre-existing at run start: <yes | no>
+- Field surface swept from: <components / managers / SOs enumerated — not just the anchor class>   ← Step B3
+- Field completeness: <N> state fields = <C> capture + <D> defer + <X> exclude   ← Step B3 tally
 - Confidence: <high | medium | low>
 
 ### Hook Sites
@@ -359,9 +461,11 @@ block per type as its wave is scoped):
 | Register | ... | spawn site / Start / Spawn / pool Get — guard `!IsInLudeoFlow` |
 | Unregister | ... | OnDestroy / Despawn / Release — NOT on stream-out (open-world) |
 
-### Properties (OnStateDataUpdate writes these)
-| Property | Kind | Type | Source (file:line) | Cadence | Reference to | Notes |
-|---|---|---|---|---|---|---|
+### Properties (every state field gets a row — Disposition, not just the captured ones)
+| Field | Kind | Disposition | Type | Source (file:line) | Cadence | Reference to | Notes |
+|---|---|---|---|---|---|---|---|
+<!-- Disposition = capture | defer→wave N | exclude(static|settings|derivable). Floor = save-serialized
+     fields (06 §2.5/§2.7) or runtime-mutable component fields. Type/Cadence apply to `capture` rows. -->
 
 ### Open Questions
 - ...
@@ -406,7 +510,12 @@ criteria are verified **per wave** in phase 4 (listed here as what each Part-B i
 
 **Per-wave (Part B, verified in phase 4):**
 - [ ] A **stable key** per collection type (no `GetInstanceID()`/references); singleton persistence flagged.
-- [ ] Per-entity property table (typed attributes) + cadence.
+- [ ] **Field completeness (Step B3):** the field surface was swept from the **whole subsystem**
+      (all components on the entity + its managers/SOs, not just the anchor class); every field has a
+      disposition — `capture | defer→wave N | exclude(reason)`; the `N = C + D + X` tally + the swept-from
+      components are recorded; no field is left undispositioned (silent drop). Player has a stats/skill/
+      inventory subsystem folded in where the game has one.
+- [ ] Per-entity property table (typed attributes) + cadence for the `capture` rows.
 - [ ] Cross-entity references rowed (target's key, two-pass resolve; cross-wave refs marked deferred).
 - [ ] **Per-entity reconciliation-vs-manual matrix** built (Step B5) → entity rows + `CODE_MAP.save_system.per_entity`.
 
@@ -416,6 +525,13 @@ criteria are verified **per wave** in phase 4 (listed here as what each Part-B i
   and surfaces a wrong key for a late type only at that wave's restore gate.
 - **Mis-flagging load-bearing** / **deferring load-bearing state to a late wave** — the failure the
   iterative model exists to prevent (Unreal's documented ActionGame break). Re-check Step A4/A5.
+- **Scoping the field surface to the anchor class** — enumerating only `PlayerController`'s fields and
+  missing the separate `Stats`/`SkillTree`/`Inventory`/`Equipment` components, so the completeness tally
+  passes over an incomplete set. Sweep the **whole subsystem** (Step B3).
+- **Shallow property inventory** — listing only the visibly-changing fields and silently dropping
+  invisible-but-load-bearing state (skills, cooldowns, quests, reputation, hidden inventory). Enumerate
+  the full state-field surface and disposition every field (Step B3); a viewer-centric read alone misses
+  what only breaks when the run plays forward.
 - **Defaulting to blobs** instead of discrete typed attributes (`06 §1.4`). (Part B.)
 - **Using `GetInstanceID()` / object references as keys** (CR-014) — unstable across runs and stream cycles.
 - **Skipping the world-identity or time-base/continuity object** — the Ludeo rebuilds but can't be

@@ -5,8 +5,8 @@
 > **How to use:** Read this index, classify the game, load the relevant file(s).
 
 All catalogs here are game-design knowledge (WHAT to capture); the **how** — Unreal search idioms,
-`SendAction` wiring — lives in `references/phase-05-actions.md`. Action names map to the
-Ludeo subsystem / DataWriter `SendAction` call (see `references/phase-05-actions.md`
+`SendAction` wiring — lives in `references/phase-06-actions.md`. Action names map to the
+Ludeo subsystem / DataWriter `SendAction` call (see `references/phase-06-actions.md`
 and `references/sdk-reference/`).
 
 ---
@@ -34,7 +34,7 @@ structural session boundary and tracking delta, plus the relevant genre file(s) 
 | [survival-sandbox.md](references/game-patterns/survival-sandbox.md) | Genre | Survival / crafting / sandbox / base-builder | Gathering, crafting/building, hunger/thirst meters, placing/destroying world structures |
 | [turn-based.md](references/game-patterns/turn-based.md) | Genre (provisional) | Turn-based tactics / SRPG / grid + initiative combat (XCOM-likes) | Discrete turns, action points, grid movement, unit-by-unit actions. NOTE: also carries turn-based capture-cadence (§4) and restore-timing/limbo (§5) sections. |
 | [open-world.md](references/game-patterns/open-world.md) | Structural (boundaries) | Open-world RPG / sandbox / MMO / streaming world | No per-map gameplay levels; boundaries are state-machine or event-driven, not `UGameplayStatics::OpenLevel` / `ServerTravel` / World Partition per map |
-| [open-world-tracking.md](references/game-patterns/open-world-tracking.md) | Structural (tracking) | Same — when mapping/implementing object tracking | The world streams in/out; you need the streaming-world tracking delta over the curated-slice object tracking in `references/phase-03-map-objects.md` |
+| [open-world-tracking.md](references/game-patterns/open-world-tracking.md) | Structural (tracking) | Same — when mapping/implementing object tracking | The world streams in/out; you need the streaming-world tracking delta over the curated-slice object tracking in `references/phase-04-map-objects.md` |
 
 ## How the Agent Should Use These Files
 
@@ -51,8 +51,8 @@ structural session boundary and tracking delta, plus the relevant genre file(s) 
    streaming-world tracking delta (presence ≠ existence, world/cell state, identity across
    streaming).
 2. **Determine genre** — web search the game name, or ask the user if not findable. Genre
-   classification and file loading happens in `references/phase-01-mapping.md` (Phase 0
-   intake feeds Phase 1).
+   classification and file loading happens in `references/phase-02-mapping.md` (Phase 1
+   intake feeds Phase 2).
 3. **Load 1–2 matching genre files** — hybrid games may need multiple. Common mappings: open-world RPG
    (Daggerfall/Skyrim) → `rpg.md`; survival/sandbox (Valheim/Minecraft) → `survival-sandbox.md`;
    open-world action (GTA/Red Dead) → `shooter.md` + `racing.md` (driving) + `rpg.md` (progression);
@@ -64,11 +64,11 @@ structural session boundary and tracking delta, plus the relevant genre file(s) 
 4. **Use the action catalog** as a shopping list — search the codebase for each.
 5. **Use the search keywords** to grep for relevant code patterns.
 6. **Use the tracking checklist** to validate completeness after object tracking is implemented
-   (curated-slice baseline in `references/phase-03-map-objects.md`; enrichment pass in
-   `references/phase-07-expansion.md`).
+   (curated-slice baseline in `references/phase-04-map-objects.md`; enrichment pass in
+   `references/phase-08-expansion.md`).
 
-> **MVP scope (curated-first):** In Phases 3–5, scope catalog use to your **curated slice**
-> (`integration.json → curatedSlice`); the full catalog applies at expansion (Phase 7).
+> **MVP scope (curated-first):** In Phases 4–6, scope catalog use to your **curated slice**
+> (`integration.json → curatedSlice`); the full catalog applies at expansion (Phase 8).
 
 ## File Structure (Genre Files)
 
@@ -85,8 +85,8 @@ Genre files (`shooter.md`, `rts.md`, `racing.md`, `rpg.md`, `survival-sandbox.md
 
 ### Section 3: Tracking Checklist (Scaffolding)
 - What objects and properties typically matter for this genre. Types map to the Unreal DataWriter
-  set-attribute calls; see `references/phase-04-tracking-restore.md` and
-  `references/phase-05-actions.md`. Used as a validation checklist, not a search guide.
+  set-attribute calls; see `references/phase-05-tracking-restore.md` and
+  `references/phase-06-actions.md`. Used as a validation checklist, not a search guide.
 
 **Structural files** (`open-world.md`, `open-world-tracking.md`) have a different shape —
 `open-world.md` is session-boundary doctrine (`OpenRoom` bind-point trade-offs, pause/restoration

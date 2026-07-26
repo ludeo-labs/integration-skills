@@ -137,6 +137,7 @@ not the whole save). Sections are tiered by restoration priority:
 - [ ] Is alive/dead (`bool`)
 - [ ] Level, XP, attributes/skills (current values)
 - [ ] Equipped gear (weapon, armor — by item/content id, not reference)
+- [ ] Appearance / equipped cosmetics (outfit, skin, dye/transmog, character-model variant — by content id). Set before the moment & constant, but **visible**; the `06 §9.3` step-1 carve-out — a default-appearance replay is visibly wrong
 - [ ] Inventory (array of item ids + counts; never object references — `06 §9.4`)
 - [ ] Gold / currency
 - [ ] Current region/cell id (open-world)
@@ -149,6 +150,9 @@ not the whole save). Sections are tiered by restoration priority:
 - [ ] Target entity (by stable key)
 - [ ] Dialogue/quest state if it gates behavior
 - [ ] Is alive/dead (a killed-not-respawned NPC is a **state flag**, not just an unregister — `06 §9.4`)
+- [ ] Mid-cast / in-flight spell state (casting phase, cast progress, spell id, target, live projectile) —
+      a **later-wave** fidelity add, not Wave 1 (`06 §9.6`); `SpellCast` is *also* an action (§1), but the
+      mid-cast is **state**, so reconstruct it and let the action re-fire (don't double-represent it)
 
 ### Quests / World State — IMPORTANT (world flags that gate the visible moment are CRITICAL)
 - [ ] Active quest ids + current stage/objective (as their own objectType)
