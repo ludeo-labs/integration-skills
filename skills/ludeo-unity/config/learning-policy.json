@@ -1,0 +1,17 @@
+{
+  "$comment": "Policy for learnings/ privacy. Enforced by scripts/validate-skill.mjs. See references/learning-sanitization.md for the agent-facing rule.",
+  "sourceGameAllowlist": [
+    "PlatformerSample",
+    "FPSSample",
+    "TopDownSample",
+    "SurvivalSample",
+    "multiple"
+  ],
+  "$sourceGameAllowlist_note": "sourceGame: frontmatter MUST be one of these abstract codenames. A real studio/title name is itself a leak. Add a new codename here at the START of each new client engagement (the *Sample entries are neutral placeholders for the corpus's early life). Use 'multiple' for a learning validated across several games.",
+  "apiMacroAllowlist": [
+    "LUDEO_API"
+  ],
+  "$apiMacroNote": "C# has no module-export macro convention (unlike Unreal's STUDIONAME_API), so this list is mostly inert for Unity — the *_API scan in validate-skill.mjs is kept only as a cheap backstop. The real client leak vectors in a C# integration are the client's root NAMESPACE, .asmdef names, and MonoBehaviour/class names; those are neutralized at write time per references/learning-sanitization.md, not by an allowlist.",
+  "denylist": [],
+  "$denylistNote": "OPTIONAL belt-and-suspenders. The PRIMARY defense is the sanitization rule applied at write time (references/learning-sanitization.md) plus the hashed client-identifier guard in validate-skill.mjs (section 7) — this list is NOT a substitute. Leave empty unless an engagement wants a hard stop on a specific known token; client-specific denylists do not generalize and must never be the main control."
+}
