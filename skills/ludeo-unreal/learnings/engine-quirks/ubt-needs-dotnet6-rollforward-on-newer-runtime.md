@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: StoryPuzzleGame
-phase: 2
+phase: 3
 question: "Does the compile machine have the .NET 6 runtime installed? UE 4.27/5.0-5.3's bundled UnrealBuildTool.exe targets Microsoft.NETCore.App 6.0; on a box that only has newer runtimes (8/9/10) it exits immediately with 'You must install or update .NET ... version 6.0.0' and NOTHING compiles."
 sanitized: true
 ---

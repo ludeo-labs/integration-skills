@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: Lyra
-phase: 7
+phase: 8
 question: "For objective-based actions (capture, score, deliver), did you consider that Studio Labs needs to distinguish good-for-player vs bad-for-player? Did you track objective state as writable objects, not just actions?"
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Does the Player Flow restore path destroy actors (in-flight projectiles, weapons-in-hand, throwables) before re-applying state, AND does it refill any attribute (ammo, inventory, throwable count) that also needs the destroyed actor re-spawned?"
 sanitized: true
 ---

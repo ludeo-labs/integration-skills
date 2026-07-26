@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: Lyra
-phase: 4
+phase: 5
 question: "Does the game have a warmup/countdown phase before gameplay starts? If so, Player Flow must skip it — what phase system does the game use, and can phases be skipped programmatically?"
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: Lyra
-phase: 2
+phase: 3
 question: "When a runtime SDK signal (OnRoomReady, etc.) fails to fire but all the lifecycle CALLS succeed, and a known-good reference integration exists for THIS game or engine — have you diffed your flow against it BEFORE theorizing about SDK versions or backend config?"
 sanitized: true
 ---

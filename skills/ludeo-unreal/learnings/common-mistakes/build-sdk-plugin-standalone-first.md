@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: EndlessFPS
-phase: 2
+phase: 3
 question: "Did you build the LudeoUESDK plugin alone on the project's engine version before scaffolding the integration plugin?"
 sanitized: true
 ---

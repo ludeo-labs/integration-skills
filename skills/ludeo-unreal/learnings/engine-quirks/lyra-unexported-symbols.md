@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: Lyra
-phase: 2
+phase: 3
 question: "Do the game classes you need to call from the plugin have their methods exported with the module's API macro (e.g., GAMENAME_API)? If not, which methods need export macros added?"
 sanitized: true
 ---

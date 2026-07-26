@@ -2,7 +2,7 @@
 category: architecture
 tier: universal
 sourceGame: ActionGame
-phase: 5
+phase: 6
 question: null
 sanitized: true
 ---

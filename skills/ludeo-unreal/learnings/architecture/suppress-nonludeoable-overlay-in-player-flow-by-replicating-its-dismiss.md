@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: TacticsGame
-phase: 2
+phase: 3
 question: "Does the game show a load-progress / intro / 'tip' overlay on level entry that appears in cloud replays (and often PAUSES the game while up)? If you want it gone in Player Flow, dismiss it the way its own Continue/close does — find the widget, fire its parameter-less dismiss delegate, RemoveFromParent, and unpause — rather than trying to prevent it from being created."
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: Lyra
-phase: 5
+phase: 6
 question: "Does the game use a message/event bus where elimination events might be received multiple times (e.g., from multiple processors rebroadcasting)?"
 sanitized: true
 ---

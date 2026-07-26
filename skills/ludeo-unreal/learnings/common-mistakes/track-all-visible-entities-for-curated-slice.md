@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: ActionGame
-phase: 3
+phase: 4
 question: "Are there any prominent visual elements (vehicles, props, environmental actors) that will be obviously missing during Player Flow playback?"
 sanitized: true
 ---

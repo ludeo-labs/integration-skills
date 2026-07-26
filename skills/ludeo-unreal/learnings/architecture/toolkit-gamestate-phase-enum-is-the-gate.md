@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: TacticsGame
-phase: 2
+phase: 3
 question: "Does the toolkit's GameState Blueprint carry a phase/turn-state enum variable (e.g. TurnState) that the toolkit sets at battle start AND at battle end? If yes, that single variable is both the N-way gate's game-phase condition and the room-close signal — poll it via reflection, resolve UserDefinedEnum values by AUTHORED name at runtime, and make zero BP edits."
 sanitized: true
 ---

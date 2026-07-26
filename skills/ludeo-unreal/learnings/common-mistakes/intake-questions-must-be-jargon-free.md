@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: TacticsGame
-phase: 0
+phase: 1
 question: null
 sanitized: true
 ---
@@ -44,5 +44,5 @@ For every intake question, before asking:
 
 ## Breadcrumb for the skill implementor
 
-SKILL.md Stage 0 step 1's packaging question and phase-00-intake.md phrasing should ship
+SKILL.md Stage 0 step 1's packaging question and phase-01-know-your-game.md phrasing should ship
 with the plain-language explanations built in, not rely on the agent to translate.

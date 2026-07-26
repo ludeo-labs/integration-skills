@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 2
+phase: 3
 question: "Is the project Blueprint-only (no Source/<Game>.Target.cs) but you need to compile a C++ plugin (the Ludeo plugin, or an editor tool plugin)? If so, compile the `UnrealEditor` target with -Project=, NOT a `<Game>Editor` target that doesn't exist."
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: VoyagerV2
-phase: 4
+phase: 5
 question: "Does this game have non-Character tracked entities (turrets, vehicles, deployables)? If so, OnActorSpawned must check for them BEFORE the Cast<ACharacter> early return, and SpawnActor during Player Flow must not require Cast<ACharacter> to succeed."
 sanitized: true
 ---

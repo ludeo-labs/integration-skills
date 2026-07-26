@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: ActionGame
-phase: 6
+phase: 7
 question: "Do you need to use UE's debug camera (or any UCheatManager exec command) in shipping for runtime diagnosis? If yes, are you aware that force-spawning the cheat manager isn't sufficient because the methods themselves are gated `#if !UE_BUILD_SHIPPING`?"
 sanitized: true
 ---

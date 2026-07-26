@@ -2,7 +2,7 @@
 category: save-systems
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 4
+phase: 5
 question: "Does the game store a firearm's loaded magazine separately from the reserve ammo held in inventory? If so, restoring reserve ammo alone leaves the gun empty — call the weapon's reload-from-reserve function after restoring reserve + wielding."
 sanitized: true
 ---

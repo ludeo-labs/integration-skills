@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 2
+phase: 3
 question: "Do you actually need the ~ console in the Shipping build, or just to trigger Player Flow there? Console-in-Shipping forces a unique build environment (engine-module recompile on an installed engine) + a real Source/ Target.cs; the Player Flow launch arg (-LudeoID=<id>) needs neither."
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: save-systems
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 4
+phase: 5
 question: "Does the Creator keep writing tracked AI entities after they die (ragdoll/death-anim actors linger in the world)? If so, the snapshot contains Health<=0 entities — decide explicitly how restore handles them (corpse via the game's death path is usually right). Do NOT silently drop them."
 sanitized: true
 ---

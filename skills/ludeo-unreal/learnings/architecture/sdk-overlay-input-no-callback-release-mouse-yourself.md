@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 2
+phase: 3
 question: "When the Ludeo overlay shows an interactive screen (e.g. the PrePlayScreen 'Play Moment'), does OnPauseGameRequested fire? (Usually NO — verify in the log.) If the game captures the mouse (FPS: Game-Only input + hidden cursor), the GAME must release it itself, at the Player-Flow overlay window, using the game's OWN input-release path — not a one-shot SetInputMode."
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: universal
 sourceGame: Lyra
-phase: 2
+phase: 3
 question: null
 sanitized: true
 ---

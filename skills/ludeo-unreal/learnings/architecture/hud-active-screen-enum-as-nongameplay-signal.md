@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 2
+phase: 3
 question: "Does the game's HUD (or a UI manager) track a single 'active screen' / UI-state enum — one value per full-screen overlay, with a resting/gameplay value? If so, that one enum is a uniform non-ludeoable signal covering inventory + pause menu + dialogs + examine screens together, instead of a separate flag per overlay."
 sanitized: true
 ---

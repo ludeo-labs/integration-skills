@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: multiple
-phase: 4
+phase: 5
 question: "Does the game have a runtime populate trigger (wave-start, combat-start, elimination-refill) that can fire while playing forward from a restored state? If yes, gate the TRIGGER on bIsPlayerFlow, never the spawn primitive."
 sanitized: true
 ---

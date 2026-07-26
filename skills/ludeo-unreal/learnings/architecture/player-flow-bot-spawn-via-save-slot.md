@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: FTPS_Online
-phase: 4
+phase: 5
 question: "Does this game's bot spawner read counts from a save slot? If yes, write to the save slot directly from C++ (UGameplayStatics::SaveGameToSlot) before travel — don't fight with BP reflection on GameInstance or GameMode."
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: ActionRoguelike
-phase: 0
+phase: 1
 question: "Has your Steam user been added to the game's environment in Studio Labs?"
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: Lyra
-phase: 7
+phase: 8
 question: "What exact action names does Studio Labs expect? Have you named actions from the player's perspective (DoubleKill, not ElimChain)? Are actions and context separated (Kill + DamageType, not Kill_Rifle)?"
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: ActionRoguelike
-phase: 4
+phase: 5
 question: "Does the game's health/damage system require an instigator actor when applying attribute changes? If so, Player Flow health restoration must provide one."
 sanitized: true
 ---

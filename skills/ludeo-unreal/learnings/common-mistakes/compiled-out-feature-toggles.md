@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: ActionRoguelike
-phase: 5
+phase: 6
 question: "Does the game use preprocessor feature toggles (#define USE_X 0/1) that may compile out event systems or messaging?"
 sanitized: true
 ---

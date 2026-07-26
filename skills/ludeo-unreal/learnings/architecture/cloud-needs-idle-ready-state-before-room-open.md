@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 2
+phase: 3
 question: "In the cloud, does the game reach an idle, streamable 'ready & waiting' state (no room open, not recording) before any room opens? A game that boots straight into gameplay and opens a room at boot will never let the cloud streamer connect / the machine never reports ready."
 sanitized: true
 ---

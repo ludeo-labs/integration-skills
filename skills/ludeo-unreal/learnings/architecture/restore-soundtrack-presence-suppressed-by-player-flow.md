@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: multiple
-phase: 4
+phase: 5
 question: "Does the game start its background music / soundtrack from a scene-start / level-load hook (BeginPlay, a level-BP begin event, a music-manager auto-start) that Player Flow suppresses? If yes, restore must (re)start the captured track itself or the replay is silent."
 sanitized: true
 ---

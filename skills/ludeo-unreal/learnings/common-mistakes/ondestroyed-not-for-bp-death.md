@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: VoyagerV2
-phase: 5
+phase: 6
 question: "Do enemies in this game call Destroy() when they die, or do they ragdoll/dissolve/fade? If not Destroy(), use poll-based health detection instead of OnDestroyed delegate."
 sanitized: true
 ---

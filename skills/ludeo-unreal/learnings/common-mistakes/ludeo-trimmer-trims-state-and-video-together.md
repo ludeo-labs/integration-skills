@@ -4,7 +4,7 @@ description: The Ludeo platform trimmer trims BOTH video and the captured data s
 category: common-mistakes
 tier: universal
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: null
 sanitized: true
 ---

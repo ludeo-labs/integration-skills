@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: universal
 sourceGame: FPSGameStarterKit
-phase: 2
+phase: 3
 question: "Does this BP-only project have a Source/ directory? If no AND packaging is needed, you MUST create a minimal Source/ with Target.cs + Build.cs + primary game module. Do NOT rely on UBT auto-generating targets — that only happens when certain plugins (like CommonUI) are enabled."
 sanitized: true
 ---

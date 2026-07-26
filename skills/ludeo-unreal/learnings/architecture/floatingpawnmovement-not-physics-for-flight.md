@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: FTPS_Online
-phase: 2
+phase: 3
 question: "Does this flight/vehicle game use physics simulation (Simulate Physics on root component) or FloatingPawnMovement with manual position updates? Check the BP Inspector component list. If FloatingPawnMovement is present, do NOT plan for SetPhysicsLinearVelocity — track the game's own position/speed variables instead."
 sanitized: true
 ---

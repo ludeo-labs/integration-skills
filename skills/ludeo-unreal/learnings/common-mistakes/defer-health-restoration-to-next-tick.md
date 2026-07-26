@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: ActionRoguelike
-phase: 4
+phase: 5
 question: "Does the game's OnHealthChanged handler create widgets, access mesh components, or interact with subsystems that may not be ready during early initialization?"
 sanitized: true
 ---

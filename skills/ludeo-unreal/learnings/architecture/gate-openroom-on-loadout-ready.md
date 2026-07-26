@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Does the game async-load the player's loadout (weapons, cosmetic mesh, abilities) after the level loads? If yes, find the 'loadout-ready' signal (accessor + delegate) and gate OpenRoom on it."
 sanitized: true
 ---

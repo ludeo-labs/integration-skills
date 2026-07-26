@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 5
+phase: 6
 question: "Does this game have more than one enemy family (e.g. regular mobs, bosses, special creatures), often from different marketplace packs? If so, do they all expose the same health/death property by the same name and type, and is that property declared on the leaf class or inherited from a BP base? Verify the death signal is reachable per family before relying on it for Kill detection."
 sanitized: true
 ---

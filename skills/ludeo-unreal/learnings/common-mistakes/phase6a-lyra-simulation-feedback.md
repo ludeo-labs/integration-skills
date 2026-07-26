@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: Lyra
-phase: 7
+phase: 8
 question: "Does the game have multiple distinct game modes/experiences? Has the agent mapped ALL modes before diving into entity discovery?"
 sanitized: true
 ---
