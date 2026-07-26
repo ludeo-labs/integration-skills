@@ -16,9 +16,9 @@
 
 > **This is NOT the C++ model.** There is **no `LudeoObjectId ↔ game id` map, no `id_map`, no
 > `RegisterAllExistingObjects`, no pointer identity.** A Ludeo's captured state comes back as a flat
-> `LudeoStateObjectRestore[]` `[SDK]` that the layer groups **by `objectType` into buckets**
-> (`Dictionary<string, List<LudeoStateObjectRestore>>`). You re-create each object, read its attributes with
-> `TryGetAttribute` `[SDK]` (the inverse of capture's `SetAttribute`), and re-link relationships by **your own
+> `LudeoReadableObject[]` `[SDK]` that the layer groups **by `objectType` into buckets**
+> (`Dictionary<string, List<LudeoReadableObject>>`). You re-create each object, read its attributes with
+> `ReadData` `[SDK]` (the inverse of capture's `WriteData`), and re-link relationships by **your own
 > stable key** (CR-014) — matched against the objects you just spawned. The two-pass discipline (CR-006)
 > survives as a *concept* for reference resolution; the C++ id-map machinery does not.
 
@@ -66,24 +66,24 @@ that restored start.
 
 ### 1.2 What you get back
 
-`LudeoDataReader.GetStateObjects()` `[SDK]` returns a flat `LudeoStateObjectRestore[]` `[SDK]`. The layer
+`LudeoDataReader.GetObjects()` `[SDK]` returns a flat `LudeoReadableObject[]` `[SDK]`. The layer
 groups it **by `ObjectType`** into `LudeoStateObjectsLookup` `[Layer]`
-(`Dictionary<string, List<LudeoStateObjectRestore>>`) — see §3. From there:
+(`Dictionary<string, List<LudeoReadableObject>>`) — see §3. From there:
 - **Singleton** (the player): take the bucket's single entry, `list[0]`.
 - **Collection** (enemies, pickups): iterate the bucket; tell entries apart by **your own stable-key
   attribute** captured in `phase 8`/`phase 9` (`06 §4`).
 
-`LudeoStateObjectRestore.ObjectId` `[SDK]` is an SDK-assigned `uint`, **not** your game id — never match on
+`LudeoReadableObject.ObjectId` `[SDK]` is an SDK-assigned `uint`, **not** your game id — never match on
 it (CR-014).
 
 ### 1.3 The mirror principle
 
 Every restore decision inverts a capture decision in `OBJECT_TRACKING.md`. Same `objectType` strings, same
-`LudeoKeys` `[Layer]` constants, same stable keys. `TryGetAttribute(K.X, out var x)` `[SDK]` reads back what
-`SetAttribute(K.X, x)` `[SDK]` wrote. **You cannot restore what tracking didn't capture** — a gap means the
+`LudeoKeys` `[Layer]` constants, same stable keys. `ReadData(K.X, out var x)` `[SDK]` reads back what
+`WriteData(K.X, x)` `[SDK]` wrote. **You cannot restore what tracking didn't capture** — a gap means the
 fix is in `phase 8`/`phase 9`, not here.
 
-### 1.4 `TryGetAttribute` returns `false` when absent or type-mismatched
+### 1.4 `ReadData` returns `false` when absent or type-mismatched
 
 For every read, decide the fallback: **keep the spawn default** (partial-/version-tolerant restore — a
 feature of the attribute model, `06 §1.4`) or **treat as an error**. Do **not** fail the whole restore on
@@ -97,14 +97,14 @@ The play flow is the inverse of the creator flow. The `[Layer]` already routes i
 the apply step and the game hooks. End-to-end (all `[SDK]` calls async/callback-based):
 
 ```
-AddNotifyLudeoSelected (player picked a Ludeo in the gallery)        [SDK]
+LudeoSelected event (player picked a Ludeo in the gallery)          [SDK]
   → GetLudeo(ludeoId)                                                [SDK]  →  LudeoDataReader
       → new LudeoRestoredData(ludeoId, reader, out ok)               [Layer] groups buckets + restores world config (§8)
       → SwitchToPlay()  (consent-gated, CR-012)                      [Layer] IsInLudeoFlow becomes true
-      → InitRoom → OpenRoom(forLudeo) → AddGamePlayer                [SDK]   (CR-009 chain; LudeoPlayFlow)
+      → InitRoom → OpenRoom(forLudeo) → AddPlayer                [SDK]   (CR-009 chain; LudeoPlayFlow)
       → onInitDone(isStartingInLudeoFlow: true)                      [Layer] → game loads the gameplay scene
           → APPLY: spawn-from-bucket + restore attributes (§4)        ← your code, after scene/objects exist
-  → AddNotifyRoomReady                                               [SDK]
+  → RoomReady event                                                  [SDK]
       → (sync apply) Begin → unfreeze  ·  (async apply) unfreeze → Begin  [Layer]+[Unity] CR-010 §10.1
       → BeginGameplay()                                              [Layer] SDK starts recording the new playthrough
 ```
@@ -157,7 +157,7 @@ the second play:
 
 **Complete teardown** = `AbortGameplay()` `[Layer]` (abort the **session**, `StopTrackingAllLudeoStates()`,
 `CloseRoom`, reset `isGameplayActive`/`m_gameplayStarted`) **+** `ResetBeginGate()` `[Layer]`
-(`m_roomReady` / `m_sceneReadyForRestore` / `ludeoGameplaySession`) **+** reset both pause flags to an
+(`m_roomReady` / `m_sceneReadyForRestore` / `ludeoPlayer`) **+** reset both pause flags to an
 unfrozen baseline (§10.3, done in `onBeginRestore`). **Start the new play ONLY in the teardown's
 callback** — `Abort`/`CloseRoom` are async, so issuing them and then opening the new room synchronously
 stacks a second room over the still-closing one. See the wired `HandleGetLudeoDone` in §3.3 and the
@@ -174,20 +174,20 @@ tracking side). Reproduce them in the game's layer; they are derived from the ta
 
 ### 3.1 `LudeoRestoredData` — build the buckets (and restore world config)
 
-Constructed in `HandleGetLudeoDone` from the `LudeoDataReader`. It calls `GetStateObjects` `[SDK]` once,
+Constructed in `HandleGetLudeoDone` from the `LudeoDataReader`. It calls `GetObjects` `[SDK]` once,
 groups by `ObjectType`, and (tank) also rebuilds the game definitions (§8):
 
 ```csharp
 public class LudeoRestoredData                                                    // [Layer]
 {
     public Guid LudeoId { get; private set; }
-    public Dictionary<string, List<LudeoStateObjectRestore>> LudeoStateObjectsLookup { get; private set; }
+    public Dictionary<string, List<LudeoReadableObject>> LudeoStateObjectsLookup { get; private set; }
     public LudeoTrackedDefinitions TrackedDefinitionsForLudeo { get; private set; }  // §8 world/level config
 
     public LudeoRestoredData(Guid ludeoId, LudeoDataReader reader, out bool isGotData)
     {
         LudeoId = ludeoId; isGotData = false;
-        if (reader.GetStateObjects(out LudeoStateObjectRestore[] objects) != LudeoResult.Success) {  // [SDK]
+        if (reader.GetObjects(out LudeoReadableObject[] objects) != LudeoResult.Success) {  // [SDK]
             Debug.LogWarning("no data to restore"); return;                        // [Unity]
         }
         LudeoStateObjectsLookup = GroupByObjectType(objects);
@@ -196,11 +196,11 @@ public class LudeoRestoredData                                                  
         isGotData = true;
     }
 
-    private static Dictionary<string, List<LudeoStateObjectRestore>> GroupByObjectType(LudeoStateObjectRestore[] objs)
+    private static Dictionary<string, List<LudeoReadableObject>> GroupByObjectType(LudeoReadableObject[] objs)
     {
-        var lookup = new Dictionary<string, List<LudeoStateObjectRestore>>();
+        var lookup = new Dictionary<string, List<LudeoReadableObject>>();
         foreach (var o in objs) {
-            if (!lookup.TryGetValue(o.ObjectType, out var list)) { list = new List<LudeoStateObjectRestore>(); lookup[o.ObjectType] = list; }
+            if (!lookup.TryGetValue(o.ObjectType, out var list)) { list = new List<LudeoReadableObject>(); lookup[o.ObjectType] = list; }
             list.Add(o);
         }
         return lookup;
@@ -222,15 +222,15 @@ public class LudeoPlayFlow : ILudeoFlow                                         
     // a null m_data there is the classic first-restore NullReferenceException.
     // ... InitRoom (OpenRoom for ludeo) + StoreGameDefinitions per REFERENCE-ARCHITECTURE ...
 
-    public void RestoreLudeoStateOfObject(string objectType, Action<LudeoStateObjectRestore> onRestore)  // singleton
+    public void RestoreLudeoStateOfObject(string objectType, Action<LudeoReadableObject> onRestore)  // singleton
     {
         if (m_data.ludeoRestoredData.LudeoStateObjectsLookup.TryGetValue(objectType, out var list))
             onRestore(list[0]);
     }
-    public void RestoreLudeoStateOfObject(LudeoStateObjectRestore restore, Action<LudeoStateObjectRestore> onRestore) // pass-through
+    public void RestoreLudeoStateOfObject(LudeoReadableObject restore, Action<LudeoReadableObject> onRestore) // pass-through
         => onRestore(restore);
 
-    public bool TryGetAllLudeoStateObjectByType(string objectType, out List<LudeoStateObjectRestore> states)  // collection
+    public bool TryGetAllLudeoStateObjectByType(string objectType, out List<LudeoReadableObject> states)  // collection
         => m_data.ludeoRestoredData.LudeoStateObjectsLookup.TryGetValue(objectType, out states);
 }
 ```
@@ -243,15 +243,15 @@ Add these to the controller (the game calls only the façade). They route to the
 
 ```csharp
 // singleton restore: pulls bucket[0] for objectType and invokes your apply callback
-public void GetAndRestoreLudeoStateOfObject(string objectType, Action<LudeoStateObjectRestore> onRestore)  // [Layer]
+public void GetAndRestoreLudeoStateOfObject(string objectType, Action<LudeoReadableObject> onRestore)  // [Layer]
     => m_switch.LudeoFlow.RestoreLudeoStateOfObject(objectType, onRestore);
 
 // per-instance restore: you already hold a restore object (one entry of a collection bucket)
-public void RestoreLudeoStateOfObject(LudeoStateObjectRestore restore, Action<LudeoStateObjectRestore> onRestore) // [Layer]
+public void RestoreLudeoStateOfObject(LudeoReadableObject restore, Action<LudeoReadableObject> onRestore) // [Layer]
     => m_switch.LudeoFlow.RestoreLudeoStateOfObject(restore, onRestore);
 
 // collection restore: hand back the whole bucket so the spawner can distribute entries to instances
-public bool TryGetAllLudeoStateObjectByType(string objectType, out List<LudeoStateObjectRestore> states)   // [Layer]
+public bool TryGetAllLudeoStateObjectByType(string objectType, out List<LudeoReadableObject> states)   // [Layer]
     => m_switch.LudeoFlow.TryGetAllLudeoStateObjectByType(objectType, out states);
 
 public LudeoTrackedDefinitions GetLudeoTrackedDefinitions()                        // [Layer] §8 restored world config
@@ -280,14 +280,14 @@ private void HandleGetLudeoDone(LudeoGetLudeoCallbackData data)
 
     void SwitchToLudeoPlay()
     {
-        ResetBeginGate();                            // [Layer] re-arm m_roomReady / m_sceneReadyForRestore / ludeoGameplaySession
+        ResetBeginGate();                            // [Layer] re-arm m_roomReady / m_sceneReadyForRestore / ludeoPlayer
         if (!m_switch.SwitchToPlay()) return;        // [Layer] consent gate (CR-012)
         m_data.ludeoRestoredData = new LudeoRestoredData(m_data.ludeoId, data.ludeoDataReader, out bool ok);  // §3.1
         if (!ok) { m_onLudeoFailure("no Ludeo data"); return; }
         m_onBeginRestore?.Invoke();                  // [Layer] selection-time: start scene load + suppress intros + RESET BOTH PAUSE FLAGS
                                                      // to an unfrozen baseline (§10.3), BEFORE the room opens.
                                                      // Safe to read restore buckets here: the play flow holds m_data from construction (§3.2).
-        m_switch.LudeoFlow.InitRoom(m_data);         // [Layer] OpenRoom(forLudeo) → AddGamePlayer → onInitDone
+        m_switch.LudeoFlow.InitRoom(m_data);         // [Layer] OpenRoom(forLudeo) → AddPlayer → onInitDone
     }
 }
 ```
@@ -300,7 +300,7 @@ CR-006 mandates two passes **so reference graphs survive spawn order**. With no 
 own key map from the stable-key attribute you captured.
 
 - **Pass 1 — Create:** for each `objectType` bucket, spawn a type-only instance via the game's spawn
-  function, read its **stable-key attribute** (`TryGetAttribute`), and add `keyMap[stableKey] = instance`.
+  function, read its **stable-key attribute** (`ReadData`), and add `keyMap[stableKey] = instance`.
   Singletons need no key (bucket `[0]` → the one instance).
 - **Pass 2 — Apply + Resolve:** read non-reference attributes → setters; resolve reference attributes by
   looking the captured target key up in `keyMap`.
@@ -329,7 +329,7 @@ spawn graph has ordering needs (player before per-player UI), split Pass 1 into 
 
 > **Whole-pass vs per-instance.** When a *spawner* owns a collection, the cleanest shape (tank) is: pull the
 > whole bucket once with `TryGetAllLudeoStateObjectByType` `[Layer]`, then for each spawned instance hand it
-> its matching `LudeoStateObjectRestore` and **apply it from the restore driver's own call stack** with
+> its matching `LudeoReadableObject` and **apply it from the restore driver's own call stack** with
 > `RestoreLudeoStateOfObject(restore, cb)` `[Layer]`. A singleton just calls
 > `GetAndRestoreLudeoStateOfObject(objectType, cb)` `[Layer]`.
 >
@@ -353,7 +353,7 @@ LudeoController.Instance.GetAndRestoreLudeoStateOfObject(LudeoPlayerKeys.OBJECT_
 // COLLECTION (enemies): the spawner pulls the bucket, spawns type-only, and applies EACH ENTRY ITSELF —
 // synchronously, in this loop. Do NOT stash the entry and wait for the instance's Start()/OnEnable (dropped
 // on scene-transition spawns — see the callout above).
-LudeoController.Instance.TryGetAllLudeoStateObjectByType(enemyObjectType, out List<LudeoStateObjectRestore> bucket); // [Layer]
+LudeoController.Instance.TryGetAllLudeoStateObjectByType(enemyObjectType, out List<LudeoReadableObject> bucket); // [Layer]
 for (int i = 0; i < bucket.Count; ++i) {
     EnemyController e = SpawnEnemy(/* type-only */);          // Pass 1: create (Awake activates it)   [Unity]
     LudeoController.Instance.RestoreLudeoStateOfObject(       // Pass 2: apply NOW, in the driver's call stack
@@ -363,55 +363,69 @@ for (int i = 0; i < bucket.Count; ++i) {
 ```
 
 > **Missing-key policy:** a Pass-2 `keyMap` miss is a **Pass-1 bug — fail loud, never substitute null** (§6).
-> A missing *optional attribute* (`TryGetAttribute` → `false`) just keeps the spawn default (§1.4).
+> A missing *optional attribute* (`ReadData` → `false`) just keeps the spawn default (§1.4).
 
 ---
 
 ## 5. Per-Object Restore Patterns
 
-Each is the `RestoreLudeoState(LudeoStateObjectRestore r)` callback — the **inverse of the `06 §10`
-`OnStateDataUpdate` lambda**. Same `LudeoKeys` `[Layer]` constants. Read with `TryGetAttribute` `[SDK]`, then
-write to the live object `[Unity]`.
+Each is the `RestoreLudeoState(LudeoReadableObject r)` callback — the **inverse of the `06 §10`
+`OnStateDataUpdate` lambda**. Same `LudeoKeys` `[Layer]` constants. **Every read is inside
+`using (r.EnterObjectScope())` (CR-002)** — reads outside a scope silently return `false`. Read with
+`ReadData` `[SDK]`, then write to the live object `[Unity]`.
 
 ```csharp
 // 5.1 Player (singleton — bucket[0], no key)                                       [Layer] inverse of 06 §10.1
-void RestoreLudeoState(LudeoStateObjectRestore r) {
+void RestoreLudeoState(LudeoReadableObject r) {
     ResetToBaseline();                                       // [Unity] FIRST — the singleton kept the prior run's
                                                              // state (§4 callout); clear inventory/buffs/score/
                                                              // cooldowns/status AND residual visuals (HUD, VFX,
                                                              // post-fx) so unrestored fields don't leak in.
-    r.TryGetAttribute(K.Position, out Vector3 pos);          // [SDK]
-    r.TryGetAttribute(K.Rotation, out Quaternion rot);
-    r.TryGetAttribute(K.Speed,    out float speed);
-    r.TryGetAttribute(K.HP,       out int hp);
-    transform.position = pos;  transform.rotation = rot;     // [Unity]
-    m_currentSpeed = speed;    m_player.UpdateCurrentHP(hp);
-    // r.TryGetAttribute(K.Velocity, ...) → DEFER to §7 (set after the Rigidbody is live)
+    using (r.EnterObjectScope()) {                          // [SDK] CR-002 — reads only work inside the scope
+        r.ReadData(K.Position, out Vector3 pos);
+        r.ReadData(K.Rotation, out Quaternion rot);
+        r.ReadData(K.Speed,    out float speed);
+        r.ReadData(K.HP,       out int hp);
+        transform.position = pos;  transform.rotation = rot; // [Unity]
+        m_currentSpeed = speed;    m_player.UpdateCurrentHP(hp);
+        // r.ReadData(K.Velocity, ...) → DEFER to §7 (set after the Rigidbody is live)
+    }
 }
 
 // 5.2 Enemy (collection — entry handed in via SetLudeoRestoreState)               inverse of 06 §10.2
-void RestoreLudeoState(LudeoStateObjectRestore r) {
-    r.TryGetAttribute(K.RunId, out int runId);    keyMap[runId] = gameObject;       // Pass 1 key (§4/§6)
-    r.TryGetAttribute(K.Position, out Vector3 pos);
-    r.TryGetAttribute(K.HP, out int hp);
-    r.TryGetAttribute(K.AiState, out int ai);
-    transform.position = pos;  m_hp = hp;  m_aiState = (AiState)ai;
-    // r.TryGetAttribute(K.TargetId, out int targetId) → resolve in Pass 2 via keyMap (§6)
+void RestoreLudeoState(LudeoReadableObject r) {
+    using (r.EnterObjectScope()) {
+        r.ReadData(K.RunId, out int runId);    keyMap[runId] = gameObject;   // Pass 1 key (§4/§6)
+        r.ReadData(K.Position, out Vector3 pos);
+        r.ReadData(K.HP, out int hp);
+        r.ReadData(K.AiState, out int ai);
+        transform.position = pos;  m_hp = hp;  m_aiState = (AiState)ai;
+        // r.ReadData(K.TargetId, out int targetId) → resolve in Pass 2 via keyMap (§6)
+    }
 }
 
 // 5.3 Pickup / interactive                                                         inverse of 06 §10.3
-void RestoreLudeoState(LudeoStateObjectRestore r) {
-    r.TryGetAttribute(K.IsAvailable, out bool available);
+void RestoreLudeoState(LudeoReadableObject r) {
+    bool available;
+    using (r.EnterObjectScope())
+        r.ReadData(K.IsAvailable, out available);
     SetAvailable(available);     // "consumed" is a restored state, not a skipped spawn
 }
 
 // 5.4 Door / switch                                                                inverse of 06 §10.4
-void RestoreLudeoState(LudeoStateObjectRestore r) {
-    r.TryGetAttribute(K.IsOpen, out bool open);
-    r.TryGetAttribute(K.OpenProgress, out float p);
-    ApplyDoorState(open, p);     // restore mid-animation pose if the replay can pause there
+void RestoreLudeoState(LudeoReadableObject r) {
+    using (r.EnterObjectScope()) {
+        r.ReadData(K.IsOpen, out bool open);
+        r.ReadData(K.OpenProgress, out float p);
+        ApplyDoorState(open, p);     // restore mid-animation pose if the replay can pause there
+    }
 }
 ```
+
+> **Read many attributes at once with `GetAllAttributes`.** When an object has many attributes, prefer
+> one `using (r.EnterObjectScope()) { r.GetAllAttributes(out LudeoAttributesCollection all); … }` over
+> a long list of `ReadData` calls — the collection is filled in a single native traversal, whereas each
+> `ReadData` (and each typed `GetAllAttributes(out Dictionary<…>)`) re-walks the context (doc 12).
 
 ---
 
@@ -423,7 +437,9 @@ The capture side stored the **target's stable key**, never a reference (`06 §4`
 ```csharp
 // Pass 1 populated: keyMap[capturedKey] = spawnedGameObject  (every collection entry)
 // Pass 2:
-r.TryGetAttribute(LudeoWeaponKeys.OwnerId, out int ownerKey);     // [SDK] the captured target key
+int ownerKey;
+using (r.EnterObjectScope())                                      // [SDK] CR-002
+    r.ReadData(LudeoWeaponKeys.OwnerId, out ownerKey);           // [SDK] the captured target key
 if (keyMap.TryGetValue(ownerKey, out GameObject owner))           // [Unity]
     m_owner = owner.GetComponent<TankPlayer>();
 else
@@ -466,10 +482,10 @@ layout, spawn definitions, world/environment state (time-of-day, weather, audio,
 
 - **Capture (creator):** store the level/config + world state as their **own state object(s)** — a singleton
   "definitions" `objectType`, optionally with **nested `LudeoStateComponent`** `[SDK]` scopes for sub-structs
-  (`CreateOrGetStateComponent`). The tank does this in `LudeoController.StoreGameConfig` → `StoreGameDefinitions`
+  (`CreateOrGetComponent`). The tank does this in `LudeoController.StoreGameConfig` → `StoreGameDefinitions`
   `[Layer]` (creator flow only).
 - **Restore (play):** `LudeoRestoredData` (§3.1) rebuilds it into `TrackedDefinitionsForLudeo` `[Layer]` by
-  reading those buckets back (`TryGetAttribute` on the singleton + nested `LudeoStateComponentRestore` `[SDK]`,
+  reading those buckets back (`ReadData` on the singleton + nested `LudeoReadableComponent` `[SDK]`,
   iterating per-type buckets for spawn lists). The game reads it via `GetLudeoTrackedDefinitions()` `[Layer]`
   and uses it to drive spawning — the play flow's `ReplayLudeo` equivalent of the creator's `StartLevel`.
 
@@ -510,7 +526,8 @@ don't restore them; record why.
 > genuine resolver/content bug. **Emit a different message for each** so a stale-data re-capture isn't
 > mistaken for a code bug:
 > ```csharp
-> r.TryGetAttribute(K.WorldId, out string worldId);                                   // [SDK]
+> string worldId;
+> using (r.EnterObjectScope()) r.ReadData(K.WorldId, out worldId);              // [SDK] CR-002
 > if (string.IsNullOrEmpty(worldId))
 >     Debug.LogError("[Ludeo] restore: empty world-identity key — Ludeo predates the WorldId capture; RE-CAPTURE on the current build"); // [Unity]
 > else if (!TryResolveWorld(worldId, out var world))
@@ -635,10 +652,10 @@ private void HandleLudeoRoomReady(/* LudeoSessionRoomReadyCallbackData */)      
 
 ### 10.3 Mid-play overlay (CR-011) — separate flag
 
-While the player has the overlay open *during* playback, `AddNotifyPauseGame`/`AddNotifyResumeGame` `[SDK]`
+While the player has the overlay open *during* playback, `PauseGameRequested`/`ResumeGameRequested` `[SDK]`
 freeze/resume the sim. Track the **CR-010 restore freeze and the CR-011 overlay pause on two separate flags**
 (engine paused iff *either* set) — one shared flag lets a mid-play `ResumeGame` unfreeze a restore, or
-`RoomReady` cancel a player-opened overlay. `AddNotifyReturnToMainMenu` `[SDK]` is a **CR-007 exit** (stop
+`RoomReady` cancel a player-opened overlay. `GameBackToMenuRequested` `[SDK]` is a **CR-007 exit** (stop
 tracking + `CloseRoom` + load menu). Full detail in
 [`unity/CONSENT-AND-OVERLAY.md`](unity/CONSENT-AND-OVERLAY.md).
 
@@ -677,7 +694,7 @@ anything this run set.
 ## 11. Validation Checklist
 
 **Flow & ordering**
-- [ ] Restore is wired as `LudeoSelected → GetLudeo → LudeoRestoredData → OpenRoom(forLudeo) → AddGamePlayer → apply → RoomReady → Begin`.
+- [ ] Restore is wired as `LudeoSelected → GetLudeo → LudeoRestoredData → OpenRoom(forLudeo) → AddPlayer → apply → RoomReady → Begin`.
 - [ ] Scene/objects exist before apply; apply before `Begin`; `Begin` gated on `RoomReady` (§2.1).
 - [ ] Play-flow re-entry (mid-capture **and replay→replay**) **completely** tears the prior run down
       first — `AbortGameplay` (session abort + stop tracking + close room + reset gameplay-active) +
@@ -712,11 +729,11 @@ anything this run set.
 ## Calls used in this doc
 
 **`[SDK]`** (authority: [`12-SDK-API-REFERENCE.md`](12-SDK-API-REFERENCE.md)):
-`LudeoSession.{GetLudeo, AddNotifyLudeoSelected, AddNotifyRoomReady, AddNotifyPauseGame, AddNotifyResumeGame,
-AddNotifyReturnToMainMenu}` · `LudeoDataReader.GetStateObjects` · `LudeoStateObjectRestore.{TryGetAttribute,
-ObjectType, ObjectId, CreateOrGetStateComponent}` · `LudeoStateComponentRestore.TryGetAttribute` ·
-`LudeoRoom.{OpenRoom, AddGamePlayer, CloseRoom}` · `LudeoGameplaySession.Begin`. Restore reads mirror the
-capture-side `LudeoStateObject.SetAttribute`.
+`LudeoSession.{GetLudeo}` + events `{LudeoSelected, RoomReady, PauseGameRequested, ResumeGameRequested,
+GameBackToMenuRequested}` · `LudeoDataReader.GetObjects` · `LudeoReadableObject.{EnterObjectScope, ReadData,
+ObjectType, ObjectId, CreateOrGetComponent}` · `LudeoReadableComponent.ReadData` ·
+`LudeoRoom.{OpenRoom, AddPlayer, CloseRoom}` · `LudeoPlayer.BeginGameplay`. Restore reads (inside
+`using EnterObjectScope()`) mirror the capture-side `LudeoWritableObject.WriteData`.
 
 **`[Layer]`** (REFERENCE-ARCHITECTURE + the restore additions in §3):
 `LudeoController.{GetAndRestoreLudeoStateOfObject, RestoreLudeoStateOfObject, TryGetAllLudeoStateObjectByType,

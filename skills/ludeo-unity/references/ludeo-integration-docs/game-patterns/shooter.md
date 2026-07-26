@@ -3,7 +3,7 @@
 > **Applies to:** FPS, TPS, Arena Shooters, Battle Royale, Tactical Shooters
 > **Load when:** Game involves guns, projectiles, health/damage combat, player-vs-enemy or PvP
 >
-> Action names below map to `[SDK]` `LudeoGameplaySession.SendAction(string)` via the `[Layer]`
+> Action names below map to `[SDK]` `LudeoPlayer.SendAction(string)` via the `[Layer]`
 > `LudeoController.SendAction` (see `phase 7`).
 
 ---
@@ -120,7 +120,7 @@ win, lose, victory, defeat, gameOver, endGame, endRound, endMatch
 ## 3. Tracking Checklist
 
 After object tracking is implemented (phase 9), verify these are covered. Types map to `[SDK]`
-`SetAttribute` overloads (see `12-SDK-API-REFERENCE.md`). Sections are tiered by restoration priority:
+`WriteData` overloads (see `12-SDK-API-REFERENCE.md`). Sections are tiered by restoration priority:
 - **CRITICAL** — restore or the replayed moment is visibly wrong.
 - **IMPORTANT** — restore for fidelity; recognizable without it but degraded.
 - **OPTIONAL** — situational/cosmetic; capture only if it affects the specific captured moment.

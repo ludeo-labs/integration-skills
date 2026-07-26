@@ -53,10 +53,12 @@ batch pass. Produces the capture code the orchestrator then verifies at runtime 
 ## 3. Steps
 
 > **Reproduce `[SDK]` signatures from `12-SDK-API-REFERENCE.md` verbatim** —
-> `LudeoRoom.CreateStateObject(objectType, out LudeoStateObject)` returns `LudeoResult`;
-> `LudeoStateObject.SetAttribute(name, value)` is overloaded for
-> `int/float/double/bool/string/Vector3/Quaternion/byte[]`. The `[Layer]` already wraps these — you call
-> the façade, not the raw SDK.
+> `LudeoRoom.Writer.CreateObject(objectType, out LudeoWritableObject)` returns `LudeoResult`;
+> `LudeoWritableObject.WriteData(name, value)` is overloaded for
+> `int/float/double/bool/string/Vector3/Quaternion/byte[]`. **`WriteData` requires an open write scope
+> (CR-002)** — but the `DefaultLudeoStateHandler` opens `using (obj.EnterObjectScope())` once per tick
+> around your `OnStateDataUpdate` lambda, so the lambda below just calls `obj.WriteData(...)`; **do not
+> open a scope in game code.** The `[Layer]` already wraps these — you call the façade, not the raw SDK.
 
 ### Step 1: Read the plan
 Read `ludeo-integration-plan/OBJECT_TRACKING.md`. Per entity, extract: objectType string, spawn/own
@@ -102,8 +104,8 @@ if (LudeoController.Instance.IsInLudeoFlow) return;   // [Layer] capture is crea
 m_handler = LudeoController.Instance.StartTrackingLudeoState<DefaultLudeoStateHandler>(   // [Layer]
     <Keys>.OBJECT_NAME,
     obj => {                                          // OnStateDataUpdate — runs each sampling tick
-        obj.SetAttribute(<Keys>.Key, m_myStableKey);  // [SDK] identity/key — write every tick (diff-sent, free)
-        obj.SetAttribute(<Keys>.Position, transform.position);   // [SDK] Vector3 [Unity]
+        obj.WriteData(<Keys>.Key, m_myStableKey);  // [SDK] identity/key — write every tick (diff-sent, free)
+        obj.WriteData(<Keys>.Position, transform.position);   // [SDK] Vector3 [Unity]
         // … every kept property from the plan …
     });
 ```
@@ -191,7 +193,7 @@ stream-in hook, not in a one-shot whole-world pass (`open-world-tracking.md §6`
 For entities marked **reconciliation** in the per-entity matrix (`OBJECT_TRACKING.md` entity rows /
 `CODE_MAP.save_system.per_entity`, built in `phase 3`): have the `OnStateDataUpdate` lambda mirror the
 named fields the game's own serializer writes. For **manual** entities, all writes are the explicit
-`SetAttribute` calls from Step 4.
+`WriteData` calls from Step 4.
 
 > ⚠️ **Reconciliation only applies when the save writes named fields.** If the serializer produces an
 > opaque/packed blob, you cannot mirror it into Ludeo's named-attribute API — capture discrete
@@ -218,8 +220,9 @@ Surface to the orchestrator; don't guess:
 - **Propose-confirm-execute** for every change; confirm the keys class(es) before creating.
 - **No `#if LUDEO_SDK_ENABLED` at capture sites** — disable is runtime via the dummy (CR-001). Only the
   optional package-excluding `LUDEO_SDK` define uses `#if` (the rare ship-without-package case).
-- **No ID map, no macros, no `EnterObject`/`LeaveObject`** — identity is bucket + your own key (`06 §4`);
-  CR-002 is N/A in Unity.
+- **No ID map, no macros** — identity is bucket + your own key (`06 §4`). Writes **are** scoped in
+  v4.2.0 (CR-002), but the `DefaultLudeoStateHandler` owns `using EnterObjectScope()` per tick — the
+  game's `OnStateDataUpdate` lambda just calls `WriteData`, no manual scope at capture sites.
 - **Capture is creator-only** — guard every register + the sampler on `!IsInLudeoFlow` (`06 §3` rule box).
 - **No SDK tick** (CR-005); sample on the **main thread** (CR-013); never key on `GetInstanceID()` (CR-014).
 - **Attributes by default, not blobs** (`06 §1.4`) — `byte[]` only for entities the plan flagged.

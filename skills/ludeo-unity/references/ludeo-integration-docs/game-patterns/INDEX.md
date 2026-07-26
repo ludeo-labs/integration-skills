@@ -6,7 +6,7 @@
 
 All catalogs here are game-design knowledge (WHAT to capture); the **how** — Unity search idioms,
 `SendAction` wiring — lives in phases 6/7. Action names map to `[SDK]`
-`LudeoGameplaySession.SendAction(string)` (via the `[Layer]` `LudeoController.SendAction`).
+`LudeoPlayer.SendAction(string)` (via the `[Layer]` `LudeoController.SendAction`).
 
 ---
 

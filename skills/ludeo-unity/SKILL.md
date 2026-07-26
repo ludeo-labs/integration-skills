@@ -1,12 +1,14 @@
 ---
 name: ludeo-unity-integration
 description: Integrate the Ludeo SDK into a Unity (C#) game using the Ludeo Unity plugin. Sets up the package install + scripting defines, wires the SDK lifecycle through MonoBehaviour/scene flow, maps and implements game actions, maps and tracks GameObjects as attributes, restores state for playable Ludeos, and verifies the integration. Use when the user asks to integrate, install, add, set up, or wire up Ludeo into their Unity game.
-metadata.version: 1.1.0
+metadata.version: 2.0.0
 ---
 
 # Ludeo SDK Integration for Unity
 
-**Skill version:** 1.1.0 · Compare against the [latest release](https://github.com/ludeo-labs/integration-skills/releases/latest) to confirm your installed copy is current. If older, run `npx skills update ludeo-labs/integration-skills/skills/ludeo-unity` (then start a fresh agent session — `SKILL.md` is cached per session).
+**Skill version:** 2.0.0 · **Pinned to the Ludeo Unity plugin v4.2.0 API** (`com.ludeosdk.unity` 4.2.0). Compare against the [latest release](https://github.com/ludeo-labs/integration-skills/releases/latest) to confirm your installed copy is current. If older, run `npx skills update ludeo-labs/integration-skills/skills/ludeo-unity` (then start a fresh agent session — `SKILL.md` is cached per session).
+
+> **⚠️ v4.2.0 was a breaking SDK rewrite.** If you have an integration on an older plugin (`InitLudeoSession`, `LudeoStateObject`/`SetAttribute`, `AddNotify*`, `LudeoGameplaySession`), see the "What changed in v4.2.0" table in [`references/ludeo-integration-docs/12-SDK-API-REFERENCE.md`](references/ludeo-integration-docs/12-SDK-API-REFERENCE.md) — init is now `Initialize()`+`SessionManager.CreateSession`, notifications are C# events, capture goes through `LudeoRoom.Writer` + scoped `WriteData`, and the gameplay session is `LudeoPlayer`.
 
 This skill walks the agent through integrating the Ludeo SDK into a **Unity** game using the
 **Ludeo Unity plugin** (the managed `LudeoSDK` C# API), from package install through action mapping,
@@ -106,9 +108,14 @@ file — so the user experiences each as a single phase.
   Unity game is structured") before phase 0, and treat every search/instruction through it.
 - **Track objects as attributes by default, not blobs.** The SDK supports both; Ludeo strongly
   prefers attribute integrations. When mapping and tracking objects (phases 3–4), capture discrete
-  typed attributes (`SetAttribute(name, int/float/bool/string/Vector3/Quaternion)`) by default and
-  do **not** ask the user which to use. Use blob/`byte[]` storage only when the user explicitly asks
-  or an entity is genuinely opaque — see `06-TRACKING-PATTERNS.md`.
+  typed attributes (`WriteData(name, int/float/double/bool/string/Vector3/Quaternion)`, inside
+  `using (obj.EnterObjectScope())`) by default and do **not** ask the user which to use. Use
+  blob/`byte[]` storage only when the user explicitly asks or an entity is genuinely opaque — see
+  `06-TRACKING-PATTERNS.md`.
+- **Writes and reads are scoped (CR-002, v4.2.0).** Every `WriteData`/`ReadData` runs inside a
+  `using EnterObjectScope()` (component scopes nested inside). The prescribed `ILudeoStateHandler`
+  owns the write scope per tick, so gameplay code just calls `WriteData` — but restore-apply code
+  opens the read scope itself. See `12-SDK-API-REFERENCE.md` and `00-CRITICAL-REQUIREMENTS.md`.
 - **The SDK ticks itself.** The plugin instantiates a `LudeoUnityManager` that drives the SDK Tick.
   Do **not** wire SDK Tick into an Update loop. The game only drives its own `UpdateStateObjects()`
   attribute-sampling cadence.

@@ -21,8 +21,8 @@
 ## 1. Goal / Purpose
 
 Fill the **data** half of restoration — the inverse of task 1. Where task 1 registered objects and wrote
-attributes (`SetAttribute`), this task spawns them in Pass 1 and reads attributes back with
-`TryGetAttribute` in Pass 2. Produces the real `ApplyRestoredState()`: the restore-read accessors, the
+attributes (`WriteData`), this task spawns them in Pass 1 and reads attributes back with
+`ReadData` in Pass 2. Produces the real `ApplyRestoredState()`: the restore-read accessors, the
 per-Ludeo `keyMap`, the two-pass spawn + property apply + reference resolution, matched/singleton baseline
 reset, the deferred-property queue, pre-existing reconciliation, and environment/world restore.
 
@@ -70,10 +70,13 @@ doesn't double-create during a restore.
 ## 3. Steps
 
 > **Reproduce `[SDK]` signatures from `12-SDK-API-REFERENCE.md` verbatim** —
-> `LudeoStateObjectRestore.TryGetAttribute(name, out value)` returns `bool` (the inverse of capture's
-> `SetAttribute`, overloaded for `int/float/double/bool/string/Vector3/Quaternion/byte[]`). The `[Layer]`
-> wraps these — the game calls the façade (`GetAndRestoreLudeoStateOfObject` / `RestoreLudeoStateOfObject` /
-> `TryGetAllLudeoStateObjectByType`), not the raw reader.
+> `LudeoReadableObject.ReadData(name, out value)` returns `bool` (the inverse of capture's
+> `WriteData`, overloaded for `int/float/double/bool/string/Vector3/Quaternion/byte[]`). **Every read
+> must be inside `using (r.EnterObjectScope())` (CR-002)** — reads outside a scope silently return
+> `false`; wrap the whole per-entity apply in one scope. For many-attribute objects prefer one
+> `r.GetAllAttributes(out LudeoAttributesCollection all)` over a long `ReadData` list (doc 12). The
+> `[Layer]` wraps these — the game calls the façade (`GetAndRestoreLudeoStateOfObject` /
+> `RestoreLudeoStateOfObject` / `TryGetAllLudeoStateObjectByType`), not the raw reader.
 
 ### Step 1: Read the plan (data rows)
 Read `ludeo-integration-plan/RESTORATION_PLAN.md`. Extract the **data** rows (interrupt-flow / freeze /
@@ -103,7 +106,7 @@ fill the body and the accessors it calls.
 The Unity model has **no SDK id-map** — build your own `keyMap` from the stable-key attribute you captured.
 Implement exactly the Pass 1 / Pass 2 split the plan recorded, inside `ApplyRestoredState()`:
 - **Pass 1 — Create:** for each `objectType` bucket, spawn a **type-only** instance via the entity's spawn
-  function, read its **stable-key attribute** (`TryGetAttribute` `[SDK]`), and add
+  function, read its **stable-key attribute** (`ReadData` `[SDK]`), and add
   `keyMap[stableKey] = instance`. Singletons (the player) take bucket `[0]` and need no key. **A matched
   instance or persistent singleton (`07 §4`/§9) is NOT spawned here — it kept the prior run's state; the
   plan named its baseline reset, run it first in Pass 2 (Step 4).**
@@ -115,7 +118,7 @@ Implement exactly the Pass 1 / Pass 2 split the plan recorded, inside `ApplyRest
 LudeoController.Instance.GetAndRestoreLudeoStateOfObject(LudeoPlayerKeys.OBJECT_NAME, RestoreLudeoState);
 
 // COLLECTION (enemies): the spawner pulls the bucket, spawns type-only, and applies EACH ENTRY in this loop
-LudeoController.Instance.TryGetAllLudeoStateObjectByType(enemyObjectType, out List<LudeoStateObjectRestore> bucket); // [Layer]
+LudeoController.Instance.TryGetAllLudeoStateObjectByType(enemyObjectType, out List<LudeoReadableObject> bucket); // [Layer]
 for (int i = 0; i < bucket.Count; ++i) {
     EnemyController e = SpawnEnemy(/* type-only */);          // Pass 1: create (Awake activates it)   [Unity]
     LudeoController.Instance.RestoreLudeoStateOfObject(       // Pass 2: apply NOW, in the driver's call stack
@@ -137,32 +140,34 @@ for (int i = 0; i < bucket.Count; ++i) {
 Pass 1 into **1a (foundational)** / **1b (dependent)**, preserve that order.
 
 > **Missing-key policy:** a Pass-2 `keyMap` miss is a **Pass-1 bug — fail loud, never substitute null**
-> (Step 5). A missing *optional attribute* (`TryGetAttribute` → `false`) just keeps the spawn default
+> (Step 5). A missing *optional attribute* (`ReadData` → `false`) just keeps the spawn default
 > (`07 §1.4`). Implement the per-property fallback the plan specified — don't fail the whole restore on one
 > missing optional field.
 
 ### Step 4: Write the per-entity `RestoreLudeoState` callbacks (07 §5)
 For **each** tracked entity, write the apply callback as the **inverse of its task-1 `OnStateDataUpdate`
-lambda** — same `LudeoKeys` `[Layer]` constants, `TryGetAttribute` `[SDK]` read → live-object setter `[Unity]`:
+lambda** — same `LudeoKeys` `[Layer]` constants, `ReadData` `[SDK]` read → live-object setter `[Unity]`:
 
 ```csharp
-void RestoreLudeoState(LudeoStateObjectRestore r) {          // inverse of the 06 §10 capture lambda
+void RestoreLudeoState(LudeoReadableObject r) {          // inverse of the 06 §10 capture lambda
     ResetToBaseline();                                       // [Unity] matched/persistent singleton ONLY (07 §4):
                                                              // clear prior-run state (inventory/buffs/score/cooldowns)
-    r.TryGetAttribute(K.Position, out Vector3 pos);          // [SDK] read back what SetAttribute wrote
-    r.TryGetAttribute(K.HP,       out int hp);
-    transform.position = pos;  m_player.UpdateCurrentHP(hp);  // [Unity]
-    // r.TryGetAttribute(K.Velocity, ...) → DEFER (Step 6)
-    // r.TryGetAttribute(K.TargetId, ...) → resolve in Pass 2 via keyMap (Step 5)
+    using (r.EnterObjectScope()) {                          // [SDK] CR-002 — reads only work inside the scope
+        r.ReadData(K.Position, out Vector3 pos);      // [SDK] read back what WriteData wrote
+        r.ReadData(K.HP,       out int hp);
+        transform.position = pos;  m_player.UpdateCurrentHP(hp);  // [Unity]
+        // r.ReadData(K.Velocity, ...) → DEFER (Step 6)
+        // r.ReadData(K.TargetId, ...) → resolve in Pass 2 via keyMap (Step 5)
+    }
 }
 ```
 
 Drive each from the plan's per-entity block:
 - **Approach** — `reconciliation` (route through the game's recreate/load path) or `manual` (explicit
-  `TryGetAttribute` → setter), **per entity from the matrix** — never re-decided by policy here.
+  `ReadData` → setter), **per entity from the matrix** — never re-decided by policy here.
 - **Baseline reset first** — if the plan flagged the entity a **matched instance or persistent singleton**
   (the player on `DontDestroyOnLoad`/`static`/an SO-held reference), call its reset (the plan named it)
-  **at the top of the apply, before any `TryGetAttribute`**. It was never re-instantiated, so uncaptured
+  **at the top of the apply, before any `ReadData`**. It was never re-instantiated, so uncaptured
   fields (inventory, ammo, buffs, score, cooldowns, status flags) survive from the prior run and leak in
   otherwise. Freshly-spawned entities skip this — `Instantiate` already gave them a clean slate.
 - **Collections** read their stable key into `keyMap` in Pass 1 (Step 3); **singletons** don't.
@@ -174,7 +179,9 @@ For every row in the plan's Cross-Entity References table, the captured value is
 resolve it against `keyMap` in Pass 2 and **fail loud on a miss**:
 
 ```csharp
-r.TryGetAttribute(LudeoWeaponKeys.OwnerId, out int ownerKey);    // [SDK] captured target key
+int ownerKey;
+using (r.EnterObjectScope())                                     // [SDK] CR-002
+    r.ReadData(LudeoWeaponKeys.OwnerId, out ownerKey);         // [SDK] captured target key
 if (keyMap.TryGetValue(ownerKey, out GameObject owner))          // [Unity]
     m_owner = owner.GetComponent<TankPlayer>();
 else
@@ -261,7 +268,7 @@ Surface to the orchestrator; don't guess:
 - **Don't touch the flow.** The apply gate, freeze, `LudeoSelected` handler, overlay registrations, and
   entry-identity/scene-boot are task 3's. This task only fills `ApplyRestoredState()` and its accessors.
 - **No SDK id-map, no `EnterObject`, no `ObjectId` matching** — identity is bucket + your own stable key
-  (`07 §4`); `LudeoStateObjectRestore.ObjectId` is an SDK `uint`, never a match key (CR-014).
+  (`07 §4`); `LudeoReadableObject.ObjectId` is an SDK `uint`, never a match key (CR-014).
 - **Snapshot, not replay.** `dynamic` captures restore as the single final value, applied once.
 - **Two-pass is mandatory (CR-006).** Pass 1 spawns + builds `keyMap`; Pass 2 applies + resolves references.
 - **Apply synchronously from the driver** — never defer to a spawned object's `Start`/`OnEnable` (dropped
@@ -294,7 +301,7 @@ Surface to the orchestrator; don't guess:
 **Guideline phase-4 criteria this task feeds** (verified at the orchestrator's gate, not here):
 - [ ] **Captured highlight plays back and visibly restores positions/state** — restored snapshot present on
       the first visible frame, non-zero two-pass counts, a cross-entity reference resolved correctly.
-- [ ] **Reader does not assert on missing attributes** — `TryGetAttribute` → `false` keeps the spawn
+- [ ] **Reader does not assert on missing attributes** — `ReadData` → `false` keeps the spawn
       default; only a missing **key** fails loud.
 - [ ] **Restore verified by a human** — including the replay-twice no-leak test (second Ludeo's state shows,
       not the first's; no dropped-`Start` defaults).
@@ -306,7 +313,7 @@ Surface to the orchestrator; don't guess:
       `LudeoKeys` constants, `objectType` strings matched exactly.
 - [ ] Apply is driven **synchronously from the restore loop**, never deferred to a spawned object's
       `Start`/`OnEnable`; the apply is idempotent.
-- [ ] Matched instances / persistent singletons reset to baseline **before** any `TryGetAttribute`.
+- [ ] Matched instances / persistent singletons reset to baseline **before** any `ReadData`.
 - [ ] Cross-entity references resolved via `keyMap` in Pass 2, **fail loud** on a miss (never null).
 - [ ] Deferred-property queue applied after Pass 2, before `Begin`, in the plan's order.
 - [ ] World/level definitions restored **before** entities; environment **after**; exclusion list honored.

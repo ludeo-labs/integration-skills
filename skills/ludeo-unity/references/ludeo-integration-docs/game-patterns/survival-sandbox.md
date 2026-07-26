@@ -10,7 +10,7 @@
 > load→play→save-exit = one session) and [open-world-tracking.md](./open-world-tracking.md)
 > (streaming-world tracking) **alongside** this file.
 >
-> Action names below map to `[SDK]` `LudeoGameplaySession.SendAction(string)` via the `[Layer]`
+> Action names below map to `[SDK]` `LudeoPlayer.SendAction(string)` via the `[Layer]`
 > `LudeoController.SendAction` (see `phase 7`).
 
 ---
@@ -117,7 +117,7 @@ aggro, alert, hostile, passive, faction
 ## 3. Tracking Checklist
 
 After object tracking is implemented (phase 9), verify these are covered. Types map to `[SDK]`
-`SetAttribute` overloads (see `12-SDK-API-REFERENCE.md`). These worlds stream and persist heavily —
+`WriteData` overloads (see `12-SDK-API-REFERENCE.md`). These worlds stream and persist heavily —
 apply [open-world-tracking.md](./open-world-tracking.md): track the **loaded neighborhood + world
 state**, scope cell/chunk mutations to what the captured moment needs, not the entire save. Sections
 are tiered by restoration priority:

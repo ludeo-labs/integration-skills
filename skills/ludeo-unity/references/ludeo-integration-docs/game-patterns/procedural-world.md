@@ -46,7 +46,7 @@ the *determinism discipline* §8 assumes you already have.
 ## 2. Session boundary: one run = one Gameplay Session
 
 The boundary rule is the roguelike instance of [`open-world.md §1`](./open-world.md): **one live run =
-one `LudeoGameplaySession`**, regardless of how many chunks/rooms/floors it stitches together.
+one `LudeoPlayer`**, regardless of how many chunks/rooms/floors it stitches together.
 
 | Event | Boundary? | Why |
 |---|---|---|
@@ -243,7 +243,7 @@ checklist** for whichever genre(s) the run blends (combat → `shooter.md`/`rpg.
 ## Calls used in this doc
 
 **`[SDK]`** (authority: [`../12-SDK-API-REFERENCE.md`](../12-SDK-API-REFERENCE.md)):
-`LudeoStateObject.SetAttribute` / `LudeoStateObjectRestore.TryGetAttribute` (via the `[Layer]` handler)
+`LudeoWritableObject.WriteData` / `LudeoReadableObject.ReadData` (via the `[Layer]` handler)
 — no procedural-only SDK surface; this is a usage pattern over the `06`/`07`/§8 model.
 
 **`[Layer]`** (from [`../unity/REFERENCE-ARCHITECTURE.md`](../unity/REFERENCE-ARCHITECTURE.md)):

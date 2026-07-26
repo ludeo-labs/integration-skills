@@ -53,7 +53,7 @@ you tail the log.)
 | SDK result codes | `LudeoResult` / `resultCode` |
 | Compile errors | `error CS` |
 | Runtime exceptions | `Exception`, `NullReferenceException` |
-| SDK objects in use | `LudeoManager`, `LudeoSession`, `LudeoStateObject` |
+| SDK objects in use | `LudeoManager`, `LudeoSession`, `LudeoWritableObject` |
 
 ## Diagnosing `InvalidAuth` (implicit / Steam auth)
 

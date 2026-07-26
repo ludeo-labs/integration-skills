@@ -98,7 +98,7 @@ The orchestrator relays whatever a subagent surfaces — it does not invent its 
 - **Player-perspective naming + correct attribution.** Name actions from the player's perspective
   (`Kill`, `Death`); guard player-scoped actions on the player being actor/subject; fire global/match-scoped
   actions (`MatchWin`, `WaveComplete`) once, unguarded. The captured player identity is set via
-  `SetGameplayerId` `[Layer]`, which **must match the id passed to `AddGamePlayer`** (phase 2) — that is
+  `SetGameplayerId` `[Layer]`, which **must match the id passed to `AddPlayer`** (phase 2) — that is
   what binds `SendAction` (parameterless in Unity) to the right player.
 - **Non-gameplay handling is emitted here** (planned in phase 2). Three distinct mechanisms — whole
   non-gameplay screens (no action, session bracketing), non-ludeoable *areas*
@@ -125,7 +125,7 @@ The orchestrator confirms **all** of these before advancing to phase 6:
       non-gameplay names (no canonical platform list exists yet) (task 1).
 - [ ] **Actions emit at runtime in Creator flow** (task 2 gate, log).
 - [ ] **Actions emit at runtime in Player flow** (task 2 gate, log).
-- [ ] **player-id matches the id passed to `AddGamePlayer`** — via `SetGameplayerId` (phase 2); confirmed
+- [ ] **player-id matches the id passed to `AddPlayer`** — via `SetGameplayerId` (phase 2); confirmed
       by correct attribution at the gate.
 - [ ] **Emission verified in logs** (task 2 gate).
 

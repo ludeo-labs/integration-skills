@@ -31,19 +31,19 @@ mapping**. Every call fires in **both** the Creator (capture) and Player (restor
 - [ ] Context files read (relative to this brief):
   - `ludeo-integration-docs/unity/REFERENCE-ARCHITECTURE.md` — the `[Layer]` `LudeoController.SendAction` +
     `LudeoActionKeys`.
-  - `ludeo-integration-docs/12-SDK-API-REFERENCE.md` — the `[SDK]` `LudeoGameplaySession.SendAction(string)`
+  - `ludeo-integration-docs/12-SDK-API-REFERENCE.md` — the `[SDK]` `LudeoPlayer.SendAction(string)`
     signature.
   - `ludeo-integration-docs/00-CRITICAL-REQUIREMENTS.md` — CR-001 (runtime disable), CR-007.
 
 ## How `SendAction` works in Unity (read before inserting)
 
-- **One argument, no `playerId`.** `[SDK]` `LudeoGameplaySession.SendAction(string action)` is bound to the
+- **One argument, no `playerId`.** `[SDK]` `LudeoPlayer.SendAction(string action)` is bound to the
   room's player already — there is **no** `playerId` parameter and no DataWriter handle (unlike the C++
   API). Call sites pass only the action name. **The player binding is set once via `SetGameplayerId`
-  `[Layer]` (phase 2), whose id MUST match the id passed to `AddGamePlayer`** — that is the guideline's
+  `[Layer]` (phase 2), whose id MUST match the id passed to `AddPlayer`** — that is the guideline's
   "player-id matches the id passed to AddPlayer." If they diverge, actions attribute to the wrong player.
 - **Actions fire in BOTH flows — never gate on `IsInLudeoFlow`.** The play flow re-fires the same sites so
-  the SDK can score the Ludeo's win/fail during playback. Only **state writes** (`SetAttribute`, phase 4)
+  the SDK can score the Ludeo's win/fail during playback. Only **state writes** (`WriteData`, phase 4)
   are creator-only; **action writes are not.** The façade's `isGameplayActive` gate is the *only* gate.
 - **Guard player-scoped actions; fire global ones as-is.** A **player-scoped** action (`Kill`, `Death`) at a
   site that triggers for *any* actor (a shared `OnEnemyKilled`, an NPC-vs-NPC kill) **credits the player
@@ -125,7 +125,7 @@ From the map's **Non-Gameplay Actions** section + `SDK_INTEGRATION_POINTS.json`:
   reachable `StopNoneLudeable` on all exit paths** — a dangling open span leaves capture suppressed for the
   rest of the run (mirror of the CR-007 "no dangling on EndGameplay" rule).
 - **Capture-hygiene pause** — at a game-initiated cutscene/pause begin emit `PauseLudeo`, at its end emit
-  `ResumeLudeo`. This is **distinct from the SDK overlay pause** (`AddNotifyPauseGame`/`ResumeGame`, wired in
+  `ResumeLudeo`. This is **distinct from the SDK overlay pause** (`PauseGameRequested`/`ResumeGame`, wired in
   phase 2/4 — that's the Ludeo overlay covering the game, not a game-initiated capture-hygiene pause).
 
 ```csharp
@@ -167,7 +167,7 @@ Surface to the orchestrator; don't guess:
   "are we replaying?" check — the #1 actions bug. Only **state writes** are creator-only.
 - **Attribute to the player.** Where the map says `⚠ needs player-guard`, wrap the `SendAction` in the
   player-actor/subject check; the guard surrounds only the Ludeo call. `SetGameplayerId` (phase 2) must
-  match the `AddGamePlayer` id.
+  match the `AddPlayer` id.
 - **Global/match-scoped actions fire once, unguarded.**
 - **Route through the façade**, not raw `[SDK]` — keeps CR-001/CR-007 satisfiable; no per-site session check.
 - **No `#if` guard at call sites** (CR-001 runtime).
@@ -190,7 +190,7 @@ Surface to the orchestrator; don't guess:
 
 **Guideline phase-5 criteria this task feeds** (verified at the orchestrator's gate, not here):
 - [ ] **Actions emit at runtime in Creator flow** and **in Player flow** — confirmed in the log.
-- [ ] **player-id matches the id passed to `AddGamePlayer`** (via `SetGameplayerId`) — correct attribution.
+- [ ] **player-id matches the id passed to `AddPlayer`** (via `SetGameplayerId`) — correct attribution.
 - [ ] **Emission verified in logs.**
 
 **Skill-specific pre-handoff criteria (satisfy before returning):**

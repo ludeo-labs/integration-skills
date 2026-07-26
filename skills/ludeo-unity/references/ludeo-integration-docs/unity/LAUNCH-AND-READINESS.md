@@ -22,9 +22,9 @@
 The classic flow boots to a main menu, and that menu silently does **three** jobs the lifecycle leans
 on without ever naming them:
 
-1. It absorbs the async `InitLudeoSession → Activate` `[SDK]` latency — the round-trip finishes while
-   the player reads the menu.
-2. It absorbs the async **consent** latency — `AddNotifyConsentUpdated` `[SDK]` fires and flips
+1. It absorbs the async `Activate` `[SDK]` (+ consent) latency — `Initialize`/`CreateSession` are
+   synchronous, but the `Activate` round-trip finishes while the player reads the menu.
+2. It absorbs the async **consent** latency — `PlayerConsentUpdated` `[SDK]` fires and flips
    `LudeoFlowSwitch` `[Layer]` from its default **Disabled+Dummy** to enabled **before** the first
    creator `OpenRoom`. Open a room while the switch is still `Disabled` and `DisabledLudeoFlow.InitRoom`
    **no-ops** — no room, no capture, no Ludeo, all session, **silently** (the failure passes a smoke
@@ -39,8 +39,8 @@ all three guarantees break. You replace the menu's implicit wait with one explic
 
 ## 2. The SDK never blocks
 
-`InitLudeoSession`, `Activate`, and consent are **all async callbacks** `[SDK]` — nothing waits for
-you (see [`../05-LIFECYCLE-MANAGEMENT.md`](../05-LIFECYCLE-MANAGEMENT.md) startup sequence, and
+`Activate` and consent are **async callbacks** `[SDK]` (`Initialize`/`CreateSession` are synchronous)
+— nothing waits for you (see [`../05-LIFECYCLE-MANAGEMENT.md`](../05-LIFECYCLE-MANAGEMENT.md) startup sequence, and
 `HandleActivateDone`/`HandleConsentUpdated` in [`REFERENCE-ARCHITECTURE.md`](./REFERENCE-ARCHITECTURE.md)).
 The gate below is **integration code you build**, not an SDK affordance. Skip it and the game races
 ahead of the SDK — the creator `OpenRoom` no-ops against the still-`Disabled` flow switch (§1.2).
@@ -58,15 +58,15 @@ look unnecessary for capture.
 ```
 app boot → gameplay scene loads NOW + a "ready" cover, sim frozen/suppressed
    ║  (in parallel)
-   ╚→ InitLudeoSession → Activate → AddNotifyConsentUpdated (canCreate)   [SDK] all async
-         → OpenRoom(creator) → AddGamePlayer → RoomReady → Begin           [SDK] CR-009 gate
+   ╚→ Initialize + CreateSession (sync) → Activate → PlayerConsentUpdated (canCreate)   [SDK]
+         → OpenRoom(creator) → AddPlayer → RoomReady → Begin           [SDK] CR-009 gate
 release the cover / unfreeze / enable input   ⟵ when Begin lands
    ⇒ the first frame the player controls == the first captured frame
 ```
 
-The room chain (`OpenRoom → AddGamePlayer → RoomReady`) only starts **after** the readiness gate
+The room chain (`OpenRoom → AddPlayer → RoomReady`) only starts **after** the readiness gate
 clears (Activate resolved + consent allows create) — never synchronously in the gameplay scene's
-`Start()`. `Begin` is then gated by the existing two-signal begin-gate (`RoomReady ∧ AddGamePlayer`,
+`Start()`. `Begin` is then gated by the existing two-signal begin-gate (`RoomReady ∧ AddPlayer`,
 CR-009). The "ready" cover hides both the consent wait *and* the room-open→Begin latency.
 
 ### 3.2 Player path (Ludeo preselected at launch — `isLudeoSelected` / `autoStartInLudeo`)
@@ -155,8 +155,9 @@ arrived) — skip it.
 ## Calls used in this doc
 
 **`[SDK]`** (authority: [`../12-SDK-API-REFERENCE.md`](../12-SDK-API-REFERENCE.md)):
-`LudeoManager.InitLudeoSession` · `LudeoSession.{Activate, OpenRoom, AddNotifyConsentUpdated,
-AddNotifyLudeoSelected, AddNotifyRoomReady}` · `LudeoRoom.AddGamePlayer` · `LudeoGameplaySession.Begin`.
+`LudeoManager.Initialize` · `SessionManager.CreateSession` · `LudeoSession.Activate` · `LudeoSession`
+events `{PlayerConsentUpdated, LudeoSelected, RoomReady}` · `LudeoSession.OpenRoom` ·
+`LudeoRoom.AddPlayer` · `LudeoPlayer.BeginGameplay`.
 
 **`[Layer]`** (from [`REFERENCE-ARCHITECTURE.md`](./REFERENCE-ARCHITECTURE.md)):
 `LudeoController.{IsInLudeoFlow, BeginGameplay}` · `LudeoFlowSwitch.{SetFlags, SwitchToCreate}` ·

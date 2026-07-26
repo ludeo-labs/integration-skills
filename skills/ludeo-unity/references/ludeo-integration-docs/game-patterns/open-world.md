@@ -21,7 +21,7 @@
 ## 1. The Boundary Rule
 
 **One continuous live run = one Gameplay Session.** Length is irrelevant. A 100-hour Daggerfall
-play-through is one `LudeoGameplaySession`, same as a 90-second deathmatch round.
+play-through is one `LudeoPlayer`, same as a 90-second deathmatch round.
 
 This is **not** a redefinition. The Ludeo Session / Gameplay Session model
 ([`00-CRITICAL-REQUIREMENTS.md` → KEY CONCEPT](../00-CRITICAL-REQUIREMENTS.md),
@@ -30,7 +30,7 @@ Session as *one playable moment* — the `(level, match, run)` examples are illu
 constraining. For a streaming world, the **playable moment is the live run itself**.
 
 ```
-Ludeo Session  ── InitLudeoSession + Activate at launch, released at quit ──────┐
+Ludeo Session  ── Initialize + CreateSession + Activate at launch, Dispose at quit ──┐
                                                                                 │
    Gameplay Session 1  ── new-game ────────────── death ──────┐                 │
    Gameplay Session 2  ── load save ───────── back-to-menu ───┤                 │
@@ -97,12 +97,12 @@ time.
 >   `OpenRoom` from the `ConsentUpdated` callback when `canCreateLudeo` first becomes true
 >   ([`../unity/CONSENT-AND-OVERLAY.md`](../unity/CONSENT-AND-OVERLAY.md) §1).
 
-## 4. The Existing `RoomReady + AddGamePlayer` Gate Is Sufficient
+## 4. The Existing `RoomReady + AddPlayer` Gate Is Sufficient
 
 You may worry: "if `OpenRoom` fires at loading start but the state machine doesn't reach `Game` for
 several seconds, won't `Begin` fire before the world is live?"
 
-**No third gate is needed.** The `[Layer]` flow already gates `Begin` `[SDK]` on **`AddGamePlayer`
+**No third gate is needed.** The `[Layer]` flow already gates `Begin` `[SDK]` on **`AddPlayer`
 success + the `RoomReady` notification** — both SDK-side signals (see
 [`05-LIFECYCLE-MANAGEMENT.md`](../05-LIFECYCLE-MANAGEMENT.md) and `unity/REFERENCE-ARCHITECTURE.md`:
 `HandleRoomReady` → `onRoomReady` → `BeginGameplay`). Why this is safe even before the world is live:
@@ -116,7 +116,7 @@ success + the `RoomReady` notification** — both SDK-side signals (see
 - **The first captured frame is the real first gameplay frame.** The gap between `Begin` and "world
   live" is dead time on the SDK side — invisible in the captured Ludeo.
 
-So: keep the two-signal gate (`AddGamePlayer` done **and** `RoomReady`). Do **not** add a third
+So: keep the two-signal gate (`AddPlayer` done **and** `RoomReady`). Do **not** add a third
 condition. The safety net is the sampler gate inside `Update` `[Unity]`, not a third callback.
 
 ## 5. Pause Coverage
@@ -125,7 +125,7 @@ Per [CR-011](../00-CRITICAL-REQUIREMENTS.md), the Ludeo overlay opening mid-play
 simulation** — not just input. In a streaming world:
 
 - **Use the game's existing pause primitive** if it freezes the sim (e.g. Daggerfall's
-  `GameManager.PauseGame()` / `StateManager.Paused`); the `AddNotifyPauseGame` `[SDK]` handler drives
+  `GameManager.PauseGame()` / `StateManager.Paused`); the `PauseGameRequested` `[SDK]` handler drives
   it (or sets `Time.timeScale = 0f` `[Unity]`). If the game's pause only stops input, build a sim
   freeze.
 - **Streaming jobs / coroutines** (terrain Jobs, asset loading, AI ticks) must also be paused if they
@@ -147,7 +147,7 @@ survives**:
 3. Reconstruct the world to the Ludeo's captured state — your existing **load-save plumbing** is the
    natural fit (the Ludeo is a "save file from elsewhere").
 4. Open a fresh Room **for the Ludeo**: `[Layer]` play-flow `InitRoom` → `OpenRoom` `[SDK]` with the
-   `ludeoId` (`CreateOpenRoomDataForLudeo()` `[Layer]`) → `AddGamePlayer` → `RoomReady` → `Begin`.
+   `ludeoId` (`CreateOpenRoomDataForLudeo()` `[Layer]`) → `AddPlayer` → `RoomReady` → `Begin`.
 5. The `RoomReady` handler doubles as the **post-Ludeo-load resume**: `Time.timeScale = 1f` `[Unity]`
    → apply restored state (two-pass) → `Begin` `[SDK]` ([CR-010](../00-CRITICAL-REQUIREMENTS.md);
    detail in `07-RESTORATION-PATTERNS.md` once authored).
@@ -170,14 +170,14 @@ state** — the moments the game itself considers safe to persist or close.
 
 | Lifecycle event | Game signal `[Unity]`/game | SDK / layer call |
 |---|---|---|
-| Game launch | `DaggerfallUnityApplication.SubsystemInit` → `GameManager.Awake` | `LudeoManager.InitLudeoSession` `[SDK]` → `LudeoSession.Activate` `[SDK]` |
+| Game launch | `DaggerfallUnityApplication.SubsystemInit` → `GameManager.Awake` | `LudeoManager.Initialize` + `SessionManager.CreateSession` `[SDK]` → `LudeoSession.Activate` `[SDK]` |
 | New run begins | `StartGameBehaviour.OnNewGame` / `OnStartGame` *(recommended bind point)* | `[Layer]` creator `InitRoom` → `LudeoSession.OpenRoom` `[SDK]` |
 | World streamed in, player in control | `StateManager.ChangeState(Game)` | *(no SDK call — the `m_gameplayActive` sampler gate opens, CR-005)* |
-| Player dies (permadeath) | `PlayerDeath` → `TitleMenuFromDeath` | `[Layer]` `EndGameplay` → `LudeoGameplaySession.End` `[SDK]` |
-| Return to menu | `StartMethods.TitleMenu` | `[Layer]` `AbortGameplay` → `LudeoGameplaySession.Abort` `[SDK]` |
+| Player dies (permadeath) | `PlayerDeath` → `TitleMenuFromDeath` | `[Layer]` `EndGameplay` → `LudeoPlayer.End` `[SDK]` |
+| Return to menu | `StartMethods.TitleMenu` | `[Layer]` `AbortGameplay` → `LudeoPlayer.Abort` `[SDK]` |
 | Load different save while in-game | `LoadDaggerfallUnitySave` while in `Game` | `Abort` `[SDK]` then `OpenRoom` `[SDK]` for the new run |
 | Pause menu / inventory open | `StateManager.Paused` / `UI` | *(local pause only — not a boundary)* |
-| Ludeo overlay opened | `AddNotifyPauseGame` `[SDK]` | `GameManager.PauseGame()` / `Time.timeScale = 0f` `[Unity]` (CR-011) |
+| Ludeo overlay opened | `PauseGameRequested` `[SDK]` | `GameManager.PauseGame()` / `Time.timeScale = 0f` `[Unity]` (CR-011) |
 | Application quit | `Application.Quit` `[Unity]` | `End`/`Abort` `[SDK]` if mid-run, then **`Dispose()` the owned `LudeoSession`** in `Shutdown()` (the plugin does **not** dispose it — required for Editor re-init; see `05` "Shutdown") |
 
 The `CODE_MAP.session_boundaries` block produced in [`phase 1`](../../1-map-game-code.md) §6 is the
@@ -198,9 +198,9 @@ genre **tracking checklist** for whichever genre(s) the game blends, produced in
 ## Calls used in this doc
 
 **`[SDK]`** (verbatim — authority: [`../12-SDK-API-REFERENCE.md`](../12-SDK-API-REFERENCE.md)):
-`LudeoManager.InitLudeoSession` · `LudeoSession.Activate` · `LudeoSession.OpenRoom` ·
-`LudeoSession.AddNotify{LudeoSelected, RoomReady, PauseGame}` · `LudeoRoom.AddGamePlayer` ·
-`LudeoRoom.CloseRoom` · `LudeoGameplaySession.Begin/End/Abort` · `LudeoGameplaySession.SendAction`.
+`LudeoManager.Initialize` · `SessionManager.CreateSession` · `LudeoSession.Activate` · `LudeoSession.OpenRoom` ·
+`LudeoSession.AddNotify{LudeoSelected, RoomReady, PauseGame}` · `LudeoRoom.AddPlayer` ·
+`LudeoRoom.CloseRoom` · `LudeoPlayer.Begin/End/Abort` · `LudeoPlayer.SendAction`.
 
 **`[Layer]`** (from [`../unity/REFERENCE-ARCHITECTURE.md`](../unity/REFERENCE-ARCHITECTURE.md) —
 rename freely): `LudeoController.{BeginGameplay, EndGameplay, AbortGameplay, UpdateStateObjects,

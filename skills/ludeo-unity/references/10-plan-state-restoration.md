@@ -20,7 +20,7 @@
 
 Restoration is the inverse of tracking. Read the already-approved `OBJECT_TRACKING.md` and, row by row,
 specify how each captured GameObject is rebuilt when a Ludeo is selected: spawned from its `objectType`
-bucket, attributes read back with `TryGetAttribute`, references re-linked by **your own stable key**.
+bucket, attributes read back with `ReadData`, references re-linked by **your own stable key**.
 Deliverable: a reviewed `RESTORATION_PLAN.md` that `phase 11`/`phase 12` (tasks 3–4) consume. **No code
 is written here.**
 
@@ -45,13 +45,14 @@ is written here.**
     map; references captured as the target's key, resolved two-pass). **What was captured determines what
     can be restored.**
   - `ludeo-integration-docs/12-SDK-API-REFERENCE.md` — the restore surface *at a glance*:
-    `LudeoDataReader.GetStateObjects()` → `LudeoStateObjectRestore[]`; `TryGetAttribute(name, out value)`
-    mirrors each `SetAttribute` and returns `false` when an attribute is absent; grouping is **by
-    `ObjectType`**. **You do not need exact signatures or the callback shape for planning.**
+    `LudeoDataReader.GetObjects()` → `LudeoReadableObject[]`; `ReadData(name, out value)` (inside
+    `using (r.EnterObjectScope())`, CR-002) mirrors each `WriteData` and returns `false` when an
+    attribute is absent; grouping is **by `ObjectType`**. **You do not need exact signatures or the
+    callback shape for planning.**
   - `ludeo-integration-docs/00-CRITICAL-REQUIREMENTS.md` — **CR-006** (two-pass), **CR-010** (freeze),
     **CR-011** (overlay pause), **CR-014** (stable identity — no `GetInstanceID()`).
   - `ludeo-integration-docs/unity/CONSENT-AND-OVERLAY.md` — the overlay pause/resume notifications
-    (`AddNotifyPauseGame`/`ResumeGame`, CR-011), `ReturnToMainMenu` exit (CR-007), and the gallery entry.
+    (`PauseGameRequested`/`ResumeGame`, CR-011), `ReturnToMainMenu` exit (CR-007), and the gallery entry.
 
 > **🛑 Planning scope — analysis only.** You do **not** need exact `[SDK]` signatures, the `GetLudeo`
 > callback shape, or the package source. Reference restoration at the level of *which call maps to which
@@ -137,7 +138,7 @@ Also plan four distinct sets of hooks:
   room opens** (`onInitDone` is session-boot; `onRoomReady` is too late). This is where the game **starts
   the async scene load** (the world id is known from the buckets here) and **suppresses intros**. Its
   loader must call `NotifySceneReadyForRestore()` `[Layer]` on completion — the **third leg of the begin
-  gate** (`RoomReady ∧ AddGamePlayer ∧ sceneLoaded`), which usually means **adding an awaitable/completion
+  gate** (`RoomReady ∧ AddPlayer ∧ sceneLoaded`), which usually means **adding an awaitable/completion
   event to an `async void` scene loader**. Map this onto a game hook (file:method); if no such loader
   callback exists, flag adding one as an Open Question. **Scene-ready must mean *fully assembled* — apply
   done, async spawns settled, sim frozen-ready — not just scene-activated; plan to keep the loading cover
@@ -145,8 +146,8 @@ Also plan four distinct sets of hooks:
 - **Post-restore resume** — reuse `phase 2`'s `onRoomReady` hook. Apply state inside it, **then** unfreeze,
   before `BeginGameplay`. **Resume is `RoomReady → Begin`** — *not* a self-built "press to begin" prompt,
   *not* `PlayerReady` (**does not exist in this SDK**), *not* `ResumeGame` (that's the mid-play overlay).
-- **Mid-play overlay open/close** (CONSENT-AND-OVERLAY §3, CR-011) — `AddNotifyPauseGame` →
-  `Time.timeScale = 0f`, `AddNotifyResumeGame` → `Time.timeScale = 1f`, `AddNotifyReturnToMainMenu` → a
+- **Mid-play overlay open/close** (CONSENT-AND-OVERLAY §3, CR-011) — `PauseGameRequested` →
+  `Time.timeScale = 0f`, `ResumeGameRequested` → `Time.timeScale = 1f`, `GameBackToMenuRequested` → a
   CR-007 exit (stop tracking + `CloseRoom` + load menu scene). Session-lifetime; easy to forget. Map each
   onto a game hook. **Names have no `Request` suffix.**
 - **Start-of-run suppression (two categories)** — every mechanism the game runs between launch and the
@@ -176,10 +177,10 @@ Document the two passes concretely. The Unity model has **no SDK id-map** — yo
 from the stable-key attribute you captured:
 - **Pass 1 — Create:** for each `objectType` bucket (`RestoreLudeoStateOfObject` for singletons /
   `TryGetAllLudeoStateObjectByType` for collections `[Layer]`), spawn a type-only instance via the spawn
-  function, read its **stable-key attribute** (`TryGetAttribute` `[SDK]`), and populate
+  function, read its **stable-key attribute** (`ReadData` `[SDK]`), and populate
   `Dictionary<stableKey, GameObject> keyMap`. Singletons (the player) need no key.
 - **Pass 2 — Apply + Resolve:** iterate the buckets again, apply non-reference attributes via
-  `TryGetAttribute` → setter, and resolve reference attributes by looking up the captured target key in
+  `ReadData` → setter, and resolve reference attributes by looking up the captured target key in
   `keyMap`.
 
 Define the `keyMap`: key = your captured stable key (the `int`/string/world-id from `phase 3` §5), value
@@ -187,7 +188,7 @@ Define the `keyMap`: key = your captured stable key (the `int`/string/world-id f
 If the spawn graph has ordering constraints (the player must exist before per-player UI/weapons), split
 Pass 1 into **1a (foundational)** and **1b (dependent)** and record which entities go in each.
 
-> **`TryGetAttribute` returns `false`** when an attribute is absent or the type mismatches. For every
+> **`ReadData` returns `false`** when an attribute is absent or the type mismatches. For every
 > property, state the fallback: keep the spawn default, or treat as a restore error. Partial/version-tolerant
 > restore is a feature of the attribute model (doc 06 §1.4) — don't fail the whole restore on one missing
 > optional field, but **do** fail loud on a missing key (Step 6).
@@ -205,9 +206,9 @@ entity, fill one restoration block:
   clear — inventory, ammo, buffs, score, cooldowns, status flags). A freshly *spawned* entity needs none.
 - **Per-property apply** — for every property `phase 3` captured, name the setter and whether it applies
   in Pass 2 or is **deferred** (Step 7). Reference properties get a Pass-2 `keyMap` lookup. Each is a
-  `TryGetAttribute(K.Name, out value)` `[SDK]` read against the **same `LudeoKeys` constant** capture used.
+  `ReadData(K.Name, out value)` `[SDK]` read against the **same `LudeoKeys` constant** capture used.
 - **Approach** — `reconciliation` (route through the game's recreate/load path, §5.1) or `manual`
-  (explicit `TryGetAttribute` → setter, §5.2), taken from the matrix — never re-decided here by policy.
+  (explicit `ReadData` → setter, §5.2), taken from the matrix — never re-decided here by policy.
 
 ### Step 6: Resolve cross-entity references
 Take the Cross-Entity References table from `OBJECT_TRACKING.md` verbatim and turn each row into a Pass-2
@@ -311,7 +312,7 @@ entities, properties, or keys tracking didn't capture — **you cannot restore w
 |---|---|
 | `objectType` string | The **bucket key** — `LudeoStateObjectsLookup[objectType]`; **must match exactly** |
 | Register hook (file:line) | Spawn function invoked in **Pass 1** (type-only, property-less) |
-| Stable-key attribute (collections) | Read in Pass 1 via `TryGetAttribute` → keyed into your **Pass-1 key→instance map** |
+| Stable-key attribute (collections) | Read in Pass 1 via `ReadData` → keyed into your **Pass-1 key→instance map** |
 | Singleton (player, bucket `[0]`) | No key — take the single bucket entry; match the scene's existing instance. **If persistent (`DontDestroyOnLoad`/`static`/SO-held), reset it to baseline before applying** (`07 §4`/§9) |
 | Unregister hook | n/a — restore doesn't destroy; but the loaded scene is **not empty** — reconcile against scene-placed instances (Step 8) |
 | Property · static / `identity` | Apply at spawn or early in **Pass 2** |
@@ -319,13 +320,13 @@ entities, properties, or keys tracking didn't capture — **you cannot restore w
 | Property · `reference` (target's stable key) | **Pass 2** `keyMap` lookup → set the live reference |
 | Batch / stream-in site | Pre-existing-object reconciliation — *match scene-placed* vs *spawn* (Step 8) |
 | Entity marked `reconciliation` | Restore through the game's existing load/recreate path (§5.1) |
-| Entity marked `manual` | Restore via explicit per-property `TryGetAttribute` → setter (§5.2) |
+| Entity marked `manual` | Restore via explicit per-property `ReadData` → setter (§5.2) |
 
 If a tracking row has no sensible restoration inverse (or vice versa), record it as an Open Question.
 
 - **No SDK id-map (the #1 C++→Unity trap).** There is **no** `LudeoObjectId ↔ game id` map. Objects come
   back grouped **by `objectType` bucket**; re-associate identity yourself via the stable-key attribute.
-  `LudeoStateObjectRestore.ObjectId` `[SDK]` is an SDK-assigned `uint`, **not** your stable id (CR-014).
+  `LudeoReadableObject.ObjectId` `[SDK]` is an SDK-assigned `uint`, **not** your stable id (CR-014).
 - **Snapshot, not replay.** `dynamic` captures restore as the single final value, applied once.
 - **Two-pass is mandatory (CR-006).** Single-pass silently corrupts reference graphs by spawn order.
 - **Fail loud on missing keys; tolerate missing optional attributes.**
@@ -359,7 +360,7 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 | Selection-time: start scene load + suppress intros AND flow-blocking UI (press-start/modals/popups/EULA) | onBeginRestore (HandleGetLudeoDone, before room opens) | loader calls NotifySceneReadyForRestore() → begin-gate leg 3 |
 | Freeze sim / suppress (CR-010) | Time.timeScale = 0f (sync apply) or IsInLudeoFlow suppression (async apply) | separate flag from CR-011 overlay pause; async → freeze deadlocks |
 | Extract reader buckets | HandleGetLudeoDone [Layer] | cache into ludeoRestoredData; do NOT apply here |
-| On RoomReady (∧ AddGamePlayer ∧ sceneLoaded): apply → unfreeze → Begin | onRoomReady (phase 2) | two-pass + environment; apply before unfreeze; then BeginGameplay |
+| On RoomReady (∧ AddPlayer ∧ sceneLoaded): apply → unfreeze → Begin | onRoomReady (phase 2) | two-pass + environment; apply before unfreeze; then BeginGameplay |
 
 ## Two-Pass Algorithm (CR-006 — no SDK id-map)
 - **keyMap:** your stable key (<field>) → spawned/matched GameObject. Per-Ludeo, discarded after restore.
@@ -373,7 +374,7 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 - Baseline reset before apply: <none (fresh spawn) | `<reset method @ file:line>` (matched / persistent singleton)>
 - Spawn function: <inverse of register hook @ file:line>
 
-### Property Restoration (TryGetAttribute → setter)
+### Property Restoration (ReadData → setter)
 | Property | Kind | Setter | Pass 2 | Deferred? | Reference resolves to | If absent |
 |---|---|---|---|---|---|---|
 | ... | ... | ... | yes/no | no / queue#N | — / <Target> via keyMap | keep default / error |
@@ -406,8 +407,8 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
   loader calls `NotifySceneReadyForRestore()` (begin-gate leg 3). NOT `onInitDone` (session-boot).
 - **Post-restore resume hook:** `onRoomReady` (phase 2) → ApplyRestoredState → unpause → `BeginGameplay`
   (apply before unpause). NOT `ResumeGame`, NOT `PlayerReady` (doesn't exist), NOT a self-built prompt.
-- **Mid-play overlay hooks** (CR-011): `AddNotifyPauseGame` → <file:method>  ·  `AddNotifyResumeGame` →
-  <file:method>  ·  `AddNotifyReturnToMainMenu` → <file:method> (CR-007 exit)
+- **Mid-play overlay hooks** (CR-011): `PauseGameRequested` → <file:method>  ·  `ResumeGameRequested` →
+  <file:method>  ·  `GameBackToMenuRequested` → <file:method> (CR-007 exit)
 - CR-010 freeze flag and CR-011 overlay flag are separate; paused iff either is set.
 
 ## Open Questions
@@ -423,7 +424,7 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 
 **Guideline phase-4 criteria this task feeds** (verified downstream at the human gates):
 - [ ] The plan ensures the **reader does not assert on missing attributes** — every property states a
-      `TryGetAttribute` → `false` fallback (keep default / error); only a missing **key** fails loud.
+      `ReadData` → `false` fallback (keep default / error); only a missing **key** fails loud.
 - [ ] The plan makes **human restore-verification** reachable — every tracked entity has a spawn function +
       setters, so task 4 can actually rebuild + restore the moment.
 
@@ -437,12 +438,12 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 - [ ] **Order is right** — `LudeoSelected` → switch to Play + freeze/suppress → start scene load
       (`onBeginRestore`) → cache reader in `HandleGetLudeoDone` → on `RoomReady` apply (Pass 1 + Pass 2 +
       env) → unfreeze → `Begin`. Not Begin-then-apply; not unfreeze-then-apply; not apply-in-GetLudeo.
-- [ ] **Begin gate has all three legs** — `RoomReady ∧ AddGamePlayer ∧ sceneLoaded`; loader has a real
+- [ ] **Begin gate has all three legs** — `RoomReady ∧ AddPlayer ∧ sceneLoaded`; loader has a real
       completion signal (`NotifySceneReadyForRestore()`), not an unguaranteed `async void`.
 - [ ] **Freeze-vs-suppress matches the apply shape** — async spawn is suppressed via `IsInLudeoFlow`, not
       frozen with `timeScale = 0` (which deadlocks `FixedUpdate`).
 - [ ] **No SDK id-map anywhere** — identity is bucket + your stable key; `ObjectId` is not a match key (CR-014).
-- [ ] **Overlay-control hooks named** (`AddNotifyPauseGame`/`ResumeGame`/`ReturnToMainMenu`), no `Request`
+- [ ] **Overlay-control hooks named** (`PauseGameRequested`/`ResumeGame`/`ReturnToMainMenu`), no `Request`
       suffix; **two separate pause flags** (CR-010 restore freeze vs CR-011 overlay).
 - [ ] **Deferred queue is ordered** and each entry names *why* it defers.
 - [ ] **Pre-existing reconciliation chose match-vs-spawn per entity** with a stable-key match.

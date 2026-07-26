@@ -34,7 +34,7 @@ GameObjects, prefab makeup, inspector-set values). When assets are **binary-seri
 that is readable from disk. Switching to **Force Text** (YAML) makes scenes/prefabs greppable, which
 directly accelerates the discovery phases — especially **phase 8 (map game objects)**, where a large
 share of entity state is configured on the prefab/scene rather than in code. Pure `.cs` work
-(lifecycle wiring, `SendAction`, `SetAttribute`, restoration) is unaffected — this is a
+(lifecycle wiring, `SendAction`, `WriteData`, restoration) is unaffected — this is a
 discovery-phase convenience, not a functional requirement.
 
 1. **Detect (don't blind-prompt).** Read `ProjectSettings/EditorSettings.asset` →
@@ -141,7 +141,7 @@ window. Probe for the **enter/exit sites**:
 - `Grep("class .*AI|class .*Bot|class .*Enemy|NavMesh|NavMeshAgent")` — AI presence, spawn, control.
 
 **10. Existing Ludeo wiring (idempotency)**
-- `Grep("using LudeoSDK|LudeoManager|LudeoController|LudeoStateObject|com\.ludeosdk")` — detect any
+- `Grep("using LudeoSDK|LudeoManager|LudeoController|LudeoWritableObject|com\.ludeosdk")` — detect any
   prior/partial integration so you don't duplicate it.
 
 ### Step 3 — Write the CODE_MAP
@@ -259,7 +259,7 @@ neither — and any of those can be boot-straight or menu-gated.
      - `model` — one-line classification (e.g. `"state-machine + event-dispatch; single streaming world"`)
      - `start_sites[]` — each `{ trigger, file, line, meaning }` for events that begin a live run
      - `exit_sites[]` — each `{ trigger | state, file, line, ludeo: "End" | "Abort" | "End/Abort" }`
-     - `pause_overlay[]` — the game's pause primitive(s) to wire to `AddNotifyPauseGame`/`AddNotifyResumeGame`
+     - `pause_overlay[]` — the game's pause primitive(s) to wire to `PauseGameRequested`/`ResumeGameRequested`
        ([CR-011](ludeo-integration-docs/00-CRITICAL-REQUIREMENTS.md))
    - `non_ludeoable_candidates` — mid-gameplay non-ludeoable segments (shops/dialogue/tutorials/safe
      zones/cutscenes), each `{ kind, enter: {file, line, trigger}, exit: {file, line, trigger} }`.

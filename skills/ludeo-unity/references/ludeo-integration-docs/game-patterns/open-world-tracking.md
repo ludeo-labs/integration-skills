@@ -140,7 +140,7 @@ world/cell objectTypes, persistent-world-id identity, and scope-to-the-moment.
 ## Calls used in this doc
 
 **`[SDK]`** (authority: [`../12-SDK-API-REFERENCE.md`](../12-SDK-API-REFERENCE.md)):
-`LudeoStateObject.SetAttribute` / `DestroyStateObject` (via the `[Layer]` handler) — no open-world-only
+`LudeoWritableObject.WriteData` / `DestroyObject` (via the `[Layer]` handler) — no open-world-only
 SDK surface; this is a usage pattern over the `06` model.
 
 **`[Layer]`** (from [`../unity/REFERENCE-ARCHITECTURE.md`](../unity/REFERENCE-ARCHITECTURE.md)):

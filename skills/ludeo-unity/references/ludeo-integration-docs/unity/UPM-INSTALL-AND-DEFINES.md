@@ -164,7 +164,7 @@ gated so it can never affect a production build:**
    #if LUDEO_DEV
    using System.IO; using UnityEngine; using LudeoSDK.UnityScripts;
    public static class LudeoDevConfig {
-       // Call as the FIRST line of your bootstrap, BEFORE LudeoManager.InitLudeoSession.
+       // Call as the FIRST line of your bootstrap, BEFORE LudeoManager.Initialize().
        public static void ApplyOverrides() {
            var path = Path.Combine(Application.dataPath, "..", "ludeo-dev.ini"); // next to the .exe / SDK DLLs
            if (!File.Exists(path)) { Debug.Log($"[Ludeo][dev] no {path}; using LudeoSettings.asset as-is"); return; }
@@ -186,12 +186,13 @@ gated so it can never affect a production build:**
    }
    #endif
    ```
-3. **Wire the single call site** — the first line of your bootstrap, before `InitLudeoSession`:
+3. **Wire the single call site** — the first line of your bootstrap, before `LudeoManager.Initialize()`:
    ```csharp
    #if LUDEO_DEV
    LudeoDevConfig.ApplyOverrides();   // dev/QA only; the whole call compiles out of production
    #endif
-   LudeoManager.InitLudeoSession(/* … */);
+   LudeoManager.Initialize();
+   LudeoManager.SessionManager.CreateSession(out var session);
    ```
 4. **Author `ludeo-dev.ini` with the *actual* QA values — do not ship placeholders.** Ask the user for
    the tester Steam id, the Steam beta branch name (`betaVersion` — required alongside the Steam id in
@@ -207,7 +208,7 @@ gated so it can never affect a production build:**
    file). It only matters for `LUDEO_DEV` builds; a production build never reads it.
 
 **Ordering caveat:** `runWithoutLauncher` + `launcherUserId` + `betaVersion` are consumed at `Activate()`,
-which your integration layer owns, so overriding before `InitLudeoSession` is safe. `ludeoToAutoStart` /
+which your integration layer owns, so overriding before `LudeoManager.Initialize()` is safe. `ludeoToAutoStart` /
 `autoStartInLudeo` are read by the package's own `LudeoUnityManager`, which may initialize *before* your
 bootstrap — if the auto-replay doesn't pick up the override, run `ApplyOverrides()` from a
 `[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]` (earliest hook) or disable
@@ -283,7 +284,7 @@ are illustrative; use your project's.)
 - [ ] `using LudeoSDK;` compiles in a project script with **no** added asmdef reference/define.
 - [ ] `Resources/LudeoUnityManager.prefab` exists (the SDK tick driver).
 - [ ] `LudeoSettings.asset` exists under `Assets/LudeoSDK/Resources/` with your `apiKey` set.
-- [ ] A trivial `LudeoManager.InitLudeoSession(cb)` call reaches its callback with a `resultCode`
-      (even a failure code proves the native layer loaded — `WrapperDllNotFound` means it didn't).
+- [ ] A trivial `LudeoManager.Initialize()` call returns a `LudeoResult` (even a failure code proves
+      the native layer loaded — `WrapperDllNotFound` means it didn't).
 
 → Next: `0-build-game-with-sdk.md` (phase 0) drives this end-to-end and confirms baseline + SDK builds.
