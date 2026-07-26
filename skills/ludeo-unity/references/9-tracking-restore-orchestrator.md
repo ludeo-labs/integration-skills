@@ -63,6 +63,15 @@ subagent that's gone.
 > holds the iteration state across as many human round-trips as it takes. Root-cause every fix
 > (no try/catch or symptom-masking, `phase 5`); propose-confirm-execute each change.
 >
+> **Instrument before theorizing (`07 §10.5`).** Get the **real log** before hypothesizing a cause — restore
+> bugs invite confident-but-wrong theories ("bad positioning", "flaky cutscene") that one log line kills.
+> Pass the fix subagent the actual `Editor.log`/`Player.log` text
+> ([`READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md)), not a guess. Two traps at
+> this gate: (1) **per-tick silence during the freeze is expected**, not a hang — the deadlock signal is an
+> **absent unfreeze** on an async apply, not absent ticks (`07 §10.1`/`§10.5`); (2) *inert* (activation never
+> fired, `07 §9.1`), *jammed* (transient flag stuck, `07 §1.5`), and *dead-input* (`07 §10.4`) all look alike
+> — the log separates them. Require the per-restore instrumentation (`11` Step 4) before diagnosing.
+>
 > **Guardrail escalation (cross-wave):** if a wave-`N` gate fails because state **owned by an earlier,
 > already-confirmed wave** is wrong or missing, that is **not** a wave-`N` fix. Re-open the **earlier**
 > wave — re-dispatch its task 0 / task 1 for the missing state, re-verify **its** gate — then resume wave
@@ -219,6 +228,12 @@ green**, and is **fully complete when the last wave in the plan is green**.
       geometry (task 4 gate). Catches displaced-world-frame bugs the symptom way, regardless of genre.
 - [ ] **Replay→replay** (in one session) tears the prior run down cleanly and shows the **second** Ludeo's
       state — no stale-flag deadlock, no dropped-`Start` defaults, no persistent-singleton leak (tasks 3–4).
+- [ ] **The restored moment plays to completion, not just "looks right" on the first frame** — drive it to
+      its win/lose condition. Win conditions ride on invisible **derived counters** (alive-enemy tally,
+      objective count — `07 §9`) that a first-frame snapshot check cannot see, so a replay can look perfect
+      and still be unwinnable. A cheap **heartbeat diagnostic** — log redundant state against ground truth
+      every few seconds (e.g. `numEnemiesRemaining` vs actual alive count) — surfaces counter drift instantly;
+      wire it temporarily for any state-heavy restore and remove it once the wave is green.
 
 **Wave 1 additionally (the guideline phase-4 criteria + one-time flow):**
 - [ ] **Flow reaches the restore entry point on a real captured Ludeo** (task 3 gate).

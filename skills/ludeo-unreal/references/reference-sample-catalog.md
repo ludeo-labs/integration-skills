@@ -1,6 +1,6 @@
 # Reference Sample Catalog
 
-This is the authoritative lookup for known-good Ludeo integration reference samples. Phase 1 (and any phase making a classification decision) MUST check this catalog before deriving classifications from scratch.
+This is the authoritative lookup for known-good Ludeo integration reference samples. Phase 2 (and any phase making a classification decision) MUST check this catalog before deriving classifications from scratch.
 
 ## How to Use This Catalog
 
@@ -32,9 +32,9 @@ This is the authoritative lookup for known-good Ludeo integration reference samp
 **If ALL criteria hold → classification:**
 - `saveSystemGroup`: **1 (Full Save System)**
 - `stateApproach`: **reconciliation (SaveWorld + property filters)**
-- `integration pattern`: See `references/phase-04-tracking-restore.md` Section 5, which explicitly cites FPSGameStarterKit as the reference for this path.
+- `integration pattern`: See `references/phase-05-tracking-restore.md` Section 5, which explicitly cites FPSGameStarterKit as the reference for this path.
 
-**If ANY criterion fails:** FPSGameStarterKit is NOT the right reference. Do NOT apply its classification. Fall through to normal analysis and the BP-only verification step in `phase-01-mapping.md` Section 3.5.
+**If ANY criterion fails:** FPSGameStarterKit is NOT the right reference. Do NOT apply its classification. Fall through to normal analysis and the BP-only verification step in `phase-02-mapping.md` Section 3.5.
 
 **Known counter-example:** VoyagerV2 is BP-only and looks superficially similar, but fails the criteria — its gameplay state lives on dynamically-added BP sub-components (`HealthComp_C`, `WeaponComp_C`) and the BP variables do NOT have the SaveGame flag. VoyagerV2 is Group 3 (manual), not Group 1. See `learnings/save-systems/saveworld-fails-on-bp-component-architecture.md`.
 
@@ -54,9 +54,9 @@ This is the authoritative lookup for known-good Ludeo integration reference samp
 - [ ] Uses **CommonUI** + `UPrimaryGameLayout` for menus.
 
 **If ALL criteria hold → reference for:**
-- **Phase 2** (non-gameplay handling): pause/resume, NoneLudeable, Player Flow pause timing, menu overlay detection. See `learnings/common-mistakes/always-check-reference-sample-first.md`.
-- **Phase 4** (state tracking): full entity inventory with Player, Bot, GameMetadata at 10Hz.
-- **Phase 8** (Player Flow): deferred health restoration via GAS init, bot identity matching by index, pause-before-apply pattern.
+- **Phase 3** (non-gameplay handling): pause/resume, NoneLudeable, Player Flow pause timing, menu overlay detection. See `learnings/common-mistakes/always-check-reference-sample-first.md`.
+- **Phase 5** (state tracking): full entity inventory with Player, Bot, GameMetadata at 10Hz.
+- **Phase 9** (Player Flow): deferred health restoration via GAS init, bot identity matching by index, pause-before-apply pattern.
 
 **Do NOT apply Lyra-specific patterns to non-Lyra games without checking the per-pattern criteria.** Many Lyra patterns are game-specific (GAS, Experience system, QuickBar) and do not generalize.
 
@@ -92,4 +92,4 @@ When adding a new reference sample:
 3. List the **concrete classifications and phases** the sample is a reference for.
 4. Cross-reference the sample from every learning that cites it, so a learning reader can find the catalog entry.
 
-**Adding new samples is a Phase 0 or post-integration task**, not something to do mid-Phase-1 under time pressure.
+**Adding new samples is a Phase 1 or post-integration task**, not something to do mid-Phase-1 under time pressure.

@@ -4,13 +4,13 @@
 
 These templates describe the universal plugin structure for Ludeo SDK integrations. The Subsystem + Component pattern is identical across all UE games — only the game-specific names and hook points change.
 
-**Usage:** During Phase 2, the skill generates the plugin scaffold by following these templates and substituting game-specific values from the CODE_MAP.
+**Usage:** During Phase 3, the skill generates the plugin scaffold by following these templates and substituting game-specific values from the CODE_MAP.
 
 ---
 
 ## Template Variables
 
-Replace these placeholders with game-specific values from Phase 1 analysis:
+Replace these placeholders with game-specific values from Phase 2 analysis:
 
 | Variable | Source | Example |
 |----------|--------|---------|
@@ -44,7 +44,7 @@ Plugins/
     │       ├── {ComponentClass}.h
     │       └── {ComponentClass}.cpp
     └── Config/
-        └── (empty for now — config added in Phase 2+)
+        └── (empty for now — config added in Phase 3+)
 ```
 
 ---
@@ -134,7 +134,7 @@ Standard UE module boilerplate. Registers the module. No custom logic needed.
 | Teardown coordination | Component calls back to subsystem for cross-map cleanup | On cleanup |
 | Session destroy | `Session.Destroy()` | `Deinitialize()` |
 
-### Key patterns (all universal, see phase-02-lifecycle.md Section 5 for full code):
+### Key patterns (all universal, see phase-03-lifecycle.md Section 5 for full code):
 - Deferred activation (retry until window handle exists)
 - API key resolution chain
 - Pending Ludeo state for Player Flow ServerTravel
@@ -156,7 +156,7 @@ Standard UE module boilerplate. Registers the module. No custom logic needed.
 | N-way gate | Check all conditions → `BeginGameplay()` | Each condition fires `TryBeginGameplay` |
 | State tracking (Creator) | `WritableObject.WriteData()` | `TickComponent` after BeginGameplay |
 | State restoration (Player) | `ReadableObject.ReadData()` | After BeginGameplay in Player Flow |
-| Action reporting | `RoomWriter.SendAction()` | On game events (Phase 5) |
+| Action reporting | `RoomWriter.SendAction()` | On game events (Phase 6) |
 | End gameplay | `Player.EndGameplay()` | Gameplay end signal |
 | Remove player | `Room.RemovePlayer()` | After EndGameplay |
 | Close room | `Room.Close()` | After RemovePlayer |

@@ -53,13 +53,13 @@ Add an engine-side suppression flag on the global-state owner and early-out the
 escalation dispatch while it's set:
 
 ```cpp
-bool AHeistState::OnKillEscalationChanged(...)   // the death→alarm choke
+bool AGlobalAlertState::OnKillEscalationChanged(...)   // the death→alarm choke
 {
     if (bLudeoSuppressEscalation) return false;   // no fail, no dispatch
     ...
 }
-void AHeistState::Ludeo_SetSuppressEscalation(bool b) { bLudeoSuppressEscalation = b; }
-void AHeistState::Ludeo_ResetEscalationCount()        { UnansweredKills = 0; }
+void AGlobalAlertState::Ludeo_SetSuppressEscalation(bool b) { bLudeoSuppressEscalation = b; }
+void AGlobalAlertState::Ludeo_ResetEscalationCount()        { UnansweredKills = 0; }
 ```
 
 Integration side (Player Flow only):
