@@ -495,8 +495,8 @@ Track if (1) AND (2 OR 3-not-derivable) AND (4-has-meaning).
 | Camera / view rig | Track its **control state** (pitch/yaw, orbit distance, zoom/FOV) — §10.6 — **only when the view is independently controllable** | **Skip** if the camera is **fixed** (static top-down/isometric — a constant, §9.3) or a follow-cam **fully** determined by restored player state (recompute it). Otherwise capture the rig's angles (not just the camera's world transform) so a follow/orbit rig reconstructs the exact view; capture any *independent* freedom (free-look yaw, aim pitch, manual orbit), and restore must **snap, not ease**, to it (`07 §5`/§7) |
 | AI enemy / NPC | Track | Pooled: register on pull, not on prefab construction (§2.3) |
 | AI perception / target (property) | Track | Drives visible behavior; suppress dev-only debug mutations |
-| Hitscan bullet (no tracer) | Skip | Kill-cam / tracer / travel-time flips this to Track |
-| Grenade / ballistic projectile | Track | Capture owner key to attribute kills |
+| Hitscan bullet (no tracer) | Skip | Kill-cam / tracer / travel-time flips this to Track — but an attack **in flight at capture** is a **later-wave** add, and a sub-tick flash can't be captured at all (§9.6) |
+| Grenade / ballistic projectile | Track | Capture owner key to attribute kills; tracking it **in flight** (pooled, restore defers velocity) is a **later wave** (§9.6, `07 §7`) |
 | Respawning pickup | Track | Track "available/consumed" + respawn timer |
 | Static decorative prop | Skip | Check for hidden physics/destructibility first |
 | Destructible | Track | "Destroyed" is a **state flag**, not an unregister — *when the wreckage stays in the world* (§3.4); if it's removed/replaced, drop it |
@@ -511,8 +511,7 @@ Track if (1) AND (2 OR 3-not-derivable) AND (4-has-meaning).
 | Enum state (alive/dead, AI mode) | Track as `int` | Serialize the enum to int; document meaning |
 | Inventory | Track as array of item ids | Never references to item objects |
 | Cooldown / timer | Track **remaining**, not elapsed | Restore sets "time until" |
-| Animation frame / blend | Usually skip (derivable) | Track if a stuck pose would look wrong |
-| Appearance / loadout (skin, outfit, equipped-gear id, model variant) | Track as ids/enums | Set before the moment & constant during it, but **visible** — default skin instead of the player's outfit is a visibly wrong clip. The §9.3 step-1 carve-out; survives the baseline reset only if captured |
+| Animation frame / blend | Usually skip (derivable) | Track if a stuck pose would look wrong — a **mid-attack** swing/cast (windup→hit must continue) is a **later-wave** add: §9.6 |
 | Reference to another object | Never as a reference | Track the target's stable key (§4) |
 
 ### 9.5 When the table is wrong
@@ -525,6 +524,35 @@ units weighs granularity (track squads, not individuals); an **open-world/stream
 the loaded neighborhood and adds world/cell state — see
 [`game-patterns/open-world-tracking.md`](game-patterns/open-world-tracking.md). When your game differs,
 re-apply §9.1–§9.3 from scratch rather than patching the table.
+
+### 9.6 In-flight attacks & mid-action combat state (a later-wave fidelity layer)
+§9.4's "skip hitscan / skip animation frame" is a **resting-state** default. A Ludeo is captured
+mid-fight, so an attack **in progress at the captured instant** — a projectile mid-air, a spell mid-cast,
+a boss swing mid-wind-up — is visible state a viewer notices, and capturing it sharpens *presented*
+reconstruction. Two things to know; the rest is composition.
+
+**It's a later wave, not Wave 1.** Wave 1's spine (world + player + in-view combatants) rebuilds and
+resumes the fight; a missing in-flight projectile *degrades fidelity, it does not break the replay*. It's
+breadth/enrichment on the spine (§1.1), and it's the hardest class to capture (short lifetime, pooling,
+restore-time physics/animation timing). Prove the spine first. Don't treat a late-wave gap here as a
+Wave-1 backfill. **Exception, decided at the census (`phase 8`), not by backfill:** if a game's signature
+moment *is* the incoming attack (bullet-hell dodge, parry-the-boss beat), the census promotes it up front
+(§9.5).
+
+> **⚠️ SDK constraint — an attack must outlive one internal tick to exist at all.** Values are
+> **diff-sent on the SDK's internal tick** (doc 12), and reconstruction rebuilds the single captured frame
+> (`07 §1.1`), so an in-flight attack is reconstructable **only if it is alive at the capture instant and
+> has lived through at least one sample+tick**. A sub-tick hitscan flash **cannot** be captured — leave it
+> on §9.4's "skip"; don't add machinery to chase it.
+
+**An in-flight attack is not a new object class — compose it from rules you already have.** Whether it's a
+projectile, a mid-cast enemy, or a mid-swing boss, model it as a pooled collection object with a few extra
+attributes: register on pool-`Get` / unregister on `Release` (**§2.3**), owner/target by stable key
+(**§4**, resolved two-pass at `07 §6`), remaining-lifetime not elapsed (**§9.4**), and **defer** velocity
+or animator normalized-time on restore (`07 §7`) or the shot stops dead / the swing snaps to idle. The
+hit it lands is an **action, not state** (§7) — reconstruct the attack and let the hit re-fire at its own
+call site; don't `SendAction` it or hand-replay it. Worked projectile example:
+`game-patterns/shooter.md`.
 
 ---
 
@@ -626,6 +654,7 @@ registration not amortized) or at scene transition (mass despawn in one burst).
 
 **Scope & types**
 - [ ] Tracked set passes §9; attributes are typed (`Vector3`/`Quaternion`/`int`/…), blobs only where warranted (§1.4).
+- [ ] In-flight attacks (§9.6) are scoped to a **later wave**, not Wave 1 (unless the census promoted a signature-moment attack); pooled projectiles register on `Get`/`Release` (§2.3); no attempt to capture sub-tick flashes.
 - [ ] Attribute names come from a `LudeoKeys` `[Layer]` class shared with restore.
 - [ ] Camera/viewpoint control state captured (pitch/yaw/orbit/FOV, §10.6) **when the view is independently
       controllable** — skip a fixed camera or one fully derived from restored player state; restore snaps to

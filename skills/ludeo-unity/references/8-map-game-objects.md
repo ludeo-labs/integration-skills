@@ -327,15 +327,13 @@ under Open Questions and keep going. Note write cadence:
   for a video clip (`06 §9.3` step-1 carve-out); the persistent-singleton reset otherwise strips it.
 - References → capture the **target's stable key** (§4).
 
-> **⚠️ Capture trigger-gated *activation* state, not just physical properties (`07 §9.1`).** An encounter's
-> **active / aggro / boss-phase / objective-armed / AI-enabled** state is a real attribute, but it's easy to
-> miss because a *physical trigger* (door / proximity volume / arena gate), not the object itself, normally
-> sets it — and the replay skips that trigger. If you don't capture it, the restored boss/enemies **exist but
-> sit inert** (the two-pass places them; nothing turns them on), and restore's only recourse is a `Begin`-time
-> re-drive hook (`10` Step 3 option b). Capturing the activation flag here is the **preferred** fix — it makes
-> the mirror restore it verbatim. For any entity whose "live-ness" is trigger-gated, add its activation
-> attribute to this table (per-tick `bool`/`int`), and flag it **load-bearing** when the captured moment is
-> the encounter itself.
+> **Combat entities — flag mid-action / in-flight attack state (`06 §9.6`).** For any attacker (enemy,
+> boss, the player), note whether the moment can be captured **mid-attack**: a casting phase, a swing's
+> animator normalized-time, or live projectiles the entity owns. Record these as their own rows/objectType,
+> but assign them a **later wave** — they degrade fidelity when missing rather than breaking the replay, and
+> are the hardest class to capture (short lifetime, pooling, restore-time physics/animation deferral). The
+> **exception** is a game whose signature captured moment *is* the incoming attack (bullet-hell / boss
+> parry): surface that at the Part-A census so it's promoted up front, not backfilled.
 
 ### Step B4: Map cross-entity references (within / into the wave)
 For every reference-kind property fill a Cross-Entity References row (From / To / Field / Capture /

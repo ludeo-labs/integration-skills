@@ -498,6 +498,11 @@ else
 `null` produces a silently broken replay (enemy targets nothing, weapon orphaned). Every reference row in
 `OBJECT_TRACKING.md`'s Cross-Entity References table must have a resolution step here.
 
+> **In-flight attacks resolve here too.** A restored projectile's `OwnerId`/`TargetId` and a mid-cast's
+> `TargetId` (`06 §9.6`) are ordinary Pass-2 references — the shooter/caster is often itself a restored
+> enemy (a collection entry), so it must exist in `keyMap` before this runs. If the owner was **dropped**
+> as terminal (`06 §3.4`), repoint or clear the reference rather than leaving it dangling.
+
 ---
 
 ## 7. Deferred Properties
@@ -507,8 +512,8 @@ Apply them **after Pass 2, before `Begin`**, in a recorded order:
 
 | Property | Why it must defer | Apply after |
 |---|---|---|
-| `Rigidbody.velocity` / `angularVelocity` `[Unity]` | body inactive at spawn; first `FixedUpdate` can zero it | physics body active, before first sim step |
-| `Animator` state / normalized time `[Unity]` | overwritten by the entry-state transition | `Animator` enabled + past entry |
+| `Rigidbody.velocity` / `angularVelocity` `[Unity]` | body inactive at spawn; first `FixedUpdate` can zero it — an **in-flight projectile** (`06 §9.6`) applied at spawn stops dead at the restore frame | physics body active, before first sim step |
+| `Animator` state / normalized time `[Unity]` | overwritten by the entry-state transition — a restored **mid-attack** swing/cast (`06 §9.6`) snaps back to idle and its telegraphed hit never lands | `Animator` enabled + past entry |
 | `NavMeshAgent` position/path `[Unity]` | must be on the NavMesh (use `Warp`) | agent placed on NavMesh |
 | Ability / cooldown timers | a `Start`/`OnEnable` re-initializer resets them | re-initializers have run |
 | Camera follow/look rig (smoothing) `[Unity]` | a `SmoothDamp`/lerp `LateUpdate` eases from the default toward target over several frames | player placed; snap the rig to the captured pitch/yaw/distance (§5.5), no smoothing that frame |
@@ -819,6 +824,7 @@ entity that never acts is then a **one-line** diagnosis — *inert* = activation
 - [ ] Every entity/property in `OBJECT_TRACKING.md` has a `RestoreLudeoState` read using the **same `LudeoKeys`** + `objectType`.
 - [ ] Cross-Entity References table fully resolved in Pass 2 (§6).
 - [ ] Deferred properties applied after Pass 2, before `Begin`, in recorded order (§7).
+- [ ] In-flight attacks (`06 §9.6`): projectile velocity + mid-attack animator time **deferred** (§7); owner/target resolved in Pass 2 (§6); the resulting hit left to re-fire as an action, not hand-replayed.
 - [ ] **If** camera view state was captured (`06 §10.6` — independently-controllable view): restored to the
       captured pitch/yaw/distance and **snapped** (no smoothing/lerp) so the first frame opens on the captured
       view, not a default the rig eases out of (§5.5/§7). (Fixed / player-derived cameras capture nothing here.)
