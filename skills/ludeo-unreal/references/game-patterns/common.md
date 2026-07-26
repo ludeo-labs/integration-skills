@@ -4,12 +4,12 @@
 > **Purpose:** the per-entity capture items that are universal across genres (player/avatar transform,
 > view direction, health, alive). Genre files carry only genre-**specific** additions on top of this.
 >
-> Type names map to the Unreal DataWriter set-attribute calls; see `references/phase-04-tracking-restore.md`
+> Type names map to the Unreal DataWriter set-attribute calls; see `references/phase-05-tracking-restore.md`
 > for the exact API and the identity/restore mechanics.
 
-> **MVP scope (curated-first):** In Phases 3–5, capture only what your **curated slice**
+> **MVP scope (curated-first):** In Phases 4–6, capture only what your **curated slice**
 > (`integration.json → curatedSlice`) needs at the restored moment; the full baseline applies at
-> **expansion** (Phase 7).
+> **expansion** (Phase 8).
 
 ---
 
@@ -54,5 +54,5 @@ The captured video framing comes from the player camera, so its view state matte
 These are the **universal** items. For genre-specific entities, actions, and state (weapons, creatures,
 structures, units, turn state, …) load the matching genre file via
 `references/game-patterns/INDEX.md`. Per-entity **identity and restore mechanics** (stable keys,
-snapshot-restore, streamed-out vs. destroyed) live in `references/phase-04-tracking-restore.md` and — for
+snapshot-restore, streamed-out vs. destroyed) live in `references/phase-05-tracking-restore.md` and — for
 streaming worlds — `references/game-patterns/open-world-tracking.md`.
