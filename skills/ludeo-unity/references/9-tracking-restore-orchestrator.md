@@ -63,6 +63,15 @@ subagent that's gone.
 > holds the iteration state across as many human round-trips as it takes. Root-cause every fix
 > (no try/catch or symptom-masking, `phase 5`); propose-confirm-execute each change.
 >
+> **Instrument before theorizing (`07 §10.5`).** Get the **real log** before hypothesizing a cause — restore
+> bugs invite confident-but-wrong theories ("bad positioning", "flaky cutscene") that one log line kills.
+> Pass the fix subagent the actual `Editor.log`/`Player.log` text
+> ([`READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md)), not a guess. Two traps at
+> this gate: (1) **per-tick silence during the freeze is expected**, not a hang — the deadlock signal is an
+> **absent unfreeze** on an async apply, not absent ticks (`07 §10.1`/`§10.5`); (2) *inert* (activation never
+> fired, `07 §9.1`), *jammed* (transient flag stuck, `07 §1.5`), and *dead-input* (`07 §10.4`) all look alike
+> — the log separates them. Require the per-restore instrumentation (`11` Step 4) before diagnosing.
+>
 > **Guardrail escalation (cross-wave):** if a wave-`N` gate fails because state **owned by an earlier,
 > already-confirmed wave** is wrong or missing, that is **not** a wave-`N` fix. Re-open the **earlier**
 > wave — re-dispatch its task 0 / task 1 for the missing state, re-verify **its** gate — then resume wave
