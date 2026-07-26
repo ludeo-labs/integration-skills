@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: ActionGame
-phase: 2
+phase: 3
 question: "Does RunUAT BuildCookRun fail with C# 5 syntax errors? Check if AutomationTool at runtime finds the old .NET 4.0 MSBuild instead of VS's MSBuild."
 sanitized: true
 ---

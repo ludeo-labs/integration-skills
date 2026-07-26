@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: EndlessFPS
-phase: 0
+phase: 1
 question: "Is the Python Editor Script Plugin enabled in the .uproject? If not, bp_inspector.py runs through -ExecutePythonScript and silently produces no report (exit 0)."
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "What's the latest possible moment the audio/dialog subsystem you're muting can be triggered? Does your Suppress→Resume window bracket that moment?"
 sanitized: true
 ---

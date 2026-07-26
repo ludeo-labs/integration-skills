@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: ActionGame
-phase: 3
+phase: 4
 question: "Beyond the mission/random seed, what runtime state gates gameplay decisions in this game (RNG streams, enabled-actor arrays, timers, occupancy lists, modifier tags, completed-counters)? Each of these may need to be captured for snapshot-replay determinism."
 sanitized: true
 ---

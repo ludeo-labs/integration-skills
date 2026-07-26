@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: ActionGame
-phase: 2
+phase: 3
 question: "Does the game have a multi-step async boot flow (state machine, metadata fetch, loadout setup) that runs between GameInstance::Init and the main menu appearing?"
 sanitized: true
 ---

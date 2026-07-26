@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: TacticsGame
-phase: 0
+phase: 1
 question: "Is this project under SVN (not git or Perforce)? Check for a .svn directory at the project root and run `svn info` before assuming the git/p4 contract applies."
 sanitized: true
 ---

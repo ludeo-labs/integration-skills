@@ -2,7 +2,7 @@
 category: architecture
 tier: universal
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "When restoring captured UPROPERTY state via reflection, how do we fire the cascade (BP graph updates, derived state, visual changes) without per-class adapter code?"
 sanitized: true
 ---

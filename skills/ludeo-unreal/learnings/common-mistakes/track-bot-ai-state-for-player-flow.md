@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: Lyra
-phase: 3
+phase: 4
 question: "Does the game have AI-controlled entities? If so, what AI state properties are needed for meaningful behavior restoration (focus target, movement status, perception)?"
 sanitized: true
 ---

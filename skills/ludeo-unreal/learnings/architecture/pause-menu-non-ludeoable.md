@@ -2,7 +2,7 @@
 category: architecture
 tier: universal
 sourceGame: Lyra
-phase: 1
+phase: 2
 question: null
 sanitized: true
 ---

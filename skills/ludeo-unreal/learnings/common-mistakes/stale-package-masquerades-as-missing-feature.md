@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 2
+phase: 3
 question: "Is the integration verified in a FRESHLY re-cooked package, or only in editor PIE? A cooked build embeds the plugin/game binaries at cook time — code from later stages is NOT in a package cooked earlier. For packaged/cloud-build targets, re-package (BuildCookRun) after every code stage before the runtime gate."
 sanitized: true
 ---

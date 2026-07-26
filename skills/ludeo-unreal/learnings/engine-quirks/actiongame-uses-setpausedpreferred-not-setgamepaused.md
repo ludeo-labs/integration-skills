@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: game-specific
 sourceGame: ActionGame
-phase: 2
+phase: 3
 question: null
 sanitized: true
 ---

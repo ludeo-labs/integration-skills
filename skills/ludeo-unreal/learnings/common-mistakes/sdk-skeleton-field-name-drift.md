@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: FPSGameStarterKit
-phase: 2
+phase: 3
 question: "For every SDK struct/method used in generated code, has the field name and signature been verified against the current SDK headers (Plugins/LudeoUESDK/Source/LudeoUESDK/Public/)?"
 sanitized: true
 ---
@@ -13,7 +13,7 @@ sanitized: true
 
 Copying SDK code from a reference file skeleton without verifying the struct field names against the actual SDK headers. The skill's reference files are written against a snapshot of the SDK and can silently drift when the SDK evolves.
 
-In FPSGameStarterKit, `references/phase-02-lifecycle.md` Section 5.3 had this skeleton:
+In FPSGameStarterKit, `references/phase-03-lifecycle.md` Section 5.3 had this skeleton:
 
 ```cpp
 ActivateParams.AuthenticationDetails.SteamAuthID = SteamAuthID;  // WRONG field name

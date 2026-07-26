@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: universal
 sourceGame: StoryPuzzleGame
-phase: 4
+phase: 5
 question: null
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: FTPS_Online
-phase: 2
+phase: 3
 question: "Is the target game Blueprint-only with a BP GameState class that cannot be reparented to C++? If yes, use FWorldDelegates::OnPostWorldInitialization + World->GameStateSetEvent to attach ULudeoGameStateComponent at runtime instead of editing the game's code."
 sanitized: true
 ---

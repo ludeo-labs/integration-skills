@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: StoryPuzzleGame
-phase: 4
+phase: 5
 question: "When the player enters a sub-area, does the game swap LIGHTING by hiding the host map's lighting sublevel and showing the sub-area's lighting sublevel (separate from the geometry sublevel)? If so, restoring geometry alone leaves the sub-area lit by the wrong lighting — capture which lighting sublevel is visible too."
 sanitized: true
 ---

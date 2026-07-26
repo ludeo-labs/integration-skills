@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Does the host engine have an automatic equip/cosmetic/loadout pipeline that fires post-pawn-spawn or post-loadout-load? If yes, is your Player Flow restore scheduled to run before or after that pipeline, and have you tested both editor AND shipping?"
 sanitized: true
 ---

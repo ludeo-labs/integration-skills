@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: ActionGame
-phase: 1
+phase: 2
 question: "Within the chosen mission, can a Ludeo capture happen at any time during play, or is it constrained to a specific phase/window? If 'any time', the slice is a FULL-MISSION coverage commitment — every time-varying piece of world state must round-trip regardless of capture point."
 sanitized: true
 ---

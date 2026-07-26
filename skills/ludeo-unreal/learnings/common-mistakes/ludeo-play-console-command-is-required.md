@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: FTPS_Online
-phase: 2
+phase: 3
 question: null
 sanitized: true
 ---
@@ -11,7 +11,7 @@ sanitized: true
 
 ## The Mistake
 
-During FTPS_Online Stage 2, the agent implemented `Initialize()` with Steps 1-4 and Step 6 but skipped Step 5: register the `Ludeo.Play` console command. The reference file `phase-02-lifecycle.md` lists it explicitly as Step 5 of the startup sequence, in the skeleton code (§7.5), in the Output Template (§6), and in the Class Specifications (§5.7) three separate times.
+During FTPS_Online Stage 2, the agent implemented `Initialize()` with Steps 1-4 and Step 6 but skipped Step 5: register the `Ludeo.Play` console command. The reference file `phase-03-lifecycle.md` lists it explicitly as Step 5 of the startup sequence, in the skeleton code (§7.5), in the Output Template (§6), and in the Class Specifications (§5.7) three separate times.
 
 ## Why It Matters
 

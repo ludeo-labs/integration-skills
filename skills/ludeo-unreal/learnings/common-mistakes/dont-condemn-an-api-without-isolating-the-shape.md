@@ -4,7 +4,7 @@ description: When a previously-working SDK call appears to break something after
 category: common-mistakes
 tier: generalizable
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Before adopting a handoff doc's 'avoid API X' recommendation: how many call sites of X already exist and work in this integration? If many, the issue is the specific usage shape, not the API."
 sanitized: true
 ---

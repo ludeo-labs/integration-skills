@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: multiple
-phase: 4
+phase: 5
 question: "Does the default level load leave persistent VISUAL state (decals, active VFX/particles, HUD/UI widgets, lingering post-process) that restore then layers on top of? If yes, reset those visuals to baseline in Player Flow before applying restored state."
 sanitized: true
 ---

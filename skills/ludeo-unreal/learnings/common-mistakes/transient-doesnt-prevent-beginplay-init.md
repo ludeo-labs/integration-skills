@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: universal
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Are you adding `UPROPERTY(Transient)` to an `EditAnywhere` array on a class whose entries are populated by BP editor defaults? STOP. Transient drops those defaults at load time."
 sanitized: true
 ---

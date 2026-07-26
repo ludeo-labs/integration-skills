@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Does the game's attribute set have ensure/check guards on value-unchanged callbacks?"
 sanitized: true
 ---

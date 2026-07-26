@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: TacticsGame
-phase: 2
+phase: 3
 question: "Is the gameplay/toolkit GameMode set as GlobalDefaultGameMode in DefaultEngine.ini? If yes, menu/meta maps WITHOUT a per-map override inherit the gameplay GameMode (and its GameState class) — classify battle worlds by a placed battle-infrastructure actor (grid manager, turn manager), not by GameMode/GameState class."
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: engine-quirks
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 3
+phase: 4
 question: "Do you need to call the game's own Blueprint functions via reflection / ProcessEvent (AddItem, RemoveItem, WieldItem, reload, etc.)? If so, do you have each function's exact input/output PIN signature — not just its name? The BP-Inspector 'inspect' (variables) and 'graph' (call-graph node titles) modes do NOT report function pin signatures."
 sanitized: true
 ---

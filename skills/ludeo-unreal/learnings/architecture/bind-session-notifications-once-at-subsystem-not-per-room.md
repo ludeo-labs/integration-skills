@@ -2,7 +2,7 @@
 category: architecture
 tier: generalizable
 sourceGame: multiple
-phase: 4
+phase: 5
 question: "Are the session-level notification delegates (OnRoomReady, OnLudeoSelected, pause/resume, back-to-menu) bound ONCE at session setup on a persistent owner, or rebound per-room on a transient component?"
 sanitized: true
 ---

@@ -2,7 +2,7 @@
 category: save-systems
 tier: generalizable
 sourceGame: EndlessFPS
-phase: 4
+phase: 5
 question: "Does the curated slice pre-populate the player's inventory at spawn, or only a basic loadout? If items picked up during play are gone on a fresh Player Flow spawn, restore must ADD them via the game's own AddItem function — not reflection-set quantities on items that don't exist."
 sanitized: true
 ---

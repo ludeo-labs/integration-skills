@@ -2,7 +2,7 @@
 category: architecture
 tier: universal
 sourceGame: ActionGame
-phase: 4
+phase: 5
 question: "Need a hook on a private engine method but the method itself is fine and shouldn't change shape. Should the integration add `UFUNCTION()` to it, make it public, or expose a parallel multicast delegate?"
 sanitized: true
 ---

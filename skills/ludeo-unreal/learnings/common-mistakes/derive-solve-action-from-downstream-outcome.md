@@ -2,7 +2,7 @@
 category: common-mistakes
 tier: generalizable
 sourceGame: StoryPuzzleGame
-phase: 5
+phase: 6
 question: "Does the puzzle/objective you want a 'Solved' action for have NO bSolved flag, and is its own interaction-state enum ambiguous (it cycles on every interaction, and cancel/escape resets it the same way a solve does)? If so, attribute the solve to the thing it UNLOCKS downstream, not to the puzzle's own state."
 sanitized: true
 ---
