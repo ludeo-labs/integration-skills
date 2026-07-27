@@ -1,12 +1,12 @@
-# Phase 0 — Install SDK + Compile Baseline + Intake (Unity)
+# Phase 1 — Install SDK + Compile Baseline + KYG / Know Your Game (Unity)
 
 ## 1. Goal / Purpose
 
 Install the Ludeo Unity plugin, configure `LudeoSettings` (+ optional defines), confirm the project
 compiles and plays **both before** the package (baseline) **and after** it (SDK-enabled), prove the
-native layer loads, and **run the intake questionnaire**. There is no build script — the "build" is
+native layer loads, and **run the KYG (know your game) questionnaire**. There is no build script — the "build" is
 the Unity Editor + an installed package. Deliverable: an installed, resolving SDK on a dedicated
-branch; a verified baseline; and a recorded `INTAKE.md` (incl. game-level save-system classification).
+branch; a verified baseline; and a recorded `KYG.md` (incl. game-level save-system classification).
 
 ## 2. Inputs (Input Contract)
 
@@ -14,7 +14,7 @@ Required artifacts / pre-flight:
 
 - [ ] **Fresh agent session.** If you see prior tool calls, game analysis, or `CODE_MAP` references in
       this conversation, **STOP** and tell the user: *"This chat has prior context. For best results,
-      start a fresh agent session and continue with phase 0 there."*
+      start a fresh agent session and continue with phase 1 there."*
 - [ ] **This is a Unity project** — `Assets/`, `ProjectSettings/`, `Packages/manifest.json`. If not,
       stop and point the user at the engine-appropriate skill.
 - [ ] **Ludeo Unity plugin** obtained. **Default: download the latest release** from
@@ -28,7 +28,7 @@ Required artifacts / pre-flight:
 ## 3. Steps
 
 > Map/plan sub-steps then implement. Every code change goes through a **compile & fix cycle** — see
-> `phase 5` for the loop + the `error CS` table.
+> `phase 3 · task 5` for the loop + the `error CS` table.
 
 ### Step 0a — Create an integration branch ⭐ FIRST
 **Tell the user explicitly, before running the command, that you are about to create a new git branch
@@ -94,21 +94,21 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
 - **⚠️ A shipped/cloud build MUST have `runWithoutLauncher = false`.** Left `true`, the build still
   runs locally but **fails to authenticate on the Ludeo cloud** (the platform is the launcher) — an
   invisible ship-blocker. The flag is baked into `resources.assets` at build time, so the project
-  value is only an *inference* of what ships; `phase 13` asserts the **actual baked value from the
+  value is only an *inference* of what ships; `phase 7` asserts the **actual baked value from the
   build log** before upload. Full field reference: `unity/UPM-INSTALL-AND-DEFINES.md §3`.
 - **QA/dev builds that must change `runWithoutLauncher` / `launcherUserId` / `ludeoToAutoStart` without
   rebuilding:** the baked `.asset` can't do this. Set up the `LUDEO_DEV`-gated dev-override shim
   (`unity/UPM-INSTALL-AND-DEFINES.md` → *Dev/QA runtime overrides*): a `ludeo-dev.ini` next to the build +
   a loader applied before `LudeoManager.Initialize()`. **Gather the real QA values from the user and seed the file
-  with them** — don't leave placeholders. Production builds (no `LUDEO_DEV`) ignore it, so phase 13's baked
+  with them** — don't leave placeholders. Production builds (no `LUDEO_DEV`) ignore it, so phase 7's baked
   `runWithoutLauncher` gate stays authoritative.
 
 ### Step 3 — Verify with the package installed
 The project still **compiles** and the game still **plays** (package present, unused). Confirms the
 package didn't break the baseline.
 
-### Step 3.5 — Run the intake questionnaire ⭐
-Fill `ludeo-integration-plan/INTAKE.md` (template in §6) with the user. Answer with `file:line`
+### Step 3.5 — Run the KYG (know your game) questionnaire ⭐
+Fill `ludeo-integration-plan/KYG.md` (template in §6) with the user. Answer with `file:line`
 evidence where it comes from code; mark unknowns `?`; **ask** the human-only items (§4). Three parts:
 
 1. **Game + Ludeo profile** — identity, genre (→ a `game-patterns/*.md` match), engine/render
@@ -129,8 +129,8 @@ evidence where it comes from code; mark unknowns `?`; **ask** the human-only ite
    > If either axis is "boot-straight" / "launched preselected" — **or** the creator launch is
    > menu-gated but the menu is fast/skippable — the integration needs the **SDK-readiness gate**
    > (`unity/LAUNCH-AND-READINESS.md`): the menu can no longer be relied on to absorb the async
-   > Activate + consent latency before the first creator `OpenRoom`. Record the answer; phase 1
-   > cross-checks it against the code (`CODE_MAP.launch_model`), and phases 2–4 build the gate.
+   > Activate + consent latency before the first creator `OpenRoom`. Record the answer; phase 2
+   > cross-checks it against the code (`CODE_MAP.launch_model`), and phases 3–5 build the gate.
 3. **Save-system classification (game level)** — run the greps and assign the group:
    - `Grep("PlayerPrefs\\.")`, `Grep("JsonUtility|JsonConvert|\\[Serializable\\]|\\[SerializeField\\]")`,
      `Grep("ScriptableObject")`, `Grep("BinaryFormatter|BinaryWriter|MemoryStream|byte\\[\\]")`,
@@ -144,7 +144,7 @@ evidence where it comes from code; mark unknowns `?`; **ask** the human-only ite
      entity. **Transition/streaming caches** (`CacheScene`/`Persist*`, interior↔exterior, Addressables
      hand-off) hold partial deltas — they are **not** the canonical save; find the real Save/Load path.
    - **The per-entity reconciliation-vs-manual matrix is NOT built here** — it needs
-     `CODE_MAP.object_model` (phase 1). It is produced in the object-mapping phase (`phase 8`). Record
+     `CODE_MAP.object_model` (phase 2). It is produced in the object-mapping phase (`phase 4`). Record
      only the game-level classification + save-entry-points now.
 
 ### Step 4 — Smoke-test the native layer
@@ -161,7 +161,7 @@ Add a throwaway bootstrap call and confirm it returns a `LudeoResult`.
 > the entire Editor** after a single play-stop (worse when the game also hides its own cursor — many
 > do). The symptom only shows *after* you stop play, so it reads as "did the integration break my
 > Editor?". This is a preview of **CR-007** (`00-CRITICAL-REQUIREMENTS.md`): the native/overlay layer is
-> not released on stop, which is exactly why phase 4 must route **every** gameplay exit through clean
+> not released on stop, which is exactly why phase 3 must route **every** gameplay exit through clean
 > `EndGameplay`/`AbortGameplay` + SDK teardown (and dispose the session on quit).
 
 The smoke test has two legs — the **Editor** and a **player build** (IL2CPP + native plugins differ
@@ -196,14 +196,14 @@ private static void LudeoSmokeTest()
   headless with `-logFile`) and grep for `[Ludeo]` / `WrapperDllNotFound`.
 - Any `LudeoResult` from `Initialize()` proves the native plugin loaded. **`WrapperDllNotFound`** means
   it did not — a platform/plugin/build problem; fix before continuing (`04-BUILD-INTEGRATION.md`).
-- **Delete the throwaway entirely once both legs pass** — the real init lives in the layer (phase 4).
+- **Delete the throwaway entirely once both legs pass** — the real init lives in the layer (phase 3).
 
-### Step 5 — (moved to phase 6) Verify the player build is self-contained
-> **Moved to guideline phase 6 (verification & cloud)** — `references/13-upload-build.md` Step 3–4. The
+### Step 5 — (moved to phase 7) Verify the player build is self-contained
+> **Moved to guideline phase 7 (verification & cloud)** — `references/7-upload-build.md` Step 3–4. The
 > self-contained check (native plugins shipped, 3rd-party deps resolved durably) + the `validate-build`
-> gate run at upload time, not at install. Phase 0's job ends at a **clean Editor + player-build smoke test**
+> gate run at upload time, not at install. Phase 1's job ends at a **clean Editor + player-build smoke test**
 > (Step 4 above): `LudeoManager.Initialize()` returning a `LudeoResult` (not `WrapperDllNotFound`). Upload
-> readiness is phase 6's concern.
+> readiness is phase 7's concern.
 
 ## 4. Questions to ask the human
 
@@ -215,14 +215,14 @@ Only what can't be inferred from code:
 - **Auth mode** — implicit Steam (`runWithoutLauncher = false`, production; needs Steam initialized
   before `Activate`) vs explicit no-Steam (`runWithoutLauncher = true` + `launcherUserId`, testing/CI).
   Steam appId if applicable.
-- **Ludeo concept** (intake §) — what makes a good highlight moment in this game; what the player
+- **Ludeo concept** (KYG §) — what makes a good highlight moment in this game; what the player
   should experience when launching a Ludeo; typical Ludeo length; which player actions matter most.
 - **Bosses** — does the game have boss / named / scripted-encounter enemies? If a boss fight is a likely
   highlight, note each boss and how the fight is structured (phases/forms? summoned adds? an intro or
   transition cutscene? a unique spawn trigger / locked arena?). Drives loading `game-patterns/bosses.md`
   and flagging the boss as load-bearing in the census. Code-level detail is confirmed later; the human
   knows the shape of the fight now.
-- **Launch model** (intake §) — menu-gated vs. boot-straight-to-gameplay for a capture session; and
+- **Launch model** (KYG §) — menu-gated vs. boot-straight-to-gameplay for a capture session; and
   whether a Ludeo is entered via an in-game gallery or launched preselected. A product choice — ask;
   don't infer it solely from the current first scene.
 - Anything the save-system greps leave ambiguous (does the game persist *gameplay* state or only
@@ -249,12 +249,12 @@ Context files (read first; relative to this workflow file):
 | `feature/ludeo-integration-#N` branch | Isolates the attempt; discard by deleting the branch |
 | Installed package; `using LudeoSDK;` compiles | SDK resolves with no extra wiring |
 | `LudeoSettings.asset` with real `apiKey` | SDK config; dev flags appropriate for the build |
-| `ludeo-integration-plan/INTAKE.md` | Recorded intake (below) |
-| `CODE_MAP.json → save_system` (game-level block) | Mechanism/format/group + entry points; per-entity matrix deferred to `phase 8` |
+| `ludeo-integration-plan/KYG.md` | Recorded KYG (below) |
+| `CODE_MAP.json → save_system` (game-level block) | Mechanism/format/group + entry points; per-entity matrix deferred to `phase 4` |
 
-`INTAKE.md` template:
+`KYG.md` template:
 ```markdown
-# Ludeo Integration — Intake (<GameName>)
+# Ludeo Integration — KYG / Know Your Game (<GameName>)
 
 ## Game + Ludeo profile
 - Name / studio:
@@ -283,10 +283,10 @@ Context files (read first; relative to this workflow file):
 - Group:     1 (full gameplay-state) | 2 (checkpoint/partial) | 3 (none — settings/scores only)
 - Save/load entry points (file:line):
 - Notes (transition/streaming caches found, ambiguities):
-- ⚠ Per-entity reconciliation-vs-manual matrix → built in phase 8 (needs the object model).
+- ⚠ Per-entity reconciliation-vs-manual matrix → built in phase 4 (needs the object model).
 ```
 
-`save_system` block added to `CODE_MAP.json` (created here; `per_entity` filled in `phase 8`):
+`save_system` block added to `CODE_MAP.json` (created here; `per_entity` filled in `phase 4`):
 ```json
 "save_system": {
   "mechanism": "PlayerPrefs | JsonUtility | Json.NET | ScriptableObject | BinaryFormatter | custom | none",
@@ -299,13 +299,13 @@ Context files (read first; relative to this workflow file):
 
 ## 7. ✅ Success Criteria
 
-The gate — satisfy all before advancing to phase 1.
+The gate — satisfy all before advancing to phase 2.
 
-**Guideline phase-0 criteria:**
+**Guideline phase-1 criteria:**
 - [ ] SDK references resolve — `using LudeoSDK;` compiles with no asmdef/define.
 - [ ] Project compiles **with** the SDK (package installed; baseline intact).
 - [ ] Project compiles **without** the SDK (the pre-install baseline — Step 0c).
-- [ ] Intake questionnaire answered and recorded (`INTAKE.md` + `CODE_MAP.json` `save_system` block),
+- [ ] KYG questionnaire answered and recorded (`KYG.md` + `CODE_MAP.json` `save_system` block),
       **incl. the launch model** (creator + player axes; whether the SDK-readiness gate is required).
 
 **Skill-specific additions:**
@@ -314,7 +314,7 @@ The gate — satisfy all before advancing to phase 1.
 - [ ] `LudeoSettings.asset` present with a real `apiKey`; dev flags appropriate for the build.
 - [ ] `LudeoManager.Initialize()` returns a `LudeoResult` (not `WrapperDllNotFound`), and
       `SessionManager.CreateSession` succeeds, in the **Editor and a player build**.
-- [ ] _(Self-contained build + `validate-build` — **moved to phase 6**, `13-upload-build.md` Step 3–4.)_
+- [ ] _(Self-contained build + `validate-build` — **moved to phase 7**, `7-upload-build.md` Step 3–4.)_
 
 ## 8. Common Mistakes
 
@@ -325,7 +325,7 @@ The gate — satisfy all before advancing to phase 1.
 - **Misclassifying a strong-but-opaque save as reconciliation** — `BinaryFormatter`/packed bytes is
   **manual** per entity regardless of how complete the save is.
 - **Treating a transition/streaming cache as the canonical save** — it holds partial deltas only.
-- **Building the per-entity restore matrix now** — defer to `phase 8`; the object model doesn't exist yet.
+- **Building the per-entity restore matrix now** — defer to `phase 4`; the object model doesn't exist yet.
 - **Leaving an auto-running `LudeoManager.Initialize()` smoke test active in the Editor** — a bare
   `[RuntimeInitializeOnLoadMethod]` re-inits the Ludeo overlay every play and can leave the OS cursor
   hooked across the Editor after you stop. Gate it player-only (`if (Application.isEditor) return;`) or
@@ -334,4 +334,4 @@ The gate — satisfy all before advancing to phase 1.
 ## Related / Next
 
 - Guides: `ludeo-integration-docs/04-BUILD-INTEGRATION.md`, `unity/UPM-INSTALL-AND-DEFINES.md`.
-- **Next:** `phase 1` (map the Unity project → `CODE_MAP.json`).
+- **Next:** `phase 2` (map the Unity project → `CODE_MAP.json`).

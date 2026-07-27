@@ -1,6 +1,6 @@
-# Phase 5 · Task 1 — Map Game Actions (Unity)
+# Phase 6 · Task 1 — Map Game Actions (Unity)
 
-> **Single-task subagent brief.** Dispatched by the phase-5 orchestrator (`6-actions-orchestrator.md`).
+> **Single-task subagent brief.** Dispatched by the phase-6 orchestrator (`6-actions-orchestrator.md`).
 > Find where Ludeo **actions** (`SendAction`) should fire — locations + names, **no code** (that's task 2)
 > — produce `GAME_ACTIONS_MAP.md`, and return a short summary + the artifact path. **You do not run the
 > human approval gate** — the orchestrator surfaces the map to the user. You run in isolated context —
@@ -20,8 +20,8 @@ backend uses to exclude non-ludeoable windows. Output is human-approved before t
 
 ## 2. Inputs (Input Contract)
 
-- [ ] **Phase 1** → `ludeo-integration-plan/CODE_MAP.json` (game name + structure — the source to search).
-- [ ] **Phase 2** → `ludeo-integration-plan/SDK_INTEGRATION_POINTS.json` — carries the **non-ludeoable
+- [ ] **Phase 2** → `ludeo-integration-plan/CODE_MAP.json` (game name + structure — the source to search).
+- [ ] **Phase 3** → `ludeo-integration-plan/SDK_INTEGRATION_POINTS.json` — carries the **non-ludeoable
       boundary-action mappings** (enter → `StartNoneLudeable`, exit → `StopNoneLudeable`) discovered from
       `CODE_MAP.non_ludeoable_candidates`. **Do not re-scan for these** — read them from here.
 - [ ] **Recommended:** `ludeo-integration-plan/TDD_<GameName>.md` — its **Actions** section (the capture
@@ -30,7 +30,7 @@ backend uses to exclude non-ludeoable windows. Output is human-approved before t
   - `ludeo-integration-docs/game-patterns/INDEX.md` — the genre/structural pattern index.
   - Genre pattern file(s) — loaded dynamically in Step 2.
 
-> **Phase 4 is done** (the player flow is proven) — actions are enrichment on a working capture/replay
+> **Phase 5 is done** (the player flow is proven) — actions are enrichment on a working capture/replay
 > loop. This task adds nothing the loop depends on; it only maps emit points.
 
 ## 3. Steps
@@ -88,7 +88,7 @@ but found no matching code. Manual review recommended."
 ### Step 5 was the keep test + scope rules — see §5 (Patterns) below.
 
 ### Step 6: Pull in the non-gameplay boundary/pause actions
-Read the non-ludeoable boundary-action mappings from `SDK_INTEGRATION_POINTS.json` (phase 2) and add a
+Read the non-ludeoable boundary-action mappings from `SDK_INTEGRATION_POINTS.json` (phase 3) and add a
 **Non-Gameplay Actions** section to the map (don't re-scan):
 - **Non-ludeoable areas** (shops, NPC dialogue, tutorials, safe zones, in-game menus) — enter site →
   `StartNoneLudeable`, exit site → `StopNoneLudeable`. Tracking keeps running; the **backend** excludes the
@@ -97,7 +97,7 @@ Read the non-ludeoable boundary-action mappings from `SDK_INTEGRATION_POINTS.jso
 - **Capture-hygiene pause / cutscene** (a true sim freeze the game initiates, distinct from the SDK overlay
   pause) — `PauseLudeo` / `ResumeLudeo`. Identify the enter/exit sites if present; if none exist, note it.
 
-These use the **standard names** (already seeded in `LudeoActionKeys` in phase 2). They are session/area
+These use the **standard names** (already seeded in `LudeoActionKeys` in phase 3). They are session/area
 events — **not** player-guarded. Like all actions, task 2 emits them in **both** flows.
 
 ### Step 7: Produce output
@@ -126,7 +126,7 @@ transcription. Drop a candidate when:
 
 | Reject reason | What it looks like | Do instead |
 |---|---|---|
-| **It's state, not an event** | A value per-tick capture already records: current weapon, equipped gear, ammo/health/XP **totals**, is-sprinting/crouched/drifting | Track it as an attribute (phase 4). Don't mirror tracked state as an action. |
+| **It's state, not an event** | A value per-tick capture already records: current weapon, equipped gear, ammo/health/XP **totals**, is-sprinting/crouched/drifting | Track it as an attribute (phase 5). Don't mirror tracked state as an action. |
 | **High-frequency input / mechanical noise** | Fires many times/sec with no objective or score: `Jump`, `Dash`, `Sprint`, `Crouch`, `Reload`, `WeaponSwitch`, RTS `MoveOrder`/`GroupSelect`, raw clicks | Drop — noise, never a highlight beat, bloats the file. |
 | **No Ludeo value** | No objective, no scoring, not a memorable one-shot beat — pure flavor | Drop. |
 
@@ -146,7 +146,7 @@ transcription. Drop a candidate when:
 ### Attribute correctly — player-scoped vs. global
 `SendAction` is bound to the **room's player** (task 2). Most actions are **player-scoped**: something the
 player **did** (`Kill`) or that **happened to the player** (`Death`/`TookDamage`). An enemy killing another
-enemy is **not** the player's action — at most it's NPC state (phase 4). Map a player-scoped action only
+enemy is **not** the player's action — at most it's NPC state (phase 5). Map a player-scoped action only
 where the player is actor/subject; if the site fires for *any* actor (a shared `OnEnemyKilled(killer, …)`),
 still map it but flag **`⚠ needs player-guard`** so task 2 guards on the player.
 
@@ -163,7 +163,7 @@ game has no controllable side at all, flag it.
 - **Player-perspective naming** — name from what the player did/experienced.
 - **Match genre-catalog names where they exist** (no canonical platform action-name reference exists yet);
   game-specific actions are expected for the rest.
-- **Actions are discrete events**, not continuous state (that's tracking — phase 4).
+- **Actions are discrete events**, not continuous state (that's tracking — phase 5).
 - **PascalCase** names (become `LudeoActionKeys`).
 - **Gaps are information**, not errors.
 
@@ -189,7 +189,7 @@ game has no controllable side at all, flag it.
 
 ### [Other Categories…]
 
-## Non-Gameplay Actions (from SDK_INTEGRATION_POINTS.json — phase 2)
+## Non-Gameplay Actions (from SDK_INTEGRATION_POINTS.json — phase 3)
 | Action | Trigger | Site (file:line) | Scope | Notes |
 |---|---|---|---|---|
 | StartNoneLudeable | Enter shop | ShopUI.Open | session/area | platform global-trigger excludes window; needs matching StopNoneLudeable |
@@ -206,8 +206,8 @@ game has no controllable side at all, flag it.
 | Candidate | Where found | Reason | Handled by |
 |---|---|---|---|
 | Jump | PlayerMovement.Jump | high-frequency noise, no objective/score | (nothing — or an `airborne` attribute if a moment needs it) |
-| Reload | Weapon.Reload | mechanical noise; ammo is tracked state | attribute: ammo count (phase 4) |
-| Equip | Inventory.Equip | state, not an event | attribute: equipped item id (phase 4) |
+| Reload | Weapon.Reload | mechanical noise; ammo is tracked state | attribute: ammo count (phase 5) |
+| Equip | Inventory.Equip | state, not an event | attribute: equipped item id (phase 5) |
 ```
 
 The Dropped table makes the filter **reviewable** — the integrator can promote any row back to an action.
@@ -215,7 +215,7 @@ The Dropped table makes the filter **reviewable** — the integrator can promote
 
 ## 7. ✅ Success Criteria
 
-**Guideline phase-5 criteria this task produces:**
+**Guideline phase-6 criteria this task produces:**
 - [ ] **Action list mapped to `file:line` emit points** — every kept action with its source + line.
 - [ ] **Actions named from the player's perspective** (PascalCase).
 - [ ] **Matched to reference action names where they exist** — genre-catalog names + the standard
@@ -232,14 +232,14 @@ The Dropped table makes the filter **reviewable** — the integrator can promote
 
 - **Writing code / running anything** — this is mapping only; task 2 inserts `SendAction`.
 - **Transcribing instead of filtering** — keeping jump/dash/reload/equip bloats the Ludeo (drop them).
-- **Mapping a continuous value as an action** (`GainXP`, `Equip`) — that's tracked state (phase 4).
+- **Mapping a continuous value as an action** (`GainXP`, `Equip`) — that's tracked state (phase 5).
 - **Crediting the player with non-player actions** — flag the player-guard for shared kill handlers.
 - **Dropping global/match events** because "the player didn't personally cause them" — they frame the moment.
-- **Re-scanning for non-ludeoable boundaries** — read them from `SDK_INTEGRATION_POINTS.json` (phase 2).
+- **Re-scanning for non-ludeoable boundaries** — read them from `SDK_INTEGRATION_POINTS.json` (phase 3).
 - **A `StartNoneLudeable` with no exit** — leaves capture suppressed for the rest of the run.
 
 ## Related / Next
 
-- Phase 1 (`1-map-game-code.md`) — produces `CODE_MAP.json`. Phase 2 — produced the non-ludeoable mappings.
+- Phase 2 (`2-map-game-code.md`) — produces `CODE_MAP.json`. Phase 3 — produced the non-ludeoable mappings.
 - **Next (orchestrator):** surface `GAME_ACTIONS_MAP.md` for human approval, then dispatch task 2
-  (`7-implement-game-actions.md`) to insert the `SendAction` calls.
+  (`6b-implement-game-actions.md`) to insert the `SendAction` calls.

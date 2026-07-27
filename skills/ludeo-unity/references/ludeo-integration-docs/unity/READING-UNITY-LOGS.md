@@ -1,8 +1,8 @@
 # Reading Unity Logs (how the agent observes output)
 
 The agent driving this skill **cannot see the Unity Editor Console**. To verify anything at runtime
-or catch compile errors, **read Unity's log files** with Read/Grep. Used by phase 0 (native
-smoke-test), phase 5 (compile-and-fix), and the **recompile + run exit gate that ends every
+or catch compile errors, **read Unity's log files** with Read/Grep. Used by phase 1 (native
+smoke-test), phase 3 · task 5 (compile-and-fix), and the **recompile + run exit gate that ends every
 code-writing phase** (4, 7, 9, 11, 12) — that gate is where the agent observes the compile result and
 the live run.
 

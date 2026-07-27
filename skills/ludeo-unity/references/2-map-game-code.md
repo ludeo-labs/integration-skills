@@ -1,4 +1,4 @@
-# Phase 1 — Mapping (Unity Project → CODE_MAP)
+# Phase 2 — Mapping (Unity Project → CODE_MAP)
 
 ## 1. Goal / Purpose
 
@@ -14,9 +14,9 @@ Required artifacts / pre-flight:
 
 - [ ] **Fresh agent session.** If you see prior tool calls, game analysis, or `CODE_MAP` references in
       this conversation, **STOP** and tell the user: *"This chat has prior context. For best results,
-      start a fresh agent session and continue with phase 1 there."*
-- [ ] **Phase 0 complete** — integration branch (`feature/ludeo-integration-#N`) exists, the Ludeo
-      package is installed (`using LudeoSDK;` resolves), and `ludeo-integration-plan/INTAKE.md` is
+      start a fresh agent session and continue with phase 2 there."*
+- [ ] **Phase 1 complete** — integration branch (`feature/ludeo-integration-#N`) exists, the Ludeo
+      package is installed (`using LudeoSDK;` resolves), and `ludeo-integration-plan/KYG.md` is
       recorded (incl. the game-level save-system classification).
 - [ ] **Read the Unity structural model (§5) before searching** — it tells you what to look for and
       what does not exist in a Unity project.
@@ -32,7 +32,7 @@ Required artifacts / pre-flight:
 Much of a Unity game's state lives **not in code but in the Editor** (which components sit on which
 GameObjects, prefab makeup, inspector-set values). When assets are **binary-serialized**, none of
 that is readable from disk. Switching to **Force Text** (YAML) makes scenes/prefabs greppable, which
-directly accelerates the discovery phases — especially **phase 8 (map game objects)**, where a large
+directly accelerates the discovery phases — especially **phase 4 (map game objects)**, where a large
 share of entity state is configured on the prefab/scene rather than in code. Pure `.cs` work
 (lifecycle wiring, `SendAction`, `WriteData`, restoration) is unaffected — this is a
 discovery-phase convenience, not a functional requirement.
@@ -54,7 +54,7 @@ discovery-phase convenience, not a functional requirement.
       `chore: switch asset serialization to Force Text`) so later Ludeo changes diff cleanly on top.
 3. **If they decline:** record the choice in the CODE_MAP (`serialization` note) and proceed in binary
    mode — you'll **round-trip scene/prefab inspector lookups through the user** in this and later
-   phases. **Do not re-prompt** in phases 8/10; at most a one-line reminder of the prior choice.
+   phases. **Do not re-prompt** in phases 4/5; at most a one-line reminder of the prior choice.
 
 ### Step 2 — Run the Analysis Checklist
 
@@ -107,19 +107,19 @@ results. All patterns are **Unity-native** — adapt based on what the project r
   content deterministic, frame not), it is **not**. Grep is only a starting lead — terms like
   `connector`/`AlignTo`/`FloatingOrigin`/`ShiftOrigin` *may* surface it, but their absence does **not**
   settle the question; read the placement code. If non-deterministic, **absolute world positions are not
-  restorable as-is** — record it (Output Contract, `world_frame`) so phases 8/10 capture/replay the
+  restorable as-is** — record it (Output Contract, `world_frame`) so phases 4/5 capture/replay the
   **resolved placement**, not just which content.
 - **List every distinct way gameplay is left** — each is a required `End`/`Abort` site later (CR-007).
 
 **6b. Non-ludeoable areas (mid-gameplay segments)** — segments *inside* live play that should never
 become a Ludeo: shops, NPC dialogue, tutorials, safe zones, in-game inventory/map screens, cutscenes.
 These are **distinct** from whole-screen menus (which sit outside any gameplay session — nothing to do)
-and from a true sim-freeze pause. Tracking **keeps running** through them; phase 2 plans boundary
+and from a true sim-freeze pause. Tracking **keeps running** through them; phase 3 plans boundary
 actions (`StartNoneLudeable`/`StopNoneLudeable`) at their enter/exit and the backend excludes the
 window. Probe for the **enter/exit sites**:
 - `Grep("Shop|Store|Vendor|Dialogue|Dialog|Conversation|Tutorial|SafeZone|SafeRoom|Cutscene|Cinematic|InventoryScreen|MapScreen")`
 - For each hit, record the **enter** and **exit** site (`file:line` + the trigger/method). A segment
-  with no clear exit is a flag for phase 2 (a dangling non-ludeoable would never re-enable capture).
+  with no clear exit is a flag for phase 3 (a dangling non-ludeoable would never re-enable capture).
 
 **7. Object model (spawn / despawn)**
 - `Grep("Instantiate\(|Destroy\(|DestroyImmediate\(")`
@@ -127,7 +127,7 @@ window. Probe for the **enter/exit sites**:
 - `Grep("Wardrobe|Cosmetic|Skin|Outfit|Appearance|Customization|Loadout|Equip|SkinnedMeshRenderer\.sharedMesh|\.material =")` —
   the **appearance/loadout subsystem**. Clothing/skins/equipped-cosmetics usually live *off* the player
   entity (a manager, a ScriptableObject, a mesh/material swap), so a player-only property sweep misses
-  them — record where visible appearance is set so phases 3–4 can track it (it's Wave 1, `06 §9.3`).
+  them — record where visible appearance is set so phases 4–5 can track it (it's Wave 1, `06 §9.3`).
 - `Glob("**/*.prefab")` (sample; do not enumerate exhaustively) — prefab-driven entity types.
 
 **8. Event systems**
@@ -136,8 +136,8 @@ window. Probe for the **enter/exit sites**:
 
 > **Save/serialization is not classified here.** A `SaveManager`-style class surfaces under
 > `core_classes` (§5 of the checklist) — enough for the structural map. The save system's **game-level**
-> mechanism/format/group is classified in **phase 0 intake** (`INTAKE.md`); the **per-entity
-> reconciliation-vs-manual matrix** is built in **phase 8** once the object model exists. Don't
+> mechanism/format/group is classified in **phase 1 KYG** (`KYG.md`); the **per-entity
+> reconciliation-vs-manual matrix** is built in **phase 4** once the object model exists. Don't
 > (re-)classify it here.
 
 **9. Input / AI / bots (controllability for restoration)**
@@ -157,7 +157,7 @@ artifact defined in **§6**.
 
 Only what can't be inferred from code:
 - **Asset serialization (Step 1).** If the project is Mixed/ForceBinary, **recommend** switching to
-  Force Text — explain the discovery benefit (esp. the phase-8 win) and that it serves their own goal
+  Force Text — explain the discovery benefit (esp. the phase-4 win) and that it serves their own goal
   of fully tracking the game's state. It has VCS implications (a one-time mass re-serialization), so
   it's the integrator's call — recommend, don't mandate. (Procedure is in §3 Step 1.)
 - **In binary mode:** which components/values sit on a given scene object or prefab, when a grep can't
@@ -197,13 +197,13 @@ Decide **three orthogonal things** about how this game models a session:
 0. **Launch model** — does a capture session start through a **main menu / level-select**, or does the
    game **boot straight into gameplay** (the first `EditorBuildSettings` scene is itself a gameplay
    scene that auto-starts a run)? And is a Ludeo entered via an **in-game gallery** or **launched
-   preselected**? **Intake (phase 0) is authoritative** — this is a product choice; here you only
+   preselected**? **KYG (phase 1) is authoritative** — this is a product choice; here you only
    **cross-check it against the code** (first-scene-is-gameplay? is there a menu scene? a forced
    auto-start at boot?) and record `launch_model` in §6. If either axis is boot-straight / preselected
    — or the menu is fast/skippable — **read
    [`ludeo-integration-docs/unity/LAUNCH-AND-READINESS.md`](ludeo-integration-docs/unity/LAUNCH-AND-READINESS.md)**:
    the SDK-readiness gate replaces the menu's implicit wait for Activate + consent. Flag any mismatch
-   (intake says boot-straight but the code boots to a menu, or vice-versa) — the integration may need
+   (KYG says boot-straight but the code boots to a menu, or vice-versa) — the integration may need
    to **add** a boot/gate path the game doesn't have yet.
 1. **Boundaries** — scene/level-driven, or a **single streaming world** (open-world / sandbox / MMO)
    whose boundaries live in a **state machine or event dispatcher**, not in scene loads. If the latter
@@ -215,7 +215,7 @@ Decide **three orthogonal things** about how this game models a session:
    seed drives layout/encounters)? If the latter (roguelike / procedural dungeon / wave-survival),
    **read [`ludeo-integration-docs/game-patterns/procedural-world.md`](ludeo-integration-docs/game-patterns/procedural-world.md)**
    and set `session_boundaries.assembly = "procedural"` — capturing "which scene" won't relocate the
-   moment (reload yields an empty container and re-rolls content), so phases 8/10 must capture the
+   moment (reload yields an empty container and re-rolls content), so phases 4/5 must capture the
    **generation inputs**.
 
 These axes are independent: a game can be procedural *and* level-based, procedural *and* streaming, or
@@ -231,7 +231,7 @@ neither — and any of those can be boot-straight or menu-gated.
    - `packages` — relevant entries from `Packages/manifest.json`; whether the Ludeo package is present
    - `scenes` — scene list + load order; which is bootstrap, which are gameplay
    - `entry_points` — bootstrap MonoBehaviours / `RuntimeInitializeOnLoadMethod` hooks (file, line)
-   - `launch_model` — the §5 axis-0 classification (intake-authoritative, code cross-checked):
+   - `launch_model` — the §5 axis-0 classification (KYG-authoritative, code cross-checked):
      ```json
      "launch_model": {
        "creator": "menu-gated | boot-straight",
@@ -239,7 +239,7 @@ neither — and any of those can be boot-straight or menu-gated.
        "first_scene_is_gameplay": true,
        "menu_scene": "<scene or null>",
        "readiness_gate_required": true,
-       "source": "intake authoritative; code cross-check — flag if they disagree (integration must ADD a boot/gate path)"
+       "source": "KYG authoritative; code cross-check — flag if they disagree (integration must ADD a boot/gate path)"
      }
      ```
    - `core_classes` — key managers/controllers/MonoBehaviours (file, base class, key methods)
@@ -250,12 +250,12 @@ neither — and any of those can be boot-straight or menu-gated.
      builder or pool class + file:line) and `generation_inputs` (selection/seed, sub-roll,
      progress-cursor, scaling-counter, **and `placement`** — the resolved per-room/chunk world transforms
      + connector indices, captured **when the generator rolls *where* a segment lands**, not just which —
-     fields phases 8/10 will capture — see `ludeo-integration-docs/game-patterns/procedural-world.md §3`).
+     fields phases 4/5 will capture — see `ludeo-integration-docs/game-patterns/procedural-world.md §3`).
      Independently of `assembly`, answer the **world-frame determinism question (§4.6)** and record
      `world_frame` — `{ deterministic: true, reason, evidence:{file,line} }` when the frame is fixed
      (a bare `true` with no reason is not acceptable — it just means the question wasn't answered), or
      `{ deterministic: false, cause: "procedural-placement" | "floating-origin", sites:[{file,line}] }`
-     — so phase 8's absolute-world-position checkpoint is answered from evidence, not asked blind. A
+     — so phase 4's absolute-world-position checkpoint is answered from evidence, not asked blind. A
      **floating-origin** world is the case where `assembly` is `"authored"` but `world_frame.deterministic`
      is still `false`. **When the project has no
      per-level scenes** (open-world / streaming / sandbox / state-machine-driven), use this
@@ -267,7 +267,7 @@ neither — and any of those can be boot-straight or menu-gated.
        ([CR-011](ludeo-integration-docs/00-CRITICAL-REQUIREMENTS.md))
    - `non_ludeoable_candidates` — mid-gameplay non-ludeoable segments (shops/dialogue/tutorials/safe
      zones/cutscenes), each `{ kind, enter: {file, line, trigger}, exit: {file, line, trigger} }`.
-     Phase 2 maps these to `StartNoneLudeable`/`StopNoneLudeable` boundary actions. Empty if none found.
+     Phase 3 maps these to `StartNoneLudeable`/`StopNoneLudeable` boundary actions. Empty if none found.
    - `object_model` — trackable entity classes, their prefabs, and spawn/despawn sites
    - `event_systems` — pattern type (C# event / `Action` / `UnityEvent` / bus) with examples
    - `input_ai` — input model; whether AI/bots exist, how they spawn, controllability
@@ -278,9 +278,9 @@ neither — and any of those can be boot-straight or menu-gated.
 
 ## 7. ✅ Success Criteria
 
-The gate — satisfy all before advancing to phase 2.
+The gate — satisfy all before advancing to phase 3.
 
-**Guideline phase-1 criteria:**
+**Guideline phase-2 criteria:**
 - [ ] `ludeo-integration-plan/CODE_MAP.json` exists.
 - [ ] Lifecycle hooks, core classes, event systems, and candidate entities are all listed.
 - [ ] **Every symbol is verified against the actual codebase** — each entry carries a real `file:line`;
@@ -296,7 +296,7 @@ The gate — satisfy all before advancing to phase 2.
       cause, sites}`. `placement` added to `generation_inputs` when a procedural builder rolls *where*
       segments land, not just which.
 - [ ] `non_ludeoable_candidates` recorded (mid-gameplay non-ludeoable segments with enter/exit sites,
-      or explicitly empty) — phase 2 needs these to plan `StartNoneLudeable`/`StopNoneLudeable`.
+      or explicitly empty) — phase 3 needs these to plan `StartNoneLudeable`/`StopNoneLudeable`.
 - [ ] `existing_ludeo` recorded (prior/partial integration detected, or explicitly none).
 
 ## 8. Common Mistakes
@@ -307,8 +307,8 @@ The gate — satisfy all before advancing to phase 2.
   load-different-save; each is a required `End`/`Abort` later (CR-007).
 - **Treating a transition/streaming cache as the save** (`CacheScene`/`Persist*`, interior↔exterior,
   Addressables hand-off) — these hold partial deltas, not the canonical save.
-- **(Re-)classifying the save system here** — game-level classification is phase 0 intake; the
-  per-entity matrix is phase 8.
+- **(Re-)classifying the save system here** — game-level classification is phase 1 KYG; the
+  per-entity matrix is phase 4.
 - **Enumerating every prefab/scene exhaustively** — sample to identify entity *types*; don't dump the
   whole asset tree.
 - **Editing `m_SerializationMode` by file** and assuming the repo converted — it doesn't re-serialize
@@ -317,7 +317,7 @@ The gate — satisfy all before advancing to phase 2.
 ## Related / Next
 
 - Patterns: `ludeo-integration-docs/game-patterns/open-world.md`, `.../procedural-world.md`.
-- **Next:** `phase 2` (SDK lifecycle) — enter via the orchestrator `2-lifecycle-orchestrator.md` and
+- **Next:** `phase 3` (SDK lifecycle) — enter via the orchestrator `3-lifecycle-orchestrator.md` and
   run it as a **single phase**. Do not treat "map SDK integration points" as a standalone phase: it is
   only task 1 of five (map points → TDD → plan → implement → human compile gate) the orchestrator
   dispatches as subagents.

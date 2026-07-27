@@ -4,7 +4,7 @@
 > soulslike, roguelike, platformer, bullet-hell. A "boss" here is any enemy whose fight is a *scripted,
 > stateful sequence* (phases/forms, an intro or transition cutscene, a locked arena, summoned adds, a
 > unique spawn trigger), not just a high-HP mob.
-> **Load when:** the intake (`phase 0`) or census (`phase 3`) says the game has bosses. Load this **in
+> **Load when:** the KYG (`phase 1`) or census (`phase 4`) says the game has bosses. Load this **in
 > addition to** the genre file(s) — it is a **gameplay-structure** pattern, orthogonal to genre and to the
 > world-structural files (open-world / procedural).
 >
@@ -36,31 +36,31 @@ So a boss is **two things to track**, not one:
    generic-enemy bucket or counted as one (§6, and `06 §9`). Usually a collection-of-one; capture its own
    stable key regardless (`06 §4`).
 2. **The encounter / fight state** — a `SessionState`/`Continuity`-style singleton *scoped to this fight*
-   (the same shape as phase 3's world/time-base singleton, mirrored per encounter): phase index, phase
+   (the same shape as phase 4's world/time-base singleton, mirrored per encounter): phase index, phase
    timer **remaining**, scripted cursor, arena-lock, adds-alive, music cue. **This is the load-bearing
    part integrations miss.**
 
 ---
 
-## 2. Census & wave placement (`phase 3`)
+## 2. Census & wave placement (`phase 4`)
 
 - **A boss in the captured moment is load-bearing → Wave 1.** If the highlight is (or includes) a boss
   fight, the boss entity **and** its encounter-state singleton are load-bearing (the moment is visibly
-  wrong AND unresumable without them). Do not defer either to a late wave (phase 3's load-bearing
+  wrong AND unresumable without them). Do not defer either to a late wave (phase 4's load-bearing
   guardrail).
 - **Record two object types**, not one: the `Boss` entity and the `<Boss>Encounter`/fight-state singleton
   (§1). The encounter singleton is easy to miss — it lives on a manager, not a visible GameObject (same
-  blind spot as the time-base singleton in phase 3's census).
+  blind spot as the time-base singleton in phase 4's census).
 - **Adds/minions the boss summons are their own type** (§6), waved with the boss when they're in view at
   capture, else the next wave.
 - If the boss *only* appears in moments you would never curate as a Ludeo, it may not be load-bearing at
-  all — confirm against the intake's "what is a good highlight" answer before pulling it into Wave 1.
+  all — confirm against the KYG's "what is a good highlight" answer before pulling it into Wave 1.
 
 ---
 
 ## 3. What to capture (boss tracking checklist)
 
-Verify after this wave's tracking is implemented (`phase 9`). Types map to `[SDK]` `WriteData`
+Verify after this wave's tracking is implemented (`phase 5 · task 1`). Types map to `[SDK]` `WriteData`
 overloads (inside `using (obj.EnterObjectScope())`, CR-002). Tiered by restoration priority: **CRITICAL** (restore or the fight can't play through),
 **IMPORTANT** (fidelity), **SKIP** (derived/transient — do not track, `06 §9.3`).
 
@@ -229,7 +229,7 @@ not just its phase.
   let hitbox enablement follow, or set the enabled set explicitly (§3).
 - **Fidelity has a cost — scope it to the moment.** Frame-exact projectile positions matter for a
   bullet-hell; for a slow telegraphed slam, attack id + progress is enough. Capture to the granularity the
-  highlight needs (the intake's "what is a good highlight" answer), not more.
+  highlight needs (the KYG's "what is a good highlight" answer), not more.
 
 ---
 
@@ -264,7 +264,7 @@ Boss-summoned adds are enemies, but **not every Enemy is *an* enemy** for counti
 
 ---
 
-## 7. Actions (`phase 5`/`phase 6`)
+## 7. Actions (`phase 6`)
 
 Boss beats are high-value Ludeo objectives/scoring. Map via `[SDK]`
 `LudeoPlayer.SendAction(string)` / `LudeoRoomWriter.SendAction(playerId, action)` (`[Layer]` `LudeoController.SendAction`). Apply phase 6's keep
@@ -281,7 +281,7 @@ test; scope per the note below.
 - **Most boss lifecycle actions are global** (fire once, no player-actor guard) — like `WaveComplete` /
   `MatchWin` (`INDEX.md`). Only player-subject beats (death to boss) are player-scoped.
 - **Emit in both flows.** Like every action, a boss action must fire in the Creator flow **and** the
-  Player (replay) flow — verify at phase 5's gate.
+  Player (replay) flow — verify at phase 6's gate.
 
 ### Search keywords
 ```
@@ -302,7 +302,7 @@ callbacks, and arena `OnTriggerEnter` locks.
 **Verify the fight *plays through*, not just that the boss appears.** The frame-1-looks-right trap is
 worst for bosses. At this wave's restore gate: play the restored Ludeo and confirm the boss enters its
 next phase, the arena stays locked, adds spawn, and the fight can reach its win/lose condition — then
-watch the derived counters (adds-alive, enemies-remaining) match ground truth as it plays (the phase 4
+watch the derived counters (adds-alive, enemies-remaining) match ground truth as it plays (the phase 5
 wave restore gate). Confirm the moment **opens on the captured live attack** (§4.6), not a fresh idle.
 "Boss is standing there" is not a pass.
 

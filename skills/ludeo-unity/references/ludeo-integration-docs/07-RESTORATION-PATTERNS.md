@@ -2,7 +2,7 @@
 
 > **Purpose:** How to rebuild captured GameObject state when a Ludeo is played (the read-back, **row-for-row
 > inverse of [`06-TRACKING-PATTERNS.md`](06-TRACKING-PATTERNS.md)**).
-> **Audience:** AI agents planning + implementing state restoration (phases 10–11) in a Unity project.
+> **Audience:** AI agents planning + implementing state restoration (phase 5) in a Unity project.
 > **Scope:** Unity + the `LudeoSDK` managed plugin. **Prerequisites:**
 > [`05-LIFECYCLE-MANAGEMENT.md`](05-LIFECYCLE-MANAGEMENT.md), [`06-TRACKING-PATTERNS.md`](06-TRACKING-PATTERNS.md),
 > [`00-CRITICAL-REQUIREMENTS.md`](00-CRITICAL-REQUIREMENTS.md).
@@ -28,16 +28,16 @@
 
 Jump to the section your task needs — you rarely need it end-to-end:
 
-- **Planning the restore (phase 10)?** → §1 (model) + §2 (the flow) + §8/§9 (world + pre-existing). The
+- **Planning the restore (phase 5 · task 2)?** → §1 (model) + §2 (the flow) + §8/§9 (world + pre-existing). The
   plan mirrors `OBJECT_TRACKING.md`; you don't write code.
-- **Wiring the restore flow (phase 11)?** → §2 (flow) + §3.1 (`LudeoRestoredData` extraction) + §10 (freeze/overlay).
-- **Filling the read-back (phase 12)?** → §3.2/§3.3 (restore accessors) + §4 (two-pass) + §5 (per-type snippets) + §6 (references).
+- **Wiring the restore flow (phase 5 · task 3)?** → §2 (flow) + §3.1 (`LudeoRestoredData` extraction) + §10 (freeze/overlay).
+- **Filling the read-back (phase 5 · task 4)?** → §3.2/§3.3 (restore accessors) + §4 (two-pass) + §5 (per-type snippets) + §6 (references).
 - **Things that revert if applied too early?** → §7 (deferred properties).
 - **Rebuilding the world / level the replay needs?** → §8 (game-definitions restore).
 - **Scene-placed objects, open-world?** → §9 (pre-existing reconciliation).
 - **Freeze / resume / overlay?** → §10 (wait-for-player, CR-010/011). **Self-check?** → §11.
 
-Phase 10 (plan) leans on §1, §2, §8, §9, §10; phase 11 (flow) on §2, §3.1, §10; phase 12 (data) on §3, §4, §5, §6, §7, §8, §9.
+Phase 5 · task 2 (plan) leans on §1, §2, §8, §9, §10; phase 5 · task 3 (flow) on §2, §3.1, §10; phase 5 · task 4 (data) on §3, §4, §5, §6, §7, §8, §9.
 
 ## Table of Contents
 
@@ -71,7 +71,7 @@ groups it **by `ObjectType`** into `LudeoStateObjectsLookup` `[Layer]`
 (`Dictionary<string, List<LudeoReadableObject>>`) — see §3. From there:
 - **Singleton** (the player): take the bucket's single entry, `list[0]`.
 - **Collection** (enemies, pickups): iterate the bucket; tell entries apart by **your own stable-key
-  attribute** captured in `phase 8`/`phase 9` (`06 §4`).
+  attribute** captured in `phase 4`/`phase 5 · task 1` (`06 §4`).
 
 `LudeoReadableObject.ObjectId` `[SDK]` is an SDK-assigned `uint`, **not** your game id — never match on
 it (CR-014).
@@ -81,7 +81,7 @@ it (CR-014).
 Every restore decision inverts a capture decision in `OBJECT_TRACKING.md`. Same `objectType` strings, same
 `LudeoKeys` `[Layer]` constants, same stable keys. `ReadData(K.X, out var x)` `[SDK]` reads back what
 `WriteData(K.X, x)` `[SDK]` wrote. **You cannot restore what tracking didn't capture** — a gap means the
-fix is in `phase 8`/`phase 9`, not here.
+fix is in `phase 4`/`phase 5 · task 1`, not here.
 
 > **The mirror is not absolute — it has three deliberate exceptions**, because restore lands the player
 > *past* the machinery that establishes a live encounter, so a faithful mirror alone leaves entities
@@ -576,7 +576,7 @@ don't restore them; record why.
 
 > **⚠️ Restore the soundtrack explicitly — the game won't start it for you.** Games normally kick off level
 > music from scene-start / `Start()` / `OnEnable`, and restore **suppresses exactly that class of
-> start-of-run logic** (`10-plan-state-restoration.md` Step 3, gated on `IsInLudeoFlow`) so it can't clobber
+> start-of-run logic** (`5c-plan-state-restoration.md` Step 3, gated on `IsInLudeoFlow`) so it can't clobber
 > restored state. The side effect: the classic state restores perfectly but **the soundtrack never starts**
 > — the reported "state restores but music doesn't" bug. So the world/definitions restore must **(re)start
 > the captured track itself** (`SetMusic(defs.gameMusic)` above), reading the **active-track id** captured
@@ -587,11 +587,11 @@ don't restore them; record why.
 >   time-driven-only** concern (§10.5 / time-base-continuity, `06 §1.2`); don't conflate the two.
 > - **Required for completeness on every integration, but NOT load-bearing.** The moment isn't *visibly*
 >   wrong without it on the first frame, so assign its capture to a **later wave (2+)**, never Wave 1
->   (`8-map-game-objects.md` Step A5) — and do **not** drop it just because it's deferred.
+>   (`4-map-game-objects.md` Step A5) — and do **not** drop it just because it's deferred.
 
 > **⚠️ The world-identity key is restore step 1 — fail loud, and distinguish two failures.** Rebuilding the
-> world needs the captured **world/level identity** (scene name, level index, chunk/room/seed — `phase 9`'s
-> first capture requirement, *not* a phase-10/11 afterthought; restoration's very first step depends on it).
+> world needs the captured **world/level identity** (scene name, level index, chunk/room/seed — `phase 5 · task 1`'s
+> first capture requirement, *not* a restore-time afterthought; restoration's very first step depends on it).
 > When it's **absent or empty**, that is almost always **version skew** — the Ludeo was captured by a build
 > *before* the identity attribute existed (capture re-samples every tick, so a fresh capture on the current
 > build fixes it). When the key is **present but resolves to nothing** ("chunk 'X' not found"), that's a
@@ -606,7 +606,7 @@ don't restore them; record why.
 >     Debug.LogError($"[Ludeo] restore: world '{worldId}' not found — resolver/content bug, not version skew");
 > ```
 > **Corollary — you can only restore what capture wrote (§1.3).** Adding *or renaming* any capture attribute
-> in `phase 9`/`10`/`11` **invalidates every previously captured Ludeo** for that attribute — there is no
+> in `phase 5` (tasks 1–3) **invalidates every previously captured Ludeo** for that attribute — there is no
 > migration. After a capture-schema change, **re-capture** before testing restore.
 
 > **Open-world / streaming:** the "definitions" are the persistent-world seed/region, not a level index. Re-bind
@@ -696,7 +696,7 @@ and choosing the wrong one for an **async** apply *deadlocks the restore*:
   awaits). Unfreeze in the `RoomReady`/`Begin` path.
 - **Suppress** — keep `timeScale = 1` but turn **off the things that mutate state**: player input, AI tick
   trees, cinematics/encounter-start, default-spawn teleports — all gated on `IsInLudeoFlow` `[Layer]` (the
-  same seam §9 and `phase 11 Step 5` use). The sim runs (so `FixedUpdate`, coroutines, `UniTask` complete)
+  same seam §9 and `phase 5 · task 3 Step 5` use). The sim runs (so `FixedUpdate`, coroutines, `UniTask` complete)
   but nothing drives the restored objects off their captured values.
 
 > **⚠️ `Time.timeScale = 0f` does NOT run `FixedUpdate`.** If your apply **awaits a physics step**
@@ -894,9 +894,9 @@ TryGetAllLudeoStateObjectByType, StoreGameDefinitions}` · `LudeoRestoredData` (
 
 ---
 
-**Next steps:** plan the restore with [`../10-plan-state-restoration.md`](../10-plan-state-restoration.md)
+**Next steps:** plan the restore with [`../5c-plan-state-restoration.md`](../5c-plan-state-restoration.md)
 (mirror `OBJECT_TRACKING.md` → `RESTORATION_PLAN.md`), then wire the flow with
-[`../11-implement-restoration-flow.md`](../11-implement-restoration-flow.md) (the SDK-orchestration half) and
+[`../5d-implement-restoration-flow.md`](../5d-implement-restoration-flow.md) (the SDK-orchestration half) and
 fill the data read-back with
-[`../12-implement-state-reconstruction.md`](../12-implement-state-reconstruction.md) (the row-for-row inverse
-of the `phase 9` capture).
+[`../5e-implement-state-reconstruction.md`](../5e-implement-state-reconstruction.md) (the row-for-row inverse
+of the `phase 5 · task 1` capture).
