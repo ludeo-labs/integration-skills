@@ -197,6 +197,25 @@ crash), and **ensures a `run.bat` exists** (creating one when you approve).
   re-validate. Never upload a build that didn't pass.
 - **Ensure `run.bat` is present at the build root** — the entry point Ludeo launches (the `.bat`-not-`.exe`
   rule, §5). If `validate-build` only `WARN`ed it's missing, create it now.
+- **Launch the exe with `-logFile -`** so Unity's `Debug.Log` goes to **stdout**, which the cloud runner
+  collects. Without it Unity logs land in `Player.log` on the instance's disk and are gone when it
+  recycles, leaving a cloud run with SDK logs and no game logs. No game-side code is needed for this —
+  don't add a `Debug.Log`→`OutputDebugString` forwarder.
+
+  ```bat
+  @echo off
+  cd /d "%~dp0"
+  "<Game>.exe" -logFile - %*
+  ```
+
+  - **Call the exe directly — not `start "" /wait`.** `start` gives the child a new console, so its
+    stdout no longer flows through the `.bat`'s stdout to the runner. If you need the exit code
+    propagated, `"<Game>.exe" … & exit /b %ERRORLEVEL%` keeps the pipe intact; `start /b` also works.
+  - **Cloud-Proton concern only.** Under Proton the exe's stdout handle maps to the wine process's fd 1;
+    on a bare-Windows launch a GUI-subsystem Unity player has no console attached, so verify locally by
+    redirecting (`run.bat > out.txt 2>&1`) rather than expecting console output.
+  - Unity logs and the SDK's own `OutputDebugString` logs stay **separate streams** in the collected
+    output — align them by timestamp rather than expecting one interleaved file.
 
 ### Step 5: Locate the CLI and authenticate
 1. `ludeo --help` — confirm the CLI is reachable and learn the current command set (the CLI evolves;
@@ -328,6 +347,8 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
   working directory (the property `validate-build` proves). A raw `.exe` exec-path can break path-relative assets.
 - **`--exec-path` is local and relative to `--local-directory`** — a path *inside* the build folder
   (`run.bat`, or `sub\dir\run.bat` if nested), **not** absolute.
+- **`run.bat` launches the exe with `-logFile -`, calling it directly (no `start`)** — Unity logs reach
+  the runner only via stdout (Step 4); `start` breaks that pipe and `Player.log` dies with the instance.
 - **Runtime environment defaults to `proton`** — Ludeo's cloud runs the Windows build under Proton (Linux);
   the runtime-environment describes how Ludeo runs it. Override only if the user confirms a different target.
 - **Verify commands against `ludeo --help` / `ludeo builds upload --help`** — the CLI changes; the flags
@@ -345,7 +366,8 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
 - **Debug features release-safe by default** — cheats / debug menus / verbose logging gated on
   `Debug.isDebugBuild` or `#if DEVELOPMENT_BUILD` (not a runtime flag), so a release build can't run them;
   what was audited/disabled recorded in the verification notes. CI-headless build flagged as the durable fix.
-- `run.bat` at the build root (used as the relative `--exec-path`).
+- `run.bat` at the build root (used as the relative `--exec-path`), launching the exe directly with
+  `-logFile -` so game logs reach the cloud runner's stdout collection.
 
 ## 7. ✅ Success Criteria
 
@@ -366,7 +388,8 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
       discrete cloud-run verification exists yet. To be filled later.
 
 **Skill-specific additions:**
-- [ ] `run.bat` present at the build root and used as the relative `--exec-path`.
+- [ ] `run.bat` present at the build root and used as the relative `--exec-path`, invoking the exe
+      directly (no `start`) with `-logFile -`.
 - [ ] `ludeo` CLI reachable (`--help`) and authenticated (`auth status`).
 - [ ] Build type correct: **major on the first build**, **minor otherwise** (with `--major-build-id`).
 - [ ] **Release build made by the user** in the Editor; the agent took over after.
@@ -392,6 +415,9 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
   source; assert + throw, and allowlist legitimate non-default values so you don't clobber them.
 - **Uploading a build that failed `validate-build`** — fix + re-validate first; never upload a failed gate.
 - **Registering the `.exe` as `--exec-path`** instead of the relative `run.bat`.
+- **A `run.bat` that swallows the game's logs** — omitting `-logFile -`, or wrapping the exe in
+  `start "" /wait` (new console ⇒ stdout never reaches the runner). Either way the cloud run comes back
+  with SDK logs and no game logs, and `Player.log` is gone with the instance (Step 4).
 - **Driving the Editor build yourself** — the user makes the build; you verify + upload.
 - **Hand-copying a missing dll into the build folder** — it's discarded next rebuild; fix durably (Step 3).
 
