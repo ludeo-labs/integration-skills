@@ -102,5 +102,5 @@ native plugins behave differently from the Editor — see below).
       `runWithoutLauncher`, and/or a dependency walk of the native dll). The `validate-build` skill is
       the final gate (runs the exe from inside the folder; catches missing-DLL crashes).
 
-→ See `0-build-game-with-sdk.md` (phase 1) for the step-by-step, and `5-compile-and-fix.md` for the
+→ See `1-build-game-with-sdk.md` (phase 1) for the step-by-step, and `3e-compile-and-fix.md` for the
 error-fix loop.

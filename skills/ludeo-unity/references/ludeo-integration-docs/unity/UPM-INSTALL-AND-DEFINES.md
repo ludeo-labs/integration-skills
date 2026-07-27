@@ -287,4 +287,4 @@ are illustrative; use your project's.)
 - [ ] A trivial `LudeoManager.Initialize()` call returns a `LudeoResult` (even a failure code proves
       the native layer loaded — `WrapperDllNotFound` means it didn't).
 
-→ Next: `0-build-game-with-sdk.md` (phase 1) drives this end-to-end and confirms baseline + SDK builds.
+→ Next: `1-build-game-with-sdk.md` (phase 1) drives this end-to-end and confirms baseline + SDK builds.

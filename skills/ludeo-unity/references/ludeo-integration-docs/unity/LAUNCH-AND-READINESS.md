@@ -76,13 +76,13 @@ When the app is launched with a Ludeo already chosen, `Activate`'s callback retu
 its normal boot-into-creator-gameplay:
 
 - **Suppress the auto-start** — the same `IsInLudeoFlow` `[Layer]` suppression the restore flow uses
-  for intros/spawns/press-start gates ([`11-implement-restoration-flow.md`](../../11-implement-restoration-flow.md)
+  for intros/spawns/press-start gates ([`5d-implement-restoration-flow.md`](../../5d-implement-restoration-flow.md)
   §5). The `onInitDone(isStartingInLudeo: true)` branch is the signal to take this path.
 - **The world may already be live.** Unlike the classic flow (where `LudeoSelected` fires at a menu
   with no world yet), here the boot scene may have already instantiated the default new-game world —
   and possibly auto-started a creator run — before `LudeoSelected` resolves. So restoration **resets /
   reloads the already-loaded scene** rather than booting a fresh one (contrast
-  [`11-implement-restoration-flow.md`](../../11-implement-restoration-flow.md) Step 3's
+  [`5d-implement-restoration-flow.md`](../../5d-implement-restoration-flow.md) Step 3's
   "boot one here"), and tears down any auto-started creator run via the existing `HandleGetLudeoDone`
   re-entrancy teardown (`07 §2.2`).
 
@@ -171,6 +171,6 @@ MonoBehaviour `Awake`/`Start`.
 
 **Next:** the gate's concrete wiring (fields + `TryReleaseCreatorGate`) lives in
 [`REFERENCE-ARCHITECTURE.md`](./REFERENCE-ARCHITECTURE.md); it is planned in
-[`../../3-plan-sdk-lifecycle.md`](../../3-plan-sdk-lifecycle.md) and implemented in
-[`../../4-implement-sdk-lifecycle.md`](../../4-implement-sdk-lifecycle.md). The player-path restore
-specifics are in [`11-implement-restoration-flow.md`](../../11-implement-restoration-flow.md).
+[`../../3c-plan-sdk-lifecycle.md`](../../3c-plan-sdk-lifecycle.md) and implemented in
+[`../../3d-implement-sdk-lifecycle.md`](../../3d-implement-sdk-lifecycle.md). The player-path restore
+specifics are in [`5d-implement-restoration-flow.md`](../../5d-implement-restoration-flow.md).

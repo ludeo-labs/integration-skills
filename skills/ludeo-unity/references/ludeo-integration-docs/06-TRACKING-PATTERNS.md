@@ -87,8 +87,8 @@ track everything, just not all at once.
   and forbids deferring it.)
 
 When in doubt, track it — and put it in the earliest wave its load-bearing-ness demands. See
-`8-map-game-objects.md` (Part A census, Part B per-wave deep-scope) and
-`9-tracking-restore-orchestrator.md` (the wave loop).
+`4-map-game-objects.md` (Part A census, Part B per-wave deep-scope) and
+`5-tracking-restore-orchestrator.md` (the wave loop).
 
 ### 1.2 What gets tracked
 
