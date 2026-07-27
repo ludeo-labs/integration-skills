@@ -203,7 +203,7 @@ Decide **three orthogonal things** about how this game models a session:
    — or the menu is fast/skippable — **read
    [`ludeo-integration-docs/unity/LAUNCH-AND-READINESS.md`](ludeo-integration-docs/unity/LAUNCH-AND-READINESS.md)**:
    the SDK-readiness gate replaces the menu's implicit wait for Activate + consent. Flag any mismatch
-   (intake says boot-straight but the code boots to a menu, or vice-versa) — the integration may need
+   (KYG says boot-straight but the code boots to a menu, or vice-versa) — the integration may need
    to **add** a boot/gate path the game doesn't have yet.
 1. **Boundaries** — scene/level-driven, or a **single streaming world** (open-world / sandbox / MMO)
    whose boundaries live in a **state machine or event dispatcher**, not in scene loads. If the latter
@@ -231,7 +231,7 @@ neither — and any of those can be boot-straight or menu-gated.
    - `packages` — relevant entries from `Packages/manifest.json`; whether the Ludeo package is present
    - `scenes` — scene list + load order; which is bootstrap, which are gameplay
    - `entry_points` — bootstrap MonoBehaviours / `RuntimeInitializeOnLoadMethod` hooks (file, line)
-   - `launch_model` — the §5 axis-0 classification (intake-authoritative, code cross-checked):
+   - `launch_model` — the §5 axis-0 classification (KYG-authoritative, code cross-checked):
      ```json
      "launch_model": {
        "creator": "menu-gated | boot-straight",
@@ -239,7 +239,7 @@ neither — and any of those can be boot-straight or menu-gated.
        "first_scene_is_gameplay": true,
        "menu_scene": "<scene or null>",
        "readiness_gate_required": true,
-       "source": "intake authoritative; code cross-check — flag if they disagree (integration must ADD a boot/gate path)"
+       "source": "KYG authoritative; code cross-check — flag if they disagree (integration must ADD a boot/gate path)"
      }
      ```
    - `core_classes` — key managers/controllers/MonoBehaviours (file, base class, key methods)

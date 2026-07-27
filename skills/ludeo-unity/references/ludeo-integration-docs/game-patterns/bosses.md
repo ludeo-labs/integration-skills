@@ -54,7 +54,7 @@ So a boss is **two things to track**, not one:
 - **Adds/minions the boss summons are their own type** (§6), waved with the boss when they're in view at
   capture, else the next wave.
 - If the boss *only* appears in moments you would never curate as a Ludeo, it may not be load-bearing at
-  all — confirm against the intake's "what is a good highlight" answer before pulling it into Wave 1.
+  all — confirm against the KYG's "what is a good highlight" answer before pulling it into Wave 1.
 
 ---
 
@@ -229,7 +229,7 @@ not just its phase.
   let hitbox enablement follow, or set the enabled set explicitly (§3).
 - **Fidelity has a cost — scope it to the moment.** Frame-exact projectile positions matter for a
   bullet-hell; for a slow telegraphed slam, attack id + progress is enough. Capture to the granularity the
-  highlight needs (the intake's "what is a good highlight" answer), not more.
+  highlight needs (the KYG's "what is a good highlight" answer), not more.
 
 ---
 

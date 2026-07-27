@@ -222,7 +222,7 @@ Only what can't be inferred from code:
   transition cutscene? a unique spawn trigger / locked arena?). Drives loading `game-patterns/bosses.md`
   and flagging the boss as load-bearing in the census. Code-level detail is confirmed later; the human
   knows the shape of the fight now.
-- **Launch model** (intake §) — menu-gated vs. boot-straight-to-gameplay for a capture session; and
+- **Launch model** (KYG §) — menu-gated vs. boot-straight-to-gameplay for a capture session; and
   whether a Ludeo is entered via an in-game gallery or launched preselected. A product choice — ask;
   don't infer it solely from the current first scene.
 - Anything the save-system greps leave ambiguous (does the game persist *gameplay* state or only

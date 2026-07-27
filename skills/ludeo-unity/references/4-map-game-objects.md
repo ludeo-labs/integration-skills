@@ -90,7 +90,7 @@ wave — here, just the spawn/own classification + the hook sites (they decide t
   and `game-patterns/open-world-tracking.md` — the tracking delta: **presence ≠ existence** (don't
   unregister on stream-out), world/cell object types, persistent-world-id identity across stream cycles,
   scoping the tracked set to the loaded neighborhood.
-- **If the game has bosses** (INTAKE "Bosses? yes", or a boss / named / scripted-encounter type surfaces
+- **If the game has bosses** (KYG "Bosses? yes", or a boss / named / scripted-encounter type surfaces
   during discovery), also load `game-patterns/bosses.md` — a boss fight is a load-bearing, scripted
   encounter with a unique spawn trigger, phases/forms, an intro cutscene, and summoned adds, whose state
   restoration must reconstruct without re-firing the trigger. It drives the boss's wave/load-bearing flags

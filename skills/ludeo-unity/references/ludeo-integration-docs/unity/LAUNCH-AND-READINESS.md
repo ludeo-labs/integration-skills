@@ -87,7 +87,7 @@ its normal boot-into-creator-gameplay:
   re-entrancy teardown (`07 §2.2`).
 
 > **`autoStartInLudeo`/`ludeoToAutoStart` (phase 1) is the dev-side test harness for this production
-> path** — it forces the preselected-Ludeo launch without the platform launcher. If intake's player
+> path** — it forces the preselected-Ludeo launch without the platform launcher. If KYG's player
 > axis is "launched preselected", wire and verify this path, don't treat the flags as test-only.
 
 ## 4. ⚠️ The gate MUST be bounded with a fallthrough — or the game is unlaunchable offline
