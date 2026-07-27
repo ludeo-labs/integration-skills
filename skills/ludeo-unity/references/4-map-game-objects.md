@@ -113,7 +113,7 @@ in doubt, track** (`06 §9.1`).
 > **Go find the appearance/loadout subsystem — don't wait for it to show up as a player field.** How a
 > visible character *looks* (equipped cosmetics, outfit, skin, model/color variant) is load-bearing for a
 > clip, but it usually lives **off** the entity — a wardrobe/customization manager, a `ScriptableObject`,
-> or a mesh/material swap (see phase 1's cosmetics grep). A viewer-centric sweep (`§9.2`) or a player-only
+> or a mesh/material swap (see phase 2's cosmetics grep). A viewer-centric sweep (`§9.2`) or a player-only
 > property list will miss it. Record **where the player's (and any in-view character's) appearance is
 > set** as a tracked source now — either the owning subsystem as its own type, or an explicit note on the
 > character type pointing at it — so Part B Step B3 captures it. It belongs to **Wave 1** with the

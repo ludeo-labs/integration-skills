@@ -61,7 +61,7 @@ emissions** — without searching game code. Output
      **bounded fallthrough** — consent-denied / init-failure / timeout → release the cover and play
      **uncaptured** (CR-001), reusing the layer's `cancellationTokenSource` timeout; (d) the
      **play-path** — suppress the scene's auto-start under `IsInLudeoFlow`, restore resets/reloads the
-     already-live scene (phase 11). Record the uncaptured-vs-upgrade choice (LAUNCH-AND-READINESS §4).
+     already-live scene (phase 5 · task 3). Record the uncaptured-vs-upgrade choice (LAUNCH-AND-READINESS §4).
 4. **Document the callback chains** (CR-009): `OpenRoom` cb → `AddPlayer`; `RoomReady` notification
    → `Begin`; `End`/`Abort` cb → `CloseRoom`. **Not** game call sites.
 5. **Plan the notification registration** (§5 table) — registered once, before `Activate`.

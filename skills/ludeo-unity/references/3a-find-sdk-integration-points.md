@@ -45,7 +45,7 @@ boundary actions will go.
    *reads* like the run entry (e.g. a `StartNewGame` menu handler) look canonical — but real games reach
    live gameplay through **several** paths (new-game, resume/continue, load-save, an **Editor/debug
    auto-enter or session-override**, NPC/scripted bypasses). Enumerate **all** of them from `CODE_MAP`
-   (cross-check `entry_points` against the per-run authority phase 1 flagged — a Fusion/`GameState`
+   (cross-check `entry_points` against the per-run authority phase 2 flagged — a Fusion/`GameState`
    machine, a `runState` field, etc.), then bind `OpenRoom` to the **one runtime point every path
    converges on** (the transition into the in-game/"Ongoing" state). The binding must be **idempotent**
    — that convergent signal can re-fire (per-scene re-spawns within one run), so guard on

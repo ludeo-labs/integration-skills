@@ -129,8 +129,8 @@ evidence where it comes from code; mark unknowns `?`; **ask** the human-only ite
    > If either axis is "boot-straight" / "launched preselected" — **or** the creator launch is
    > menu-gated but the menu is fast/skippable — the integration needs the **SDK-readiness gate**
    > (`unity/LAUNCH-AND-READINESS.md`): the menu can no longer be relied on to absorb the async
-   > Activate + consent latency before the first creator `OpenRoom`. Record the answer; phase 1
-   > cross-checks it against the code (`CODE_MAP.launch_model`), and phases 2–4 build the gate.
+   > Activate + consent latency before the first creator `OpenRoom`. Record the answer; phase 2
+   > cross-checks it against the code (`CODE_MAP.launch_model`), and phases 3–5 build the gate.
 3. **Save-system classification (game level)** — run the greps and assign the group:
    - `Grep("PlayerPrefs\\.")`, `Grep("JsonUtility|JsonConvert|\\[Serializable\\]|\\[SerializeField\\]")`,
      `Grep("ScriptableObject")`, `Grep("BinaryFormatter|BinaryWriter|MemoryStream|byte\\[\\]")`,

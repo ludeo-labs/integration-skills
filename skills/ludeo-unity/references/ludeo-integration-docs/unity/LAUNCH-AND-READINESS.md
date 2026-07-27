@@ -1,6 +1,6 @@
 # Launch Models & the SDK-Readiness Gate (Unity)
 
-> **Load when:** intake's launch model (phase 0) is **"boot-straight-to-gameplay"** (creator axis) or
+> **Load when:** KYG's launch model (phase 1) is **"boot-straight-to-gameplay"** (creator axis) or
 > **"launched preselected"** (player axis), or `CODE_MAP.launch_model` records either. Classic
 > menu-gated games don't need the gate — but read [§6](#6-also-hardens-the-classic-menu-flow) first;
 > the same window can bite a fast menu.
@@ -86,7 +86,7 @@ its normal boot-into-creator-gameplay:
   "boot one here"), and tears down any auto-started creator run via the existing `HandleGetLudeoDone`
   re-entrancy teardown (`07 §2.2`).
 
-> **`autoStartInLudeo`/`ludeoToAutoStart` (phase 0) is the dev-side test harness for this production
+> **`autoStartInLudeo`/`ludeoToAutoStart` (phase 1) is the dev-side test harness for this production
 > path** — it forces the preselected-Ludeo launch without the platform launcher. If intake's player
 > axis is "launched preselected", wire and verify this path, don't treat the flags as test-only.
 

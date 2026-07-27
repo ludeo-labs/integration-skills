@@ -460,7 +460,7 @@ run plays forward** (including state another tracked object depends on). Four fa
 > reason**, not dropped. Prove inclusion structurally, not by eye: enumerate each entity's full
 > state-field surface (the save-serialized fields — §2.5/§2.7 — or its runtime-mutable component fields)
 > and give **every field a disposition** — `capture | defer→wave N | exclude(static/settings/derivable)`.
-> This is the phase-8 Step B3 completeness gate; it catches failure mode 4, which no "does it look right"
+> This is the phase-4 Step B3 completeness gate; it catches failure mode 4, which no "does it look right"
 > check can. (`settings`/meta is excluded, not captured — it leaks across Ludeos.)
 
 **When in doubt, track.** Over-tracking's cost is measurable; under-tracking's cost is a silently
@@ -540,7 +540,7 @@ reconstruction. Two things to know; the rest is composition.
 resumes the fight; a missing in-flight projectile *degrades fidelity, it does not break the replay*. It's
 breadth/enrichment on the spine (§1.1), and it's the hardest class to capture (short lifetime, pooling,
 restore-time physics/animation timing). Prove the spine first. Don't treat a late-wave gap here as a
-Wave-1 backfill. **Exception, decided at the census (`phase 8`), not by backfill:** if a game's signature
+Wave-1 backfill. **Exception, decided at the census (`phase 4`), not by backfill:** if a game's signature
 moment *is* the incoming attack (bullet-hell dodge, parry-the-boss beat), the census promotes it up front
 (§9.5).
 

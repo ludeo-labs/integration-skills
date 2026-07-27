@@ -127,7 +127,7 @@ window. Probe for the **enter/exit sites**:
 - `Grep("Wardrobe|Cosmetic|Skin|Outfit|Appearance|Customization|Loadout|Equip|SkinnedMeshRenderer\.sharedMesh|\.material =")` —
   the **appearance/loadout subsystem**. Clothing/skins/equipped-cosmetics usually live *off* the player
   entity (a manager, a ScriptableObject, a mesh/material swap), so a player-only property sweep misses
-  them — record where visible appearance is set so phases 3–4 can track it (it's Wave 1, `06 §9.3`).
+  them — record where visible appearance is set so phases 4–5 can track it (it's Wave 1, `06 §9.3`).
 - `Glob("**/*.prefab")` (sample; do not enumerate exhaustively) — prefab-driven entity types.
 
 **8. Event systems**
@@ -197,7 +197,7 @@ Decide **three orthogonal things** about how this game models a session:
 0. **Launch model** — does a capture session start through a **main menu / level-select**, or does the
    game **boot straight into gameplay** (the first `EditorBuildSettings` scene is itself a gameplay
    scene that auto-starts a run)? And is a Ludeo entered via an **in-game gallery** or **launched
-   preselected**? **Intake (phase 0) is authoritative** — this is a product choice; here you only
+   preselected**? **KYG (phase 1) is authoritative** — this is a product choice; here you only
    **cross-check it against the code** (first-scene-is-gameplay? is there a menu scene? a forced
    auto-start at boot?) and record `launch_model` in §6. If either axis is boot-straight / preselected
    — or the menu is fast/skippable — **read
