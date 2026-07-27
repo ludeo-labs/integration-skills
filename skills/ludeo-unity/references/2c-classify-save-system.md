@@ -16,8 +16,8 @@ artifacts.
 ## 📚 Context Files
 
 Read first (relative to this workflow file):
-- `ludeo-integration-docs/12-SDK-API-REFERENCE.md` — the **named typed attribute** model (`SetAttribute`/
-  `TryGetAttribute`), which is *why* an opaque blob save can't be reused as reconciliation.
+- `ludeo-integration-docs/12-SDK-API-REFERENCE.md` — the **named typed attribute** model (`WriteData`/
+  `ReadData`), which is *why* an opaque blob save can't be reused as reconciliation.
 
 ## Prerequisites
 
@@ -28,11 +28,11 @@ Read first (relative to this workflow file):
 
 ## Why this matters
 
-Restoration reconstructs each object by reading **named, typed attributes** (`TryGetAttribute("hp",
+Restoration reconstructs each object by reading **named, typed attributes** (`ReadData("hp",
 out int)`). A save system is only *reusable* for restoration if it already serializes entity state to
 **named fields** that map onto those attributes. **A great save system that writes an opaque/packed
 binary blob (e.g. `BinaryFormatter`, a custom byte buffer, a replay/rewind buffer) is NOT reusable as
-reconciliation** — that entity must be tracked **manually** with explicit `SetAttribute` calls.
+reconciliation** — that entity must be tracked **manually** with explicit `WriteData` calls.
 Misclassifying wastes the entire restoration effort downstream.
 
 ## Your Task
@@ -63,7 +63,7 @@ For each entity type in `CODE_MAP.object_model`, decide:
 - **reconciliation** — the existing save serializes this entity to **named, typed fields** that map
   cleanly onto Ludeo attributes; restoration can reuse that mapping.
 - **manual** — no usable save, or the save is opaque/packed/binary → restoration uses explicit
-  `SetAttribute`/`TryGetAttribute` per field.
+  `WriteData`/`ReadData` per field.
 
 > ⚠️ **Do not default Group-1 games to reconciliation.** Group is about *coverage*; reconciliation is
 > about *format*. A Group-1 game that saves via `BinaryFormatter` is still **manual** per entity.
@@ -101,9 +101,9 @@ Add the `save_system` block to `CODE_MAP.json`:
 - **Per-entity overrides are normal** — a Group-1 game can still be manual for specific entities.
 - **Named fields in nested structs ≠ free reconciliation.** A typed serializer (`JsonUtility`,
   Newtonsoft/Json.NET, Odin, FullSerializer) that emits per-entity structs (`PlayerData`,
-  `EnemyData`) has named fields *inside* each struct — but a `LudeoStateObject`'s attribute namespace
-  is **flat per object** (`SetAttribute("hp", …)`). Reconciliation still means enumerating each
-  struct's fields into individual `SetAttribute`/`TryGetAttribute` calls. The work is mechanical, but
+  `EnemyData`) has named fields *inside* each struct — but a `LudeoWritableObject`'s attribute namespace
+  is **flat per object** (`WriteData("hp", …)`). Reconciliation still means enumerating each
+  struct's fields into individual `WriteData`/`ReadData` calls. The work is mechanical, but
   the approach is still **manual** per property. Don't conflate "named fields exist" with
   "reconciliation works out of the box" — the schema *shape* matters, not just whether values are named.
 - **Transition / streaming caches are not save backbones.** Open-world Unity games often have an

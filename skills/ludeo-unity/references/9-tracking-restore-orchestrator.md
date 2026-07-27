@@ -239,7 +239,7 @@ green**, and is **fully complete when the last wave in the plan is green**.
 - [ ] **Flow reaches the restore entry point on a real captured Ludeo** (task 3 gate).
 - [ ] **Pause/overlay behavior correct** — overlay open freezes the sim, close resumes (CR-011; task 3 gate).
 - [ ] CR-010 restore freeze and CR-011 overlay pause on **two separate flags**, reset every restore.
-- [ ] **Reader does not assert on missing attributes** — `TryGetAttribute` → `false` keeps the spawn
+- [ ] **Reader does not assert on missing attributes** — `ReadData` → `false` keeps the spawn
       default; only a missing **key** fails loud (tasks 2–4).
 - [ ] Two-pass restoration (CR-006) with a per-Ludeo `keyMap`; references resolved, **fail loud** on a
       missing key (task 4).

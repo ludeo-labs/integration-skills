@@ -15,14 +15,14 @@ before `Activate` (see [`05-LIFECYCLE-MANAGEMENT.md`](../05-LIFECYCLE-MANAGEMENT
 ## 1. Consent (CR-012)
 
 The backend reports, per session, whether the player consented to **creating** and/or **playing**
-Ludeos. Register `AddNotifyConsentUpdated` `[SDK]` before `Activate`; it can fire more than once.
+Ludeos. Subscribe to `PlayerConsentUpdated` `[SDK]` before `Activate`; it can fire more than once.
 
 ```csharp
-session.AddNotifyConsentUpdated(data => {                 // [SDK]
+session.PlayerConsentUpdated += data => {              // [SDK] C# event — subscribe with +=
     // data.canCreateLudeo, data.canPlayLudeo
     m_switch.SetFlags(data.canCreateLudeo, data.canPlayLudeo);   // [Layer] CR-001 + CR-012 mechanism
     galleryButton.SetActive(data.canCreateLudeo || data.canPlayLudeo);   // [Unity] hide if neither
-});
+};
 ```
 
 Rules:
@@ -41,7 +41,7 @@ Rules:
 > **no-ops**: no room, no `RoomReady`, no overlay, **and no error** (disabled-flow is a no-op by design).
 > This is **not** the consent-off case — consent *would* allow it; the call was just too early.
 > **Fix — record intent, fire from the callback:** when the run starts, set a `wantCapture` flag and
-> attempt `OpenRoom`; if the switch is still disabled, do nothing yet. Then in `AddNotifyConsentUpdated`,
+> attempt `OpenRoom`; if the switch is still disabled, do nothing yet. Then in `PlayerConsentUpdated`,
 > after `SetFlags`, if `wantCapture && canCreateLudeo` and no room is open, fire `OpenRoom` there — the
 > first point `canCreateLudeo` is known. (Keep it idempotent: guard on room-already-open.)
 
@@ -55,18 +55,18 @@ public void OpenLudeoGallery() => m_data.ludeoSession?.OpenGallery();   // [Laye
 - **Only surface the gallery button when consent allows it** — gate its visibility on
   `canCreateLudeo || canPlayLudeo` (the `[Layer]` exposes this as `IsEnablePlayableMoments` /
   `isDisplayPlayableMoment`). A gallery button on a consent-off run is a dead end.
-- Choosing a Ludeo fires the `AddNotifyLudeoSelected` `[SDK]` notification → the play/restore flow
+- Choosing a Ludeo fires the `LudeoSelected` `[SDK]` notification → the play/restore flow
   (`GetLudeo` → restore → `OpenRoom` for the ludeo). That flow is phase 11; here we only ensure the
   entry point exists and is consent-gated.
 
 ## 3. Overlay pause / resume (CR-011)
 
 While the Ludeo overlay is open **during playback**, the simulation must **freeze** — not just input.
-Register both (plain `Action`, no data struct) before `Activate`:
+Subscribe to both (plain `Action`, no data struct) before `Activate`:
 
 ```csharp
-session.AddNotifyPauseGame(()  => Time.timeScale = 0f);   // [SDK] + [Unity] — NOT AddNotifyPauseGameRequest
-session.AddNotifyResumeGame(() => Time.timeScale = 1f);   // [SDK] + [Unity]
+session.PauseGameRequested  += () => Time.timeScale = 0f;   // [SDK] C# event — NOT the old AddNotifyPauseGame
+session.ResumeGameRequested += () => Time.timeScale = 1f;   // [SDK] C# event
 ```
 - **Freeze the sim**, e.g. `Time.timeScale = 0f` `[Unity]` (plus the game's own pause for audio /
   streaming jobs if those advance world state). Input-only pausing leaves the game playing under the
@@ -99,9 +99,9 @@ session.AddNotifyResumeGame(() => Time.timeScale = 1f);   // [SDK] + [Unity]
 
 | Notification `[SDK]` | Handler responsibility |
 | --- | --- |
-| `AddNotifyReturnToMainMenu` | A **CR-007 exit**: stop tracking, `CloseRoom` `[SDK]`, load the menu scene (`SceneManager.LoadScene` `[Unity]`). Route through the façade's exit path. |
-| `AddNotifyMuteRequest` | Mute/unmute game audio per `data.isMuted` (e.g. `AudioListener.volume` `[Unity]`). |
-| `AddNotifyLocalizationChanged` | Apply `data.language` to the game's localization, if supported. |
+| `GameBackToMenuRequested` | A **CR-007 exit**: stop tracking, `CloseRoom` `[SDK]`, load the menu scene (`SceneManager.LoadScene` `[Unity]`). Route through the façade's exit path. |
+| `MuteGameRequested` | Mute/unmute game audio per `data.isMuted` (e.g. `AudioListener.volume` `[Unity]`). |
+| `LocalizationUpdated` | Apply `data.language` to the game's localization, if supported. |
 
 ## 5. Registration timing
 
@@ -114,22 +114,23 @@ notifications" and [`REFERENCE-ARCHITECTURE.md`](./REFERENCE-ARCHITECTURE.md) `H
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| Game plays under the overlay | Pause/resume not registered, or input-only pause | `AddNotifyPauseGame`/`ResumeGame` → freeze the sim (CR-011) |
+| Game plays under the overlay | Pause/resume not subscribed, or input-only pause | `PauseGameRequested`/`ResumeGameRequested` → freeze the sim (CR-011) |
 | Gallery button on a consent-off run does nothing | Visibility not gated on consent | Gate on `canCreateLudeo \|\| canPlayLudeo` (CR-012) |
 | Resume unfreezes a mid-restoration pause | One shared pause flag | Separate CR-010 / CR-011 flags; paused iff either set |
 | Restored Ludeo loads but player can't move/act ("dead input") | A persistent-singleton pause/freeze flag left `true` by a prior playmode session keeps `timeScale = 0` | Reset all mutable runtime state at the start/bootstrap hook; never assume zero-init (§3) |
 | **Second replay** (in one session) hangs / double room / suppression off | First play's run not torn down — stale pause flag (deadlock), unclosed room+session, un-reset gameplay-active | Make `HandleGetLudeoDone` re-entrant: `AbortGameplay` + `ResetBeginGate` + per-restore pause reset, new play in the teardown callback (07 §2.2) |
-| Never enters create/play despite consent | `SetFlags` not wired to `AddNotifyConsentUpdated` | Feed the flow switch from the consent callback |
+| Never enters create/play despite consent | `SetFlags` not wired to `PlayerConsentUpdated` | Feed the flow switch from the consent callback |
 | Run starts but no room/overlay (no error) | `OpenRoom` fired before the first `ConsentUpdated` landed — switch still disabled, call no-ops | Record `wantCapture`; (re)fire `OpenRoom` from the consent callback once `canCreateLudeo` is true (§1) |
-| "Back to menu" leaves player stuck in the Ludeo | `ReturnToMainMenu` not handled | Treat as a CR-007 exit: stop tracking + `CloseRoom` + load menu |
+| "Back to menu" leaves player stuck in the Ludeo | `GameBackToMenuRequested` not handled | Treat as a CR-007 exit: stop tracking + `CloseRoom` + load menu |
 
 ---
 
 ## Calls used in this doc
 
 **`[SDK]`** (authority: [`../12-SDK-API-REFERENCE.md`](../12-SDK-API-REFERENCE.md)):
-`LudeoSession.AddNotify{ConsentUpdated, LudeoSelected, PauseGame, ResumeGame, ReturnToMainMenu,
-MuteRequest, LocalizationChanged}` · `LudeoSession.OpenGallery` · `LudeoRoom.CloseRoom`.
+`LudeoSession` events `{PlayerConsentUpdated, LudeoSelected, PauseGameRequested, ResumeGameRequested,
+GameBackToMenuRequested, MuteGameRequested, LocalizationUpdated}` · `LudeoSession.OpenGallery` ·
+`LudeoRoom.CloseRoom`.
 
 **`[Layer]`** (from [`REFERENCE-ARCHITECTURE.md`](./REFERENCE-ARCHITECTURE.md)):
 `LudeoFlowSwitch.{SetFlags, SwitchToCreate, SwitchToPlay}` · `LudeoController.OpenLudeoGallery` ·

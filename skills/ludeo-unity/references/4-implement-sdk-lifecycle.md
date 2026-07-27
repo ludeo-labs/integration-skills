@@ -36,7 +36,7 @@ task-5 compile+run gate.
 > **Ludeo → Setup and Show LudeoSettings**; don't add a config class.
 > **Exception (dev/QA only):** if phase 0 set up the `LUDEO_DEV`-gated dev-override shim
 > (`LudeoDevConfig.ApplyOverrides`, see `unity/UPM-INSTALL-AND-DEFINES.md` → *Dev/QA runtime overrides*),
-> call it as the **first line before `InitLudeoSession`**, inside the `#if LUDEO_DEV` guard. That is **not**
+> call it as the **first line before `LudeoManager.Initialize()`**, inside the `#if LUDEO_DEV` guard. That is **not**
 > the config class this rule forbids — it's a build-gated test affordance that compiles out of production.
 
 ## 3. Steps
@@ -52,11 +52,11 @@ objectTypes/attributes/actions to the game. Each gets its own `.cs` (game assemb
 
 | File `[Layer]` | Purpose |
 | --- | --- |
-| `LudeoController.cs` | Façade: `InitLudeoSession`, register **all** notifications before `Activate`, route begin/end/abort/track/action through the flow switch, expose the game-facing API (incl. `StartNoneLudeable`/`StopNoneLudeable` wrappers — scaffold; call sites are phases 6–7). |
+| `LudeoController.cs` | Façade: `Initialize` + `SessionManager.CreateSession`, subscribe **all** session events before `Activate`, route begin/end/abort/track/action through the flow switch, expose the game-facing API (incl. `StartNoneLudeable`/`StopNoneLudeable` wrappers — scaffold; call sites are phases 6–7). |
 | `LudeoIntegrationData.cs` | Shared state: session/room/gameplay-session, ids, flags, restored data, `OpenRoomData` factories. |
 | `LudeoFlowSwitch.cs` | CR-001 + CR-012: defaults to Disabled+Dummy; `SetFlags` enables on consent; `SwitchToCreate`/`SwitchToPlay`. |
 | `ILudeoFlow.cs` + `LudeoCreatorFlow` / `LudeoPlayFlow` / `DisabledLudeoFlow` | Room open + add-player; play restores by objectType bucket. |
-| `LudeoInitRoomHandler.cs` | The `OpenRoom` → `AddGamePlayer` callback chain (CR-009). |
+| `LudeoInitRoomHandler.cs` | The `OpenRoom` → `AddPlayer` callback chain (CR-009). |
 | `ILudeoGameplaySessionManager.cs` + `LudeoGameplaySessionManager` + `DummyLudeoGameplaySessionManager` | Begin/End/Abort, `SendAction`, the tracked-handler registry, `UpdateStateObjects`. |
 | `ILudeoStateHandler.cs` + `DefaultLudeoStateHandler` | Per-object capture context (writers land in phase 9). |
 | `LudeoKeys.cs` / `LudeoActionKeys.cs` | objectType / attribute / action string constants. **Scaffold only** — real keys discovered in phases 6 (actions) & 8 (objects). Seed the standard non-gameplay action names (`StartNoneLudeable`/`StopNoneLudeable`/`PauseLudeo`/`ResumeLudeo`) + what the layer needs now. |
@@ -101,20 +101,20 @@ through the `[Layer]` façade — never raw `[SDK]`:
 > they land in phases 6–7. Task 4 only scaffolds the façade methods. **Do NOT wire an SDK tick** (CR-005).
 
 ### 4.5 Required: notification registration (enforce, even if the plan is silent)
-In `LudeoController`, **after** `InitLudeoSession` succeeds and **before** `Activate`, register these
+In `LudeoController`, **after** `CreateSession` succeeds and **before** `Activate`, subscribe to these
 on the `LudeoSession`. If the plan omitted any, **add it anyway** — hard requirement.
 
 | Notification `[SDK]` | If missing, the symptom is… |
 | --- | --- |
-| `AddNotifyLudeoSelected` | Player picks a Ludeo and nothing happens — no restoration entry. |
-| `AddNotifyRoomReady` | `Begin` never fires; tracking never starts; post-load playback never resumes (CR-010). |
-| `AddNotifyConsentUpdated` | Flow switch never enables; create/play stay disabled; gallery button wrong (CR-012). |
-| `AddNotifyPauseGame` | **Game keeps running while the overlay covers it — the #1 mid-play failure (CR-011).** |
-| `AddNotifyResumeGame` | Overlay closes but the game stays paused (or never paused). |
-| `AddNotifyReturnToMainMenu` | "Back to menu" from the overlay leaves the player stuck in the Ludeo (CR-007). |
-| `AddNotifyMuteRequest` / `AddNotifyLocalizationChanged` | Mute / language requests ignored (optional). |
+| `LudeoSelected` | Player picks a Ludeo and nothing happens — no restoration entry. |
+| `RoomReady` | `Begin` never fires; tracking never starts; post-load playback never resumes (CR-010). |
+| `PlayerConsentUpdated` | Flow switch never enables; create/play stay disabled; gallery button wrong (CR-012). |
+| `PauseGameRequested` | **Game keeps running while the overlay covers it — the #1 mid-play failure (CR-011).** |
+| `ResumeGameRequested` | Overlay closes but the game stays paused (or never paused). |
+| `GameBackToMenuRequested` | "Back to menu" from the overlay leaves the player stuck in the Ludeo (CR-007). |
+| `MuteGameRequested` / `LocalizationUpdated` | Mute / language requests ignored (optional). |
 
-> ⚠️ Names are `AddNotifyPauseGame`/`AddNotifyResumeGame` — **not** `…PauseGameRequest`. Both take a
+> ⚠️ Names are `PauseGameRequested`/`ResumeGameRequested` — **not** `…PauseGameRequest`. Both take a
 > plain `Action`. The pause handler must freeze the **simulation** (`Time.timeScale = 0f`), not just input.
 
 ## 4. Questions to ask the human

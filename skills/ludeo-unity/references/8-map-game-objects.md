@@ -355,11 +355,11 @@ For each entity type, using the game-level classification + the entity's seriali
 - **reconciliation** — the existing save serializes this entity to **named, typed fields** that map
   cleanly onto Ludeo attributes; tracking mirrors that plumbing.
 - **manual** — no usable save, or the save is opaque/packed/binary/a transition cache → tracking writes
-  each property explicitly with `SetAttribute`.
+  each property explicitly with `WriteData`.
 
 > ⚠️ **A strong save system ≠ reconciliation.** Group is *coverage*; reconciliation is *format*. A Group-1
 > game saving via `BinaryFormatter`/packed bytes is still **manual** per entity. Named fields *inside* a
-> per-entity struct still need enumerating into flat `SetAttribute` calls — the work is mechanical, the
+> per-entity struct still need enumerating into flat `WriteData` calls — the work is mechanical, the
 > approach is still **manual**. This is often the most consequential call.
 
 Record the approach in each entity row **and** write the structured form back to

@@ -3,7 +3,7 @@
 > **Applies to:** FPS, TPS, Arena Shooters, Battle Royale, Tactical Shooters
 > **Load when:** Game involves guns, projectiles, health/damage combat, player-vs-enemy or PvP
 >
-> Action names below map to `[SDK]` `LudeoGameplaySession.SendAction(string)` via the `[Layer]`
+> Action names below map to `[SDK]` `LudeoPlayer.SendAction(string)` via the `[Layer]`
 > `LudeoController.SendAction` (see `phase 7`).
 
 ---
@@ -120,7 +120,7 @@ win, lose, victory, defeat, gameOver, endGame, endRound, endMatch
 ## 3. Tracking Checklist
 
 After object tracking is implemented (phase 9), verify these are covered. Types map to `[SDK]`
-`SetAttribute` overloads (see `12-SDK-API-REFERENCE.md`). Sections are tiered by restoration priority:
+`WriteData` overloads (see `12-SDK-API-REFERENCE.md`). Sections are tiered by restoration priority:
 - **CRITICAL** — restore or the replayed moment is visibly wrong.
 - **IMPORTANT** — restore for fidelity; recognizable without it but degraded.
 - **OPTIONAL** — situational/cosmetic; capture only if it affects the specific captured moment.
@@ -165,23 +165,25 @@ There's no new machinery here — a projectile is a **pooled collection object**
 unregister on `Release`, `06 §2.3`) with a handful of attributes, one deferred:
 
 ```csharp
-// CAPTURE — on the pooled projectile
+// CAPTURE — on the pooled projectile (handler owns the write scope, CR-002; lambda just WriteData)
 obj => {
-    obj.SetAttribute(K.RunId, m_runId);                  // stable key (06 §4)
-    obj.SetAttribute(K.Position, transform.position);
-    obj.SetAttribute(K.Velocity, rb.velocity);           // DEFERRED at restore (07 §7)
-    obj.SetAttribute(K.OwnerId, m_owner != null ? m_owner.RunId : -1);  // reference by key (06 §4)
-    obj.SetAttribute(K.RemainingLifetime, m_ttl);        // REMAINING, not elapsed (06 §9.4)
-    obj.SetAttribute(K.ProjectileType, (int)m_type);
+    obj.WriteData(K.RunId, m_runId);                     // stable key (06 §4)
+    obj.WriteData(K.Position, transform.position);
+    obj.WriteData(K.Velocity, rb.velocity);              // DEFERRED at restore (07 §7)
+    obj.WriteData(K.OwnerId, m_owner != null ? m_owner.RunId : -1);  // reference by key (06 §4)
+    obj.WriteData(K.RemainingLifetime, m_ttl);           // REMAINING, not elapsed (06 §9.4)
+    obj.WriteData(K.ProjectileType, (int)m_type);
 };
 
 // RESTORE — Pass 1 writes the scalars + key; velocity DEFERS to §7, OwnerId resolves in Pass 2 (§6)
-void RestoreLudeoState(LudeoStateObjectRestore r) {
-    r.TryGetAttribute(K.RunId, out int runId);  keyMap[runId] = gameObject;
-    r.TryGetAttribute(K.Position, out Vector3 pos);  transform.position = pos;
-    r.TryGetAttribute(K.RemainingLifetime, out float ttl);  m_ttl = ttl;
-    // K.Velocity → apply in the deferred pass (07 §7), or the first FixedUpdate zeroes it (shot stops dead)
-    // K.OwnerId  → resolve in Pass 2 via keyMap (07 §6); the owner may itself be a restored enemy
+void RestoreLudeoState(LudeoReadableObject r) {
+    using (r.EnterObjectScope()) {                       // [SDK] CR-002 — reads only work inside the scope
+        r.ReadData(K.RunId, out int runId);  keyMap[runId] = gameObject;
+        r.ReadData(K.Position, out Vector3 pos);  transform.position = pos;
+        r.ReadData(K.RemainingLifetime, out float ttl);  m_ttl = ttl;
+        // K.Velocity → apply in the deferred pass (07 §7), or the first FixedUpdate zeroes it (shot stops dead)
+        // K.OwnerId  → resolve in Pass 2 via keyMap (07 §6); the owner may itself be a restored enemy
+    }
 }
 ```
 

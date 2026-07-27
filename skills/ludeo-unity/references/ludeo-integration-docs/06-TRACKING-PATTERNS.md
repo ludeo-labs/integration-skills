@@ -14,8 +14,8 @@
 
 > **This is NOT the C++ model.** There is **no `LudeoObjectId`, no bidirectional ID map, no
 > `EnterObject`/`LeaveObject`, no `LUDEO_CAPTURE_*` macros, and no `#if` guards at capture sites.** A
-> tracked object is a `LudeoStateObject` `[SDK]` created via `LudeoRoom.CreateStateObject`, fed by one
-> `ILudeoStateHandler` `[Layer]` whose `OnStateDataUpdate` writes typed `SetAttribute` `[SDK]` values
+> tracked object is a `LudeoWritableObject` `[SDK]` created via `LudeoRoom.Writer.CreateObject`, fed by one
+> `ILudeoStateHandler` `[Layer]` whose `OnStateDataUpdate` writes typed `WriteData` `[SDK]` values
 > each sampling tick. Disable is runtime (the flow switch serves a dummy — CR-001), so capture code is
 > plain C#. Identity at restore is by **objectType bucket + your own key attribute** (CR-014), never an
 > SDK id.
@@ -108,7 +108,7 @@ When in doubt, track it — and put it in the earliest wave its load-bearing-nes
 | | **Tracking (continuous state)** | **Actions (discrete events)** |
 |---|---|---|
 | Nature | Ongoing, changes over time | Happens at a moment |
-| API | `LudeoStateObject.SetAttribute` `[SDK]` each tick | `LudeoGameplaySession.SendAction` `[SDK]` once |
+| API | `LudeoWritableObject.WriteData` `[SDK]` (in a scope) each tick | `LudeoRoomWriter.SendAction(playerId, action)` / `LudeoPlayer.SendAction` `[SDK]` once |
 | Flow | **Capture (creator) flow only** | **Both** creator and play flow (see §7) |
 | Examples | `health=75`, `position=(10,5,3)` | `"Kill"`, `"CollectCoin"` |
 
@@ -116,14 +116,14 @@ Both are required. Tracking is this doc; actions are `phase 7`.
 
 ### 1.4 Attributes vs blobs — default to attributes
 
-`LudeoStateObject.SetAttribute` `[SDK]` takes typed values: `int`, `float`, `double`, `bool`,
+`LudeoWritableObject.WriteData` `[SDK]` takes typed values: `int`, `float`, `double`, `bool`,
 `string`, `Vector3`, `Quaternion`, `byte[]` (see doc 12). **Default to discrete typed attributes — do
 not ask the user.** The platform can read individual values (objectives/scoring/highlights key off
 real state), restoration is partial- and version-tolerant, and a changed field doesn't corrupt the
 rest. A `byte[]` **blob** is opaque to the platform, can only be handed back verbatim, and breaks when
 the serialization format shifts.
 
-**Only use a blob (`SetAttribute(name, byte[])`) when:** the user explicitly asks, **or** the state is
+**Only use a blob (`WriteData(name, byte[])`) when:** the user explicitly asks, **or** the state is
 genuinely opaque/large/deeply-nested with no stable field schema (a procedural buffer, a third-party
 physics blob). Prefer the narrowest blob possible; note the entity + reason in the plan. This is
 distinct from how the *game* saves itself (classified game-level in `phase 0` `INTAKE.md`, per-entity in
@@ -139,7 +139,7 @@ GameObjects. This decides *where* the §3 calls go (the calls themselves don't c
 patterns; classify per subsystem.
 
 > **⛔ DOTS / ECS is not supported.** The Ludeo SDK and its Unity plugin currently work only against
-> the **GameObject / MonoBehaviour** model — `LudeoStateObject` capture assumes managed objects you
+> the **GameObject / MonoBehaviour** model — `LudeoWritableObject` capture assumes managed objects you
 > hook from `Awake`/`Start`/`Update`/`OnDestroy`. Entities (the DOTS package — `Entity`, `IComponentData`,
 > `SystemBase`/`ISystem`, Burst jobs) has **no supported integration path**. If the game's trackable
 > state lives in ECS, **stop and tell the user**: the parts to be Ludeo-tracked must run as GameObjects,
@@ -232,16 +232,21 @@ Two more rules:
 
 ## 3. The Capture Lifecycle (handler model)
 
-One tracked GameObject = one `LudeoStateObject` `[SDK]`, owned by one `ILudeoStateHandler` `[Layer]`.
+One tracked GameObject = one `LudeoWritableObject` `[SDK]`, owned by one `ILudeoStateHandler` `[Layer]`.
 You **register** through the façade, **sample** each tick, and **unregister** on despawn. All of this
 goes through `LudeoController` `[Layer]`, so when the SDK is disabled the dummy makes it a no-op
 (CR-001) — no `#if` needed.
+
+> **The handler owns the write scope (CR-002).** In v4.2.0 every `WriteData` must run inside
+> `using (obj.EnterObjectScope())`. The `DefaultLudeoStateHandler` opens that scope once per tick
+> around your `OnStateDataUpdate` lambda (see `unity/REFERENCE-ARCHITECTURE.md`), so the game-facing
+> lambdas below just call `obj.WriteData(...)` — **do not** open a scope in game code.
 
 > **Capture is creator-flow only — gate every register and sample on `!IsInLudeoFlow`.** Disabled is a
 > no-op (the dummy manager), but **the play/restore flow uses the *real* manager** (the flow switch
 > serves `m_real` for both create and play). So unlike CR-001, the play flow does **not** silently
 > swallow capture: a `StartTrackingLudeoState` or `UpdateStateObjects` call left ungated will really
-> `CreateStateObject`/`SetAttribute` *during a replay*, corrupting the playback room. State is
+> `Writer.CreateObject`/`WriteData` *during a replay*, corrupting the playback room. State is
 > capture-only (§7); the play flow restores objects from buckets instead (`07`). Therefore **wrap every
 > registration site and the per-tick sampler in `if (!LudeoController.Instance.IsInLudeoFlow)`** — the
 > same seam §6 uses for batch registration. (Actions are the exception — they fire in *both* flows; §7.)
@@ -254,16 +259,16 @@ if (LudeoController.Instance.IsInLudeoFlow) return;   // [Layer] capture is crea
 // objectType = LudeoPlayerKeys.OBJECT_NAME [Layer]; the lambda is OnStateDataUpdate [Layer]
 m_handler = LudeoController.Instance.StartTrackingLudeoState<DefaultLudeoStateHandler>(  // [Layer]
     LudeoPlayerKeys.OBJECT_NAME,
-    obj => {                                                  // obj is the LudeoStateObject [SDK]
+    obj => {                                                  // obj is the LudeoWritableObject [SDK]
         // identity / "static" attributes — write them too; the SDK diff-sends, so re-writing is free
-        obj.SetAttribute(LudeoPlayerKeys.RunId, m_runId);     // [SDK] YOUR stable key (see §4)
+        obj.WriteData(LudeoPlayerKeys.RunId, m_runId);     // [SDK] YOUR stable key (see §4)
         // dynamic attributes, sampled from live state:
-        obj.SetAttribute(LudeoPlayerKeys.Position, transform.position);    // [SDK] Vector3 [Unity]
-        obj.SetAttribute(LudeoPlayerKeys.Rotation, transform.rotation);    // [SDK] Quaternion [Unity]
-        obj.SetAttribute(LudeoPlayerKeys.HP, m_hp);                        // [SDK] int
+        obj.WriteData(LudeoPlayerKeys.Position, transform.position);    // [SDK] Vector3 [Unity]
+        obj.WriteData(LudeoPlayerKeys.Rotation, transform.rotation);    // [SDK] Quaternion [Unity]
+        obj.WriteData(LudeoPlayerKeys.HP, m_hp);                        // [SDK] int
     });
 ```
-`StartTrackingLudeoState` `[Layer]` calls `LudeoRoom.CreateStateObject(objectType, out obj)` `[SDK]`
+`StartTrackingLudeoState` `[Layer]` calls `LudeoRoom.Writer.CreateObject(objectType, out obj)` `[SDK]`
 and stores the handler in the gameplay-session manager's tracked list. It returns `null` when the SDK
 is disabled — that's fine; the game keeps a handler reference only to stop it later (§3.3).
 
@@ -285,10 +290,10 @@ Do **not** wire an SDK tick — the plugin ticks itself (CR-005). Sample on a co
 (per-frame, throttled, or on-change — §11), on the **main thread** (CR-013).
 
 ### 3.3 Unregister
-On despawn, stop the handler so its `LudeoStateObject` is destroyed:
+On despawn, stop the handler so its `LudeoWritableObject` is destroyed:
 
 ```csharp
-void OnDestroy() { LudeoController.Instance.StopTrackingLudeoState(m_handler); }   // [Layer] (→ DestroyStateObject [SDK])
+void OnDestroy() { LudeoController.Instance.StopTrackingLudeoState(m_handler); }   // [Layer] (→ DestroyObject [SDK])
 ```
 `LudeoController.EndGameplay` `[Layer]` already calls `StopTrackingAllLudeoStates()` on every exit
 path (CR-007), so session end cleans up everything; per-object `StopTracking` is for objects that
@@ -306,7 +311,7 @@ removal is the §3.4 decision, not an automatic `StopTracking`. Both are safe no
 When an object dies / is destroyed / is consumed mid-run, the question is **not** "did it end?" — it's
 **"does the restored world still need this object?"** The SDK has no interest in a dead or irrelevant
 object; restoration rebuilds a snapshot ([`07-RESTORATION-PATTERNS.md`](07-RESTORATION-PATTERNS.md) §1.1),
-so an object earns its `LudeoStateObject` *only if it must appear in that snapshot*. Two outcomes:
+so an object earns its `LudeoWritableObject` *only if it must appear in that snapshot*. Two outcomes:
 
 - **Gone from the reconstructed world → `StopTracking` (drop).** The object no longer exists in the state
   the replay rebuilds. Its **state object is destroyed and it's simply absent at restore.** This includes
@@ -338,7 +343,7 @@ the *same* question, not conflicting rules. Three guards:
 
 **There is no bidirectional `LudeoObjectId ↔ game id` map** (the C++ `LudeoStateAdapter` does not
 apply). At restore, objects come back grouped **by `objectType` bucket**
-(`Dictionary<string, List<LudeoStateObjectRestore>>`); singletons take `[0]`, collections iterate (see
+(`Dictionary<string, List<LudeoReadableObject>>`); singletons take `[0]`, collections iterate (see
 doc 12 + `07`). So identity is **your** responsibility:
 
 - `GetInstanceID()` and object references are **not stable across runs** (CR-014) — never capture them.
@@ -347,7 +352,7 @@ doc 12 + `07`). So identity is **your** responsibility:
   apart and re-link them. For a singleton (the player) the bucket's single entry is enough.
 - **Relationships** (owner, parent, target): capture the **target's stable key**, not a reference:
   ```csharp
-  obj.SetAttribute(LudeoWeaponKeys.OwnerId, owner != null ? owner.RunId : -1);   // [SDK] your key, not a ref
+  obj.WriteData(LudeoWeaponKeys.OwnerId, owner != null ? owner.RunId : -1);   // [SDK] your key, not a ref
   ```
   At restore (phase 12, two-pass per CR-006): create all objects first, then resolve `OwnerId` by
   matching the captured key against the objects you spawned.
@@ -406,7 +411,7 @@ owns nothing new — go there. Two rules that intersect tracking:
 
 > **Actions fire in BOTH flows; state is capture-only.** `SendAction` re-fires at the same sites
 > during playback so the SDK can score the Ludeo's win/fail conditions — **never gate it on
-> `IsInLudeoFlow`**. State writes (`SetAttribute`, the per-tick capture in §3) **are** creator-only;
+> `IsInLudeoFlow`**. State writes (`WriteData`, the per-tick capture in §3) **are** creator-only;
 > the play flow reads state back instead of writing it (see `07 §2.3`).
 
 ---
@@ -426,7 +431,7 @@ void Update()
 }
 ```
 While the gate is closed, attributes simply aren't sampled (the last captured values stand). This is
-distinct from the **overlay pause** (CR-011, `AddNotifyPauseGame` → `Time.timeScale = 0f`), which
+distinct from the **overlay pause** (CR-011, `PauseGameRequested` → `Time.timeScale = 0f`), which
 freezes the whole sim while the Ludeo UI is up — see
 [`unity/CONSENT-AND-OVERLAY.md`](unity/CONSENT-AND-OVERLAY.md). Common non-gameplay states: main menu,
 lobby, loading screen, shop/inventory overlay, safe zone/hub, cutscene.
@@ -564,45 +569,45 @@ names come from a `LudeoKeys` `[Layer]` constants class so capture and restore (
 ```csharp
 // 10.1 Player (singleton — bucket[0] at restore, no per-instance key needed)
 obj => {
-    obj.SetAttribute(K.Position, transform.position);   // [SDK] Vector3
-    obj.SetAttribute(K.Rotation, transform.rotation);   // [SDK] Quaternion
-    obj.SetAttribute(K.Velocity, rb.velocity);          // [SDK] Vector3 [Unity] Rigidbody
-    obj.SetAttribute(K.HP, m_hp);                        // [SDK] int
-    obj.SetAttribute(K.Ammo, m_ammo);
-    obj.SetAttribute(K.Score, m_score);
+    obj.WriteData(K.Position, transform.position);   // [SDK] Vector3
+    obj.WriteData(K.Rotation, transform.rotation);   // [SDK] Quaternion
+    obj.WriteData(K.Velocity, rb.velocity);          // [SDK] Vector3 [Unity] Rigidbody
+    obj.WriteData(K.HP, m_hp);                        // [SDK] int
+    obj.WriteData(K.Ammo, m_ammo);
+    obj.WriteData(K.Score, m_score);
 };
 
 // 10.2 Enemy (collection — capture YOUR stable key so restore can tell them apart)
 obj => {
-    obj.SetAttribute(K.RunId, m_runId);                  // [SDK] your stable key (§4)
-    obj.SetAttribute(K.Position, transform.position);
-    obj.SetAttribute(K.Rotation, transform.rotation);
-    obj.SetAttribute(K.HP, m_hp);
-    obj.SetAttribute(K.EnemyType, (int)m_type);          // enum → int
-    obj.SetAttribute(K.AiState, (int)m_aiState);
-    obj.SetAttribute(K.TargetId, m_target != null ? m_target.RunId : -1);  // relationship by key
+    obj.WriteData(K.RunId, m_runId);                  // [SDK] your stable key (§4)
+    obj.WriteData(K.Position, transform.position);
+    obj.WriteData(K.Rotation, transform.rotation);
+    obj.WriteData(K.HP, m_hp);
+    obj.WriteData(K.EnemyType, (int)m_type);          // enum → int
+    obj.WriteData(K.AiState, (int)m_aiState);
+    obj.WriteData(K.TargetId, m_target != null ? m_target.RunId : -1);  // relationship by key
 };
 
 // 10.3 Pickup / interactive
 obj => {
-    obj.SetAttribute(K.Position, transform.position);
-    obj.SetAttribute(K.IsAvailable, m_available);        // bool — "consumed" is a state, not an unregister
+    obj.WriteData(K.Position, transform.position);
+    obj.WriteData(K.IsAvailable, m_available);        // bool — "consumed" is a state, not an unregister
 };
 
 // 10.4 Door / switch
 obj => {
-    obj.SetAttribute(K.IsOpen, m_isOpen);
-    obj.SetAttribute(K.IsLocked, m_isLocked);
-    obj.SetAttribute(K.OpenProgress, m_openProgress);    // float 0..1 (mid-animation state)
+    obj.WriteData(K.IsOpen, m_isOpen);
+    obj.WriteData(K.IsLocked, m_isLocked);
+    obj.WriteData(K.OpenProgress, m_openProgress);    // float 0..1 (mid-animation state)
 };
 
 // 10.5 Session / continuity (singleton — bucket[0], NOT a visible GameObject; the time-base state
 // that lets the moment RESUME, not restart — register it from the run/scheduler manager, see Step 4.5)
 obj => {
-    obj.SetAttribute(K.MusicTime, musicSource.time);     // [SDK] float — song position; restart-from-0 bug if omitted
-    obj.SetAttribute(K.BeatIndex, m_beatIndex);          // scheduler/sequence cursor
-    obj.SetAttribute(K.WaveIndex, m_waveIndex);          // in-progress sequence/wave
-    obj.SetAttribute(K.TimeRemaining, m_countdown);      // timers/cooldowns: REMAINING, not elapsed (§9.4)
+    obj.WriteData(K.MusicTime, musicSource.time);     // [SDK] float — song position; restart-from-0 bug if omitted
+    obj.WriteData(K.BeatIndex, m_beatIndex);          // scheduler/sequence cursor
+    obj.WriteData(K.WaveIndex, m_waveIndex);          // in-progress sequence/wave
+    obj.WriteData(K.TimeRemaining, m_countdown);      // timers/cooldowns: REMAINING, not elapsed (§9.4)
 };
 
 // 10.6 Camera / viewpoint (singleton — bucket[0]; the exact view the moment must OPEN on). ONLY when the
@@ -610,12 +615,12 @@ obj => {
 // restored player state (§9.4). Capture the RIG'S control state, not only the derived world transform, so a
 // follow/orbit rig reconstructs the view. Restore SNAPS to these (no smoothing/lerp), else the replay eases
 // in from a default view (07 §5/§7).
-obj => {
-    obj.SetAttribute(K.CamPitch, m_rig.pitch);           // [SDK] float — look/aim pitch
-    obj.SetAttribute(K.CamYaw, m_rig.yaw);               // [SDK] float — look/free-look yaw
-    obj.SetAttribute(K.OrbitDistance, m_rig.distance);   // [SDK] float — third-person zoom/orbit (if the rig has it)
-    obj.SetAttribute(K.Fov, cam.fieldOfView);            // [SDK] float — only if it changes (ADS/zoom)
-    obj.SetAttribute(K.CamPosition, cam.transform.position);  // [SDK] Vector3 — only if the camera moves FREELY of the player (spectator/detached)
+obj => {                                                  // handler owns the write scope (CR-002); lambda just WriteData
+    obj.WriteData(K.CamPitch, m_rig.pitch);              // [SDK] float — look/aim pitch
+    obj.WriteData(K.CamYaw, m_rig.yaw);                  // [SDK] float — look/free-look yaw
+    obj.WriteData(K.OrbitDistance, m_rig.distance);      // [SDK] float — third-person zoom/orbit (if the rig has it)
+    obj.WriteData(K.Fov, cam.fieldOfView);               // [SDK] float — only if it changes (ADS/zoom)
+    obj.WriteData(K.CamPosition, cam.transform.position);  // [SDK] Vector3 — only if the camera moves FREELY of the player (spectator/detached)
 };
 ```
 
@@ -625,7 +630,7 @@ obj => {
 
 **Measure, don't trust this doc.** Cost varies with object count, attributes per object, sampling
 cadence, and platform. The SDK **diff-sends only changed values** on its internal tick (doc 12), so
-`SetAttribute` on an unchanged value is cheap — but the per-tick lambda work isn't free.
+`WriteData` on an unchanged value is cheap — but the per-tick lambda work isn't free.
 
 Levers, in rough order of impact:
 1. **Skip-unchanged guards** for expensive reads: `if (m_hp == last) return;` — cheapest win.
@@ -669,8 +674,8 @@ registration not amortized) or at scene transition (mass despawn in one burst).
 ## Calls used in this doc
 
 **`[SDK]`** (authority: [`12-SDK-API-REFERENCE.md`](12-SDK-API-REFERENCE.md)):
-`LudeoRoom.CreateStateObject` · `LudeoStateObject.SetAttribute` / `DestroyStateObject` ·
-`LudeoGameplaySession.SendAction` (see `phase 7`).
+`LudeoRoom.Writer.CreateObject` · `LudeoWritableObject.{EnterObjectScope, WriteData, DestroyObject}` ·
+`LudeoRoomWriter.SendAction` / `LudeoPlayer.SendAction` (see `phase 7`).
 
 **`[Layer]`** (from [`unity/REFERENCE-ARCHITECTURE.md`](unity/REFERENCE-ARCHITECTURE.md)):
 `LudeoController.{StartTrackingLudeoState, UpdateStateObjects, StopTrackingLudeoState, EndGameplay,

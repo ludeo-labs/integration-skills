@@ -3,7 +3,7 @@
 > **Applies to:** Real-Time Strategy, Tower Defense, Base Builders, MOBA (partial)
 > **Load when:** Game involves unit production, base building, resource management, strategic combat
 >
-> Action names below map to `[SDK]` `LudeoGameplaySession.SendAction(string)` via the `[Layer]`
+> Action names below map to `[SDK]` `LudeoPlayer.SendAction(string)` via the `[Layer]`
 > `LudeoController.SendAction` (see `phase 7`).
 
 ---
@@ -141,7 +141,7 @@ score, objective, mission, campaign, scenario
 ## 3. Tracking Checklist
 
 After object tracking is implemented (phase 9), verify these are covered. Types map to `[SDK]`
-`SetAttribute` overloads (see `12-SDK-API-REFERENCE.md`). Sections are tiered by restoration priority:
+`WriteData` overloads (see `12-SDK-API-REFERENCE.md`). Sections are tiered by restoration priority:
 - **CRITICAL** — restore or the replayed moment is visibly wrong.
 - **IMPORTANT** — restore for fidelity; recognizable without it but degraded.
 - **OPTIONAL** — situational/cosmetic; capture only if it affects the specific captured moment.

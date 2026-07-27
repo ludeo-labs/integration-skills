@@ -60,8 +60,8 @@ So a boss is **two things to track**, not one:
 
 ## 3. What to capture (boss tracking checklist)
 
-Verify after this wave's tracking is implemented (`phase 9`). Types map to `[SDK]` `SetAttribute`
-overloads. Tiered by restoration priority: **CRITICAL** (restore or the fight can't play through),
+Verify after this wave's tracking is implemented (`phase 9`). Types map to `[SDK]` `WriteData`
+overloads (inside `using (obj.EnterObjectScope())`, CR-002). Tiered by restoration priority: **CRITICAL** (restore or the fight can't play through),
 **IMPORTANT** (fidelity), **SKIP** (derived/transient — do not track, `06 §9.3`).
 
 ### Boss entity — CRITICAL
@@ -112,7 +112,7 @@ overloads. Tiered by restoration priority: **CRITICAL** (restore or the fight ca
 
 The §3 checklist quietly assumes the fight's phase is a value you can read and write, and that spawning
 the boss reconstructs the fight. Both are usually false: the phase often lives somewhere you can't
-`SetAttribute`, the only path that sets it fires through the trigger you're suppressing, and that trigger
+`WriteData`, the only path that sets it fires through the trigger you're suppressing, and that trigger
 started *processes*, not just state. These are the sub-problems that actually block a boss restore —
 work them in this order. **§4.1–§4.3 are where most boss integrations get stuck; the checklist above
 won't rescue you if you skip them.**
@@ -267,7 +267,7 @@ Boss-summoned adds are enemies, but **not every Enemy is *an* enemy** for counti
 ## 7. Actions (`phase 5`/`phase 6`)
 
 Boss beats are high-value Ludeo objectives/scoring. Map via `[SDK]`
-`LudeoGameplaySession.SendAction(string)` (`[Layer]` `LudeoController.SendAction`). Apply phase 6's keep
+`LudeoPlayer.SendAction(string)` / `LudeoRoomWriter.SendAction(playerId, action)` (`[Layer]` `LudeoController.SendAction`). Apply phase 6's keep
 test; scope per the note below.
 
 | Action Name | Tier | Description | Scope | Objective / Scoring |

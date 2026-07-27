@@ -1,12 +1,15 @@
 # Reference Architecture — the prescribed Ludeo integration layer
 
-> **This skill is opinionated.** Use this layer. It is the proven shape from the
-> `ludeosdk-unity-game-tank` sample, distilled to be game-agnostic. The code blocks below are the
-> canonical version to reproduce in the game's project (adapting names/fields to the game); the
-> **full compiling source** lives in the tank sample under `Assets/Scripts/LudeoScripts/`.
+> **This skill is opinionated.** Use this layer. It is the proven shape from the Ludeo sample
+> integration, distilled to be game-agnostic. The code blocks below are the canonical version to
+> reproduce in the game's project (adapting names/fields to the game); the **full compiling source**
+> lives in the plugin's bundled reference integration under `Assets/_LudeoNonBuild/`.
 >
-> **Keep in sync with the tank sample at the pinned SDK version** (see
-> [`12-SDK-API-REFERENCE.md`](../12-SDK-API-REFERENCE.md)). Signatures used here come from that doc.
+> **Pinned to the Ludeo Unity plugin v4.2.0 API** — see [`12-SDK-API-REFERENCE.md`](../12-SDK-API-REFERENCE.md).
+> Signatures used here come from that doc. If you have older layer code, note v4.2.0 renamed almost
+> every SDK type/method it calls (init is now `Initialize()` + `SessionManager.CreateSession`,
+> notifications are C# events, capture goes through `LudeoRoom.Writer` + scoped `WriteData`, the
+> gameplay session is `LudeoPlayer`) — see that doc's "What changed in v4.2.0".
 >
 > **Opt-out:** if a game already has a strong session/manager architecture, you may map the same
 > responsibilities onto it — but keep the component boundaries, the dummy/disabled wiring (CR-001),
@@ -42,9 +45,9 @@ keeps the integration reviewable and removable.
 | `LudeoIntegrationData` | Shared mutable state: session, room, gameplay session, ids, flags, restored data, cancellation token, `OpenRoomData` factories. |
 | `LudeoFlowSwitch` | Selects the active `ILudeoFlow` (Creator/Play/Disabled) and `ILudeoGameplaySessionManager` (real/dummy) from consent + create-vs-play. **This is the CR-001 + CR-012 mechanism.** |
 | `ILudeoFlow` → `LudeoCreatorFlow` / `LudeoPlayFlow` / `DisabledLudeoFlow` | Room open + add-player; creator stores game definitions; play restores by objectType bucket. |
-| `LudeoInitRoomHandler` | The `OpenRoom` → `AddGamePlayer` callback chain (CR-009). |
-| `ILudeoGameplaySessionManager` → real + `Dummy…` | Begin/End/Abort, `SendAction`, the tracked-handler registry, `UpdateStateObjects`. |
-| `ILudeoStateHandler` → `DefaultLudeoStateHandler` | Per-object capture: holds a `LudeoStateObject` + an `OnStateDataUpdate` callback; writes attributes each tick. |
+| `LudeoInitRoomHandler` | The `OpenRoom` → `AddPlayer` callback chain (CR-009). |
+| `ILudeoGameplaySessionManager` → real + `Dummy…` | `BeginGameplay`/`EndGameplay`/`AbortGameplay`, `SendAction`, the tracked-handler registry, `UpdateStateObjects`. (Layer name; wraps `LudeoPlayer`.) |
+| `ILudeoStateHandler` → `DefaultLudeoStateHandler` | Per-object capture: holds a `LudeoWritableObject` + an `OnStateDataUpdate` callback; opens the write scope and writes attributes each tick. |
 | `LudeoKeys` / `LudeoActionKeys` | String constants for objectTypes, attribute names, and actions (ideally generated — see `06-TRACKING-PATTERNS.md`). |
 
 ```
@@ -52,9 +55,9 @@ Game code ──► LudeoController (façade)
                  ├─ LudeoIntegrationData        (shared state)
                  ├─ LudeoFlowSwitch             (consent + create/play → real or dummy)
                  │    ├─ ILudeoFlow             Creator | Play | Disabled
-                 │    └─ ILudeoGameplaySessionManager  real | Dummy
+                 │    └─ ILudeoGameplaySessionManager  real | Dummy   (wraps LudeoPlayer)
                  │          └─ List<ILudeoStateHandler>  (per tracked object)
-                 └─ LudeoSession.AddNotify*      (lifecycle notifications)
+                 └─ LudeoSession events         (lifecycle notifications)
 ```
 
 ---
@@ -89,7 +92,7 @@ public class LudeoFlowSwitch
         LudeoGameplay = m_dummy;
     }
 
-    public void SetFlags(bool canCreate, bool canPlay)   // from AddNotifyConsentUpdated (CR-012)
+    public void SetFlags(bool canCreate, bool canPlay)   // from the PlayerConsentUpdated event (CR-012)
     {
         m_canCreate = canCreate; m_canPlay = canPlay;
         if (!canCreate && !canPlay) Disable(); else Enable();
@@ -118,20 +121,20 @@ public class LudeoIntegrationData
     public bool isGameplayActive, isInLudeo, isDisplayPlayableMoment;
     public LudeoSession ludeoSession;
     public LudeoRoom ludeoRoom;
-    public LudeoGameplaySession ludeoGameplaySession;
+    public LudeoPlayer ludeoPlayer;                           // v4.2.0: was LudeoGameplaySession
     public string gamePlayerId, ludeoPlayerId, roomId;
     public Guid ludeoId = default;
     public LudeoTrackedDefinitions ludeoTrackedDefinitions;   // game-defined "level config" DTO
     public LudeoRestoredData ludeoRestoredData;               // restore buckets (see 07)
     public CancellationTokenSource cancellationTokenSource;
 
-    // Creator room takes a game-chosen roomId. There is NO parameterless LudeoOpenRoomData ctor — the
-    // ctors are (string roomId), (Guid ludeoId), (string roomId, Guid ludeoId). Generate a roomId when
-    // the game doesn't supply one.
-    public LudeoOpenRoomData CreateOpenRoomDataForCreator(string roomId = null)
-        => new LudeoOpenRoomData(roomId ?? Guid.NewGuid().ToString("N"));
-    public LudeoOpenRoomData CreateOpenRoomDataForLudeo(string roomId = null)
-        => roomId == null ? new LudeoOpenRoomData(ludeoId) : new LudeoOpenRoomData(roomId, ludeoId);
+    // Creator room takes a game-chosen roomId. LudeoSessionOpenRoomParameters ctors are (string roomId),
+    // (Guid ludeoId), (string roomId, Guid ludeoId) — a parameterless `new()` is a creator room with an
+    // SDK-chosen roomId. Generate a roomId when the game doesn't supply one.
+    public LudeoSessionOpenRoomParameters CreateOpenRoomDataForCreator(string roomId = null)
+        => new LudeoSessionOpenRoomParameters(roomId ?? Guid.NewGuid().ToString("N"));
+    public LudeoSessionOpenRoomParameters CreateOpenRoomDataForLudeo(string roomId = null)
+        => roomId == null ? new LudeoSessionOpenRoomParameters(ludeoId) : new LudeoSessionOpenRoomParameters(roomId, ludeoId);
 
     public void CreateNewCancelationToken()
     {
@@ -145,10 +148,10 @@ public class LudeoIntegrationData
 
 ## The façade: `LudeoController` (skeleton)
 
-Created once at app init (e.g. a bootstrap MonoBehaviour in the init scene). It kicks off
-`InitLudeoSession`, registers **all** notifications before `Activate` (CR-003/011/012), and exposes
-a small game-facing API. Game-specific callbacks are passed in as delegates so the controller stays
-engine-agnostic.
+Created once at app init (e.g. a bootstrap MonoBehaviour in the init scene). It runs
+`Initialize()` + `SessionManager.CreateSession(out …)` synchronously, subscribes **all** session
+events before `Activate` (CR-003/011/012), and exposes a small game-facing API. Game-specific
+callbacks are passed in as delegates so the controller stays engine-agnostic.
 
 > **Constructing it fresh each bootstrap (as here) zeroes its runtime fields for free.** If you instead
 > back the layer with a **persistent singleton** — a `ScriptableObject` service, a `DontDestroyOnLoad`
@@ -190,14 +193,14 @@ public class LudeoController
         m_onBeginRestore = onBeginRestore;   // restore-only; null in create-only games
         m_activateWhenReady = activateWhenReady;   // implicit-auth (Steam) gate; null → Activate inline (explicit / cloud / Steam already up)
         m_switch = new LudeoFlowSwitch(m_data);
-        LudeoManager.InitLudeoSession(HandleInitSessionDone);
+        InitializeSdkAndSession();
     }
 
     // ── game-facing API ──────────────────────────────────────────────
     public void SetGameplayerId(string id) => m_data.gamePlayerId = id;
     public void OpenLudeoGallery() => m_data.ludeoSession?.OpenGallery();
 
-    public ILudeoStateHandler StartTrackingLudeoState<T>(string objectType, Action<LudeoStateObject> onUpdate)
+    public ILudeoStateHandler StartTrackingLudeoState<T>(string objectType, Action<LudeoWritableObject> onUpdate)
         where T : ILudeoStateHandler, new()
         => m_switch.LudeoGameplay.StartTrackingLudeoState(new T(), objectType, onUpdate);
     public void StopTrackingLudeoState(ILudeoStateHandler handler)   // per-object despawn (session end uses StopTrackingAll via EndGameplay)
@@ -228,13 +231,14 @@ public class LudeoController
     }
 
     // CR-007 + Editor re-init. YOU OWN `m_data.ludeoSession`: it is `IDisposable`, handed to you by
-    // InitLudeoSession, and you must Dispose() it on shutdown. The plugin disposes the room / reader /
-    // state-objects internally, but NOT the session you hold (12 §7). A missed Dispose is MASKED in a
-    // built player (the process exits anyway), so a smoke test passes — but in the Editor the static
-    // LudeoManager + native session survive across Play sessions, so the 2nd InitLudeoSession finds a
-    // still-held handle, logs `Core:Error Client still holding a handle to a Session instance`, and
-    // returns WrongState. First Play looks fine; every later Play is dead until you restart the Editor.
-    // Wire Shutdown() to OnApplicationQuit (which also fires when you Stop playmode in the Editor).
+    // SessionManager.CreateSession, and you must Dispose() it on shutdown. The plugin disposes the room
+    // (disposing the session disposes LudeoRoom.ActiveRoom) and the reader/state objects are managed,
+    // but the session you hold is yours (12 §7/§rules). A missed Dispose is MASKED in a built player
+    // (the process exits anyway), so a smoke test passes — but in the Editor the static LudeoManager +
+    // native session survive across Play sessions, so a later CreateSession/Activate finds a still-held
+    // handle, logs `Core:Error Client still holding a handle to a Session instance`, and returns
+    // WrongState. First Play looks fine; every later Play is dead until you restart the Editor (unless
+    // Domain Reload is left on). Wire Shutdown() to OnApplicationQuit (also fires when you Stop playmode).
     public void Shutdown()
     {
         EndGameplay(null);                                   // CR-007: best-effort finalize any live run (async; may not round-trip on quit)
@@ -246,24 +250,31 @@ public class LudeoController
     // Re-arm the three begin-gate legs so a flag left set by the PRIOR run can't fire Begin on the new,
     // not-yet-ready session (the multi-replay "Begin on a stale session" failure, 07 §2.2).
     private void ResetBeginGate()
-    { m_roomReady = false; m_sceneReadyForRestore = false; m_data.ludeoGameplaySession = null; }
+    { m_roomReady = false; m_sceneReadyForRestore = false; m_data.ludeoPlayer = null; }
 
     // ── lifecycle ────────────────────────────────────────────────────
-    private void HandleInitSessionDone(LudeoSessionInitCallbackData data)
+    // v4.2.0: init is SYNCHRONOUS and two-step — Initialize() then SessionManager.CreateSession(out …).
+    // Neither takes a callback; check the returned LudeoResult inline. (Replaces the old async
+    // InitLudeoSession(cb) + HandleInitSessionDone.)
+    private void InitializeSdkAndSession()
     {
-        if (data.resultCode != LudeoResult.Success) { Debug.LogError($"Ludeo init: {data.resultCode}"); return; }
-        m_data.ludeoSession = data.ludeoSession;
+        LudeoResult init = LudeoManager.Initialize();
+        if (init != LudeoResult.Success && init != LudeoResult.LudeoManagerAlreadyInitialized)
+        { Debug.LogError($"Ludeo Initialize: {init}"); m_onInitDone?.Invoke(false); return; }
 
-        // Register ALL notifications BEFORE Activate (CR-011/012):
-        var s = m_data.ludeoSession;
-        s.AddNotifyLudeoSelected(HandleLudeoSelected);
-        s.AddNotifyRoomReady(HandleRoomReady);
-        s.AddNotifyConsentUpdated(HandleConsentUpdated);   // CR-012
-        s.AddNotifyPauseGame(() => m_onStopGame?.Invoke()); // CR-011 (Time.timeScale = 0 in the game)
-        s.AddNotifyResumeGame(() => { /* resume */ });      // CR-011
-        s.AddNotifyReturnToMainMenu(HandleReturnToMainMenu);// CR-007 exit path
-        s.AddNotifyMuteRequest(d => { /* mute audio = d.isMuted */ });
-        s.AddNotifyLocalizationChanged(d => { /* set language = d.language */ });
+        if (LudeoManager.SessionManager.CreateSession(out LudeoSession s) != LudeoResult.Success)
+        { Debug.LogError("Ludeo CreateSession failed"); m_onInitDone?.Invoke(false); return; }
+        m_data.ludeoSession = s;
+
+        // Subscribe to ALL session events BEFORE Activate (CR-011/012) — Activate registers them natively:
+        s.LudeoSelected        += HandleLudeoSelected;
+        s.RoomReady            += HandleRoomReady;
+        s.PlayerConsentUpdated += HandleConsentUpdated;   // CR-012
+        s.PauseGameRequested   += () => m_onStopGame?.Invoke(); // CR-011 (Time.timeScale = 0 in the game)
+        s.ResumeGameRequested  += () => { /* resume */ };       // CR-011
+        s.GameBackToMenuRequested += HandleReturnToMainMenu;    // CR-007 exit path
+        s.MuteGameRequested    += d => { /* mute audio = d.isMuted */ };
+        s.LocalizationUpdated  += d => { /* set language = d.language */ };
 
         // Activate authenticates, and auth resolves HERE (not at init). With implicit auth
         // (runWithoutLauncher = false, the Steam default) the SDK auto-detects Steam but does NOT init
@@ -297,9 +308,9 @@ public class LudeoController
         m_data.isDisplayPlayableMoment = data.canCreateLudeo || data.canPlayLudeo;   // gate gallery button
     }
 
-    // RoomReady (a notification) and the AddGamePlayer callback are INDEPENDENT async events with NO
-    // ordering guarantee — RoomReady can arrive before AddGamePlayer's callback has stored the gameplay
-    // session. Begin must wait for BOTH (CR-009). Each path records its half and calls the gate;
+    // RoomReady (an event) and the AddPlayer callback are INDEPENDENT async events with NO ordering
+    // guarantee — RoomReady can arrive before AddPlayer's callback has stored the LudeoPlayer.
+    // BeginGameplay must wait for BOTH (CR-009). Each path records its half and calls the gate;
     // whichever finishes last triggers the begin sequence.
     private void HandleRoomReady(LudeoSessionRoomReadyCallbackData data)
     {
@@ -308,7 +319,7 @@ public class LudeoController
         TryBeginAfterRoomReady();
     }
 
-    // Called by LudeoInitRoomHandler once AddGamePlayer has stored data.ludeoGameplaySession.
+    // Called by LudeoInitRoomHandler once AddPlayer has stored data.ludeoPlayer.
     public void NotifyPlayerAdded() => TryBeginAfterRoomReady();
 
     // Called by the game's scene loader once the gameplay scene the restore applies into has FINISHED
@@ -319,7 +330,7 @@ public class LudeoController
 
     private void TryBeginAfterRoomReady()
     {
-        if (!m_roomReady || m_data.ludeoGameplaySession == null) return;   // legs 1+2: RoomReady AND AddGamePlayer (CR-009)
+        if (!m_roomReady || m_data.ludeoPlayer == null) return;   // legs 1+2: RoomReady AND AddPlayer (CR-009)
         if (m_data.isInLudeo && !m_sceneReadyForRestore) return;           // leg 3 (restore only): scene the apply writes into is loaded
         m_roomReady = false;                                               // begin exactly once per run
         m_onRoomReady();   // game: CR-010 → apply state → unfreeze → BeginGameplay (order per 07 §10.1)
@@ -348,7 +359,7 @@ public class LudeoController
 
         void StartPlayFromSelectedLudeo()
         {
-            ResetBeginGate();              // re-arm m_roomReady / m_sceneReadyForRestore / ludeoGameplaySession
+            ResetBeginGate();              // re-arm m_roomReady / m_sceneReadyForRestore / ludeoPlayer
             if (!m_switch.SwitchToPlay()) return;   // consent-gated
             // Extract restore buckets now; apply later on RoomReady (CR-010).
             m_data.ludeoRestoredData = new LudeoRestoredData(m_data.ludeoId, data.ludeoDataReader, out bool ok);
@@ -363,7 +374,7 @@ public class LudeoController
             m_onBeginRestore?.Invoke();    // may read restore buckets — safe because the play flow
                                            // received m_data at CONSTRUCTION, not lazily in InitRoom
 
-            m_switch.LudeoFlow.InitRoom(m_data);     // OpenRoom (for play) → AddGamePlayer → RoomReady
+            m_switch.LudeoFlow.InitRoom(m_data);     // OpenRoom (for play) → AddPlayer → RoomReady
         }
     }
 
@@ -371,25 +382,25 @@ public class LudeoController
 }
 ```
 
-> **⚠️ RoomReady vs AddGamePlayer is a race (CR-009) — gate `Begin` on both.** They are independent
+> **⚠️ RoomReady vs AddPlayer is a race (CR-009) — gate `BeginGameplay` on both.** They are independent
 > async events; which one finishes first varies between runs, machines, and backends. The skeleton
-> records each half (`m_roomReady`, and the session stored by `HandleAddPlayer` → `NotifyPlayerAdded`)
-> and begins only when both are present. **Do not collapse this back to "Begin straight from
-> RoomReady"** — when RoomReady wins the race the session is still null and the run records *nothing*
+> records each half (`m_roomReady`, and the `LudeoPlayer` stored by `HandleAddPlayer` → `NotifyPlayerAdded`)
+> and begins only when both are present. **Do not collapse this back to "BeginGameplay straight from
+> RoomReady"** — when RoomReady wins the race the player is still null and the run records *nothing*
 > (a silent failure that passes a smoke test, because the first run often wins the other way).
-> Alternatively, fetch the session from the room inside `HandleRoomReady` via
-> `LudeoRoom.GetGamePlaySession(gamePlayerId, out session)` instead of caching it from the callback.
+> Alternatively, fetch the player from the room inside `HandleRoomReady` via
+> `LudeoRoom.GetPlayer(gamePlayerId, out LudeoPlayer)` instead of caching it from the callback.
 >
-> The tank's `LudeoController` additionally wraps these callbacks in a **timeout** — that is what the
+> The reference `LudeoController` additionally wraps these callbacks in a **timeout** — that is what the
 > `cancellationTokenSource` exists for: cancel the timer when a callback arrives, and surface a failure
 > if one never does. It also adds a creator-room init path and game-specific definition storage.
 > Reproduce those as the game needs; the begin-gate above is part of the required spine.
 
 > **⚠️ For restore, the begin gate is THREE legs, not two — and the scene load needs its own hook.**
 > RoomReady has nothing to do with `SceneManager`: the SDK room chain
-> (`OpenRoom → AddGamePlayer → RoomReady`) can complete while the gameplay scene the apply writes into is
+> (`OpenRoom → AddPlayer → RoomReady`) can complete while the gameplay scene the apply writes into is
 > still loading. Applying then writes into an **empty scene** (BL-2). So the restore gate is `RoomReady ∧
-> AddGamePlayer ∧ sceneLoaded` — the game signals the third leg via `NotifySceneReadyForRestore()`, which
+> AddPlayer ∧ sceneLoaded` — the game signals the third leg via `NotifySceneReadyForRestore()`, which
 > almost always means **adding an awaitable/completion event to a scene loader that was `async void`**. And
 > the scene load must *start* before the room opens, so it's kicked from the **`onBeginRestore`
 > selection-time hook** (in `HandleGetLudeoDone`, before `InitRoom`) — `onInitDone` is session-boot, `onRoomReady`
@@ -461,7 +472,7 @@ Implicit (Steam) auth is a **code-ordering** problem, not just the `runWithoutLa
 resolves at `Activate`, and the SDK does **not** initialize Steam — so Steam must be up *first*. But the
 controller bootstraps **early** (a bootstrap `Awake` / base scene) while Steam typically initializes
 **late and async** (a login scene, via a Steam wrapper). Calling `Activate` inline in
-`HandleInitSessionDone` therefore races ahead of Steam → the callback returns `InvalidAuth`.
+`InitializeSdkAndSession` therefore races ahead of Steam → the callback returns `InvalidAuth`.
 
 The fix is the injected `activateWhenReady` gate above: the **game** decides when auth is ready and
 fires the supplied `Activate`; the controller stays Steam-agnostic. The gate is **bounded** — on
@@ -527,11 +538,11 @@ public interface ILudeoFlow
 {
     void InitRoom(LudeoIntegrationData data);
     void StoreGameDefinitions(LudeoRoom room, LudeoTrackedDefinitions defs);
-    void RestoreLudeoStateOfObject(string objectType, Action<LudeoStateObjectRestore> onRestore);
-    bool TryGetAllLudeoStateObjectByType(string objectType, out List<LudeoStateObjectRestore> states);
+    void RestoreLudeoStateOfObject(string objectType, Action<LudeoReadableObject> onRestore);
+    bool TryGetAllLudeoStateObjectByType(string objectType, out List<LudeoReadableObject> states);
 }
 
-// The OpenRoom → AddGamePlayer chain (CR-009): never call AddGamePlayer from a game event.
+// The OpenRoom → AddPlayer chain (CR-009): never call AddPlayer from a game event.
 public class LudeoInitRoomHandler
 {
     private readonly LudeoIntegrationData m_data;
@@ -542,15 +553,15 @@ public class LudeoInitRoomHandler
         if (data.resultCode != LudeoResult.Success) { /* fail */ return; }
         m_data.ludeoRoom = data.ludeoRoom;
         string playerId = m_data.isInLudeo ? m_data.ludeoPlayerId : m_data.gamePlayerId;
-        m_data.ludeoRoom.AddGamePlayer(new LudeoRoomAddGamePlayerData(playerId), HandleAddPlayer);
+        m_data.ludeoRoom.AddPlayer(new LudeoRoomAddPlayerParameters(playerId), HandleAddPlayer);
     }
-    public void HandleAddPlayer(LudeoRoomAddGamePlayerCallbackData data)
+    public void HandleAddPlayer(LudeoRoomAddPlayerCallbackData data)
     {
         m_data.cancellationTokenSource?.Cancel();
         if (data.resultCode != LudeoResult.Success) { /* fail */ return; }
-        m_data.ludeoGameplaySession = data.ludeoGameplaySession;
-        // RoomReady may have ALREADY fired (the two race). Signal the controller so Begin happens once
-        // both this callback and RoomReady are done. Never call Begin straight from here (CR-009).
+        m_data.ludeoPlayer = data.player;
+        // RoomReady may have ALREADY fired (the two race). Signal the controller so BeginGameplay happens
+        // once both this callback and RoomReady are done. Never call BeginGameplay straight from here (CR-009).
         LudeoController.Instance?.NotifyPlayerAdded();
     }
 }
@@ -565,8 +576,8 @@ public class LudeoCreatorFlow : ILudeoFlow   // capture
         m_data.ludeoSession.OpenRoom(m_data.CreateOpenRoomDataForCreator(), h.HandleRoomOpened);
     }
     public void StoreGameDefinitions(LudeoRoom room, LudeoTrackedDefinitions defs) { /* capture level/config as a state object */ }
-    public void RestoreLudeoStateOfObject(string t, Action<LudeoStateObjectRestore> cb) { }     // no-op in create
-    public bool TryGetAllLudeoStateObjectByType(string t, out List<LudeoStateObjectRestore> s) { s = null; return false; }
+    public void RestoreLudeoStateOfObject(string t, Action<LudeoReadableObject> cb) { }     // no-op in create
+    public bool TryGetAllLudeoStateObjectByType(string t, out List<LudeoReadableObject> s) { s = null; return false; }
 }
 
 public class LudeoPlayFlow : ILudeoFlow   // restore (see 07)
@@ -579,12 +590,12 @@ public class LudeoPlayFlow : ILudeoFlow   // restore (see 07)
         m_data.ludeoSession.OpenRoom(m_data.CreateOpenRoomDataForLudeo(), h.HandleRoomOpened);   // includes ludeoId
     }
     public void StoreGameDefinitions(LudeoRoom room, LudeoTrackedDefinitions defs) { }
-    public void RestoreLudeoStateOfObject(string type, Action<LudeoStateObjectRestore> onRestore)
+    public void RestoreLudeoStateOfObject(string type, Action<LudeoReadableObject> onRestore)
     {
         if (m_data.ludeoRestoredData.LudeoStateObjectsLookup.TryGetValue(type, out var list))
             onRestore(list[0]);   // singleton; collections use TryGetAllLudeoStateObjectByType
     }
-    public bool TryGetAllLudeoStateObjectByType(string type, out List<LudeoStateObjectRestore> states)
+    public bool TryGetAllLudeoStateObjectByType(string type, out List<LudeoReadableObject> states)
         => m_data.ludeoRestoredData.LudeoStateObjectsLookup.TryGetValue(type, out states);
 }
 
@@ -592,8 +603,8 @@ public class DisabledLudeoFlow : ILudeoFlow   // all no-ops (CR-001)
 {
     public void InitRoom(LudeoIntegrationData d) { }
     public void StoreGameDefinitions(LudeoRoom r, LudeoTrackedDefinitions d) { }
-    public void RestoreLudeoStateOfObject(string t, Action<LudeoStateObjectRestore> cb) { }
-    public bool TryGetAllLudeoStateObjectByType(string t, out List<LudeoStateObjectRestore> s) { s = null; return false; }
+    public void RestoreLudeoStateOfObject(string t, Action<LudeoReadableObject> cb) { }
+    public bool TryGetAllLudeoStateObjectByType(string t, out List<LudeoReadableObject> s) { s = null; return false; }
 }
 ```
 
@@ -608,7 +619,7 @@ public interface ILudeoGameplaySessionManager
     void EndGameplay(Action onDone);
     void AbortGameplay(Action onDone);
     void SendAction(string action);
-    ILudeoStateHandler StartTrackingLudeoState(ILudeoStateHandler handler, string objectType, Action<LudeoStateObject> onUpdate);
+    ILudeoStateHandler StartTrackingLudeoState(ILudeoStateHandler handler, string objectType, Action<LudeoWritableObject> onUpdate);
     void StopTrackingLudeoState(ILudeoStateHandler handler);
     void StopTrackingAllLudeoStates();
     void UpdateStateObjects();
@@ -622,20 +633,21 @@ public class LudeoGameplaySessionManager : ILudeoGameplaySessionManager
 
     public void BeginGameplay(Action onReady)
     {
-        // Defensive: with the begin-gate (HandleRoomReady/NotifyPlayerAdded) the session is non-null
-        // here, but never call Begin on a null session — that's the silent-NRE failure of the race.
-        if (m_data.ludeoGameplaySession == null) { Debug.LogError("[Ludeo] BeginGameplay: no gameplay session"); return; }
-        m_data.ludeoGameplaySession.Begin(d => { if (d.resultCode == LudeoResult.Success) onReady(); });
+        // Defensive: with the begin-gate (HandleRoomReady/NotifyPlayerAdded) the player is non-null
+        // here, but never call BeginGameplay on a null player — that's the silent-NRE failure of the race.
+        if (m_data.ludeoPlayer == null) { Debug.LogError("[Ludeo] BeginGameplay: no LudeoPlayer"); return; }
+        m_data.ludeoPlayer.BeginGameplay(d => { if (d.resultCode == LudeoResult.Success) onReady(); });
     }
     public void EndGameplay(Action onDone)
-        => m_data.ludeoGameplaySession.End(d => m_data.ludeoRoom.CloseRoom(_ => { m_data.ludeoRoom = null; onDone?.Invoke(); }));
+        => m_data.ludeoPlayer.EndGameplay(d => m_data.ludeoRoom.CloseRoom(_ => { m_data.ludeoRoom = null; onDone?.Invoke(); }));
     public void AbortGameplay(Action onDone)
-        => m_data.ludeoGameplaySession.Abort(_ => onDone?.Invoke());
-    public void SendAction(string action) => m_data.ludeoGameplaySession.SendAction(action);
+        => m_data.ludeoPlayer.AbortGameplay(_ => onDone?.Invoke());
+    public void SendAction(string action) => m_data.ludeoPlayer.SendAction(action);   // bound to ludeoPlayer.PlayerId
 
-    public ILudeoStateHandler StartTrackingLudeoState(ILudeoStateHandler handler, string objectType, Action<LudeoStateObject> onUpdate)
+    public ILudeoStateHandler StartTrackingLudeoState(ILudeoStateHandler handler, string objectType, Action<LudeoWritableObject> onUpdate)
     {
-        if (m_data.ludeoRoom.CreateStateObject(objectType, out LudeoStateObject obj) != LudeoResult.Success) return null;
+        // v4.2.0: object creation moved to LudeoRoom.Writer.
+        if (m_data.ludeoRoom.Writer.CreateObject(objectType, out LudeoWritableObject obj) != LudeoResult.Success) return null;
         handler.SetLudeoStateObjectForUpdate(obj, onUpdate);
         m_tracked.Add(handler);
         return handler;
@@ -651,7 +663,7 @@ public class DummyLudeoGameplaySessionManager : ILudeoGameplaySessionManager   /
     public void EndGameplay(Action onDone) => onDone?.Invoke();
     public void AbortGameplay(Action onDone) => onDone?.Invoke();
     public void SendAction(string a) { }
-    public ILudeoStateHandler StartTrackingLudeoState(ILudeoStateHandler h, string t, Action<LudeoStateObject> u) => null;
+    public ILudeoStateHandler StartTrackingLudeoState(ILudeoStateHandler h, string t, Action<LudeoWritableObject> u) => null;
     public void StopTrackingLudeoState(ILudeoStateHandler h) { }
     public void StopTrackingAllLudeoStates() { }
     public void UpdateStateObjects() { }
@@ -662,36 +674,44 @@ public class DummyLudeoGameplaySessionManager : ILudeoGameplaySessionManager   /
 
 ## Per-object capture: `ILudeoStateHandler`
 
+The handler owns the **write scope** (CR-002): it opens `EnterObjectScope()` once per tick around the
+game's `WriteData` calls, so gameplay code never touches scopes directly.
+
 ```csharp
 public interface ILudeoStateHandler
 {
-    LudeoStateObject StateObject { get; }
-    Action<LudeoStateObject> OnStateDataUpdate { get; }
-    void SetLudeoStateObjectForUpdate(LudeoStateObject stateObject, Action<LudeoStateObject> onUpdate);
+    LudeoWritableObject StateObject { get; }
+    Action<LudeoWritableObject> OnStateDataUpdate { get; }
+    void SetLudeoStateObjectForUpdate(LudeoWritableObject stateObject, Action<LudeoWritableObject> onUpdate);
     void UpdateLudeoState();
     void DestroyLudeoState();
 }
 
 public class DefaultLudeoStateHandler : ILudeoStateHandler
 {
-    public LudeoStateObject StateObject { get; private set; }
-    public Action<LudeoStateObject> OnStateDataUpdate { get; private set; }
+    public LudeoWritableObject StateObject { get; private set; }
+    public Action<LudeoWritableObject> OnStateDataUpdate { get; private set; }
     private bool m_destroyed;
 
-    public void SetLudeoStateObjectForUpdate(LudeoStateObject o, Action<LudeoStateObject> u) { StateObject = o; OnStateDataUpdate = u; }
-    public void UpdateLudeoState() => OnStateDataUpdate(StateObject);   // writes SetAttribute(...) for this object
-    public void DestroyLudeoState() { if (!m_destroyed) m_destroyed = StateObject.DestroyStateObject() == LudeoResult.Success; }
+    public void SetLudeoStateObjectForUpdate(LudeoWritableObject o, Action<LudeoWritableObject> u) { StateObject = o; OnStateDataUpdate = u; }
+    public void UpdateLudeoState()                          // CR-002: writes must be inside a scope
+    {
+        using (StateObject.EnterObjectScope())             // [SDK] open/close the write scope each tick
+            OnStateDataUpdate(StateObject);                // game calls WriteData(...) inside the scope
+    }
+    public void DestroyLudeoState() { if (!m_destroyed) m_destroyed = StateObject.DestroyObject() == LudeoResult.Success; }
 }
 ```
 
-The game registers a handler per tracked entity and supplies the per-tick writer:
+The game registers a handler per tracked entity and supplies the per-tick writer — no scope in game
+code (the handler opened it):
 ```csharp
 LudeoController.Instance.StartTrackingLudeoState<DefaultLudeoStateHandler>(
     LudeoPlayerKeys.OBJECT_NAME,
     obj => {
-        obj.SetAttribute(LudeoPlayerKeys.HP, hp);
-        obj.SetAttribute(LudeoPlayerKeys.Position, transform.position);
-        obj.SetAttribute(LudeoPlayerKeys.Rotation, transform.rotation);
+        obj.WriteData(LudeoPlayerKeys.HP, hp);
+        obj.WriteData(LudeoPlayerKeys.Position, transform.position);
+        obj.WriteData(LudeoPlayerKeys.Rotation, transform.rotation);
     });
 ```
 
@@ -700,7 +720,7 @@ LudeoController.Instance.StartTrackingLudeoState<DefaultLudeoStateHandler>(
 ## Keys: `LudeoKeys` / `LudeoActionKeys`
 
 Plain constant classes — one per tracked objectType plus an actions class. `OBJECT_NAME` is the
-`objectType` passed to `CreateStateObject`; the rest are attribute names. Keep capture and restore
+`objectType` passed to `Writer.CreateObject`; the rest are attribute names. Keep capture and restore
 reading the **same** constants. Prefer generating these (Editor tool) over hand-maintaining — see
 `06-TRACKING-PATTERNS.md`.
 
@@ -756,12 +776,15 @@ drop the interface seam, CR-001 and CR-007 become very hard to satisfy — don't
 ## Calls used in this doc
 
 **`[SDK]`** (verbatim — authority: [`../12-SDK-API-REFERENCE.md`](../12-SDK-API-REFERENCE.md)),
-wrapped by the `[Layer]` classes above: `LudeoManager.InitLudeoSession` · `LudeoSession.{Activate,
-OpenRoom, GetLudeo, OpenGallery, Dispose}` · `LudeoSession.AddNotify{LudeoSelected, RoomReady, ConsentUpdated,
-PauseGame, ResumeGame, ReturnToMainMenu, MuteRequest, LocalizationChanged}` ·
-`LudeoRoom.{AddGamePlayer, CloseRoom, CreateStateObject}` · `LudeoGameplaySession.{Begin, End, Abort,
-SendAction}` · `LudeoStateObject.{SetAttribute, DestroyStateObject}` · `LudeoDataReader.GetStateObjects`.
-Types: `LudeoOpenRoomData`, `LudeoRoomAddGamePlayerData`, the `*CallbackData` structs.
+wrapped by the `[Layer]` classes above: `LudeoManager.{Initialize, SessionManager}` ·
+`LudeoSessionManager.CreateSession` · `LudeoSession.{Activate, OpenRoom, GetLudeo, OpenGallery, Dispose}` ·
+`LudeoSession` events `{LudeoSelected, RoomReady, PlayerConsentUpdated, PauseGameRequested,
+ResumeGameRequested, GameBackToMenuRequested, MuteGameRequested, LocalizationUpdated}` ·
+`LudeoRoom.{AddPlayer, GetPlayer, CloseRoom, Writer}` · `LudeoRoomWriter.{CreateObject, SendAction}` ·
+`LudeoPlayer.{BeginGameplay, EndGameplay, AbortGameplay, SendAction, PlayerId}` ·
+`LudeoWritableObject.{EnterObjectScope, WriteData, DestroyObject}` · `LudeoDataReader.GetObjects` ·
+`LudeoReadableObject.{EnterObjectScope, ReadData, GetAllAttributes}`.
+Types: `LudeoSessionOpenRoomParameters`, `LudeoRoomAddPlayerParameters`, the `*CallbackData` structs.
 
 **`[Layer]`** (defined here — the SDK does **not** define these; rename freely): `LudeoController` ·
 `LudeoIntegrationData` · `LudeoFlowSwitch` · `ILudeoFlow` (`LudeoCreatorFlow` / `LudeoPlayFlow` /

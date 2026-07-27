@@ -95,7 +95,7 @@ native plugins behave differently from the Editor — see below).
 - [ ] Baseline build verified (game compiles + plays).
 - [ ] SDK-enabled build verified in the **Editor and a player build** (game compiles + plays;
       consent-off path unchanged).
-- [ ] `InitLudeoSession` reaches its callback with a `resultCode` (proves the native layer loaded;
+- [ ] `LudeoManager.Initialize()` returns a `LudeoResult` (proves the native layer loaded;
       `WrapperDllNotFound` means it didn't — fix platform/plugins before continuing).
 - [ ] Player build is **self-contained**: `<Game>_Data/Plugins/` carries the Ludeo native(s) plus the
       3rd-party deps *this* build needs (detected per-build — config-driven, e.g. Steam only if not

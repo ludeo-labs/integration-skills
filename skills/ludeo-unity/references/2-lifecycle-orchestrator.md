@@ -67,8 +67,8 @@ The orchestrator relays whatever a subagent surfaces — it does not invent its 
 
 - **Orchestrator / single-task-subagent dispatch** — the pattern above. Each brief is written to be run
   by a subagent in isolation; the orchestrator is thin.
-- **⚠️ Ludeo Session ≠ Gameplay Session.** `LudeoSession` (`InitLudeoSession` + `Activate`) is **app
-  lifetime** — once at bootstrap, disposed at shutdown. `LudeoGameplaySession` (`Begin`…`End`/`Abort`)
+- **⚠️ Ludeo Session ≠ Gameplay Session.** `LudeoSession` (`Initialize` + `CreateSession` + `Activate`) is **app
+  lifetime** — once at bootstrap, disposed at shutdown. `LudeoPlayer` (`Begin`…`End`/`Abort`)
   is **one playable moment** — many per run. Init/Activate/Dispose never go inside level start/end.
 - **The reference architecture is the spine** — `unity/REFERENCE-ARCHITECTURE.md`
   (`LudeoController`/`LudeoFlowSwitch`/`LudeoGameplaySessionManager`/`ILudeoStateHandler`/`LudeoKeys`).
@@ -92,7 +92,7 @@ Three distinct mechanisms; don't conflate them:
    task 3; the `SendAction` calls land in phases 6–7.)
 3. **Pause / cutscene = local capture hygiene** — a true sim freeze, distinct from non-ludeoable areas.
    Standard names **`PauseLudeo`** / **`ResumeLudeo`**. Note: the **overlay** pause is SDK-driven and
-   separate — `AddNotifyPauseGame`/`AddNotifyResumeGame` freeze `Time.timeScale` (CR-011); that is the
+   separate — `PauseGameRequested`/`ResumeGameRequested` freeze `Time.timeScale` (CR-011); that is the
    Ludeo overlay covering the game, not a game-initiated capture-hygiene pause.
 
 > **Open cross-skill items:** (a) whether `StartNoneLudeable`/
@@ -122,7 +122,7 @@ The orchestrator confirms **all** of these before advancing — they are produce
       by the package (not `Activate()` args).
 - [ ] **Menus/transitions excluded from capture** — session bracketing; non-ludeoable areas planned
       with `StartNoneLudeable`/`StopNoneLudeable`.
-- [ ] **Pause/resume bracketed correctly** — overlay `AddNotifyPauseGame`/`Resume` freeze the sim;
+- [ ] **Pause/resume bracketed correctly** — overlay `PauseGameRequested`/`Resume` freeze the sim;
       capture-hygiene `PauseLudeo`/`ResumeLudeo` planned.
 - [ ] **No dangling non-ludeoable on `End`** — any open `StartNoneLudeable`/`PauseLudeo` span is closed
       before a Gameplay Session ends.
@@ -135,7 +135,7 @@ The orchestrator confirms **all** of these before advancing — they are produce
   loses the one-phase feel. Dispatch; pass artifacts by file.
 - **Trying to subagent-automate the compile gate** — task 5 needs the human + the Editor. Surface it.
 - **Re-narrating prior output to the next task** instead of pointing it at the artifact file.
-- **Treating callback-driven ops as game call sites** (`AddGamePlayer`/`Begin`/`CloseRoom` — CR-009).
+- **Treating callback-driven ops as game call sites** (`AddPlayer`/`Begin`/`CloseRoom` — CR-009).
 - **Planning a config class / re-gathering auth** — config is `LudeoSettings.asset` (phase 0).
 - **Conflating the three non-gameplay mechanisms** — whole-screen bracketing vs non-ludeoable areas
   (backend-excluded, tracking continues) vs capture-hygiene pause (sim freeze).

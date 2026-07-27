@@ -43,7 +43,7 @@ emissions** — without searching game code. Output
    and where they go (e.g. `Assets/Scripts/Ludeo/`), or the opt-out mapping onto existing managers
    (keep the façade boundary, dummy/disabled wiring, consent gating, and notification registration).
 3. **Bind each integration point** to a location:
-   - `InitLudeoSession` + register notifications + `Activate` `[SDK]` → bootstrap MonoBehaviour in the
+   - `Initialize` + `CreateSession` + subscribe events + `Activate` `[SDK]` → bootstrap MonoBehaviour in the
      init scene (from `entry_points`). **Boot-straight (no init scene):** a
      `RuntimeInitializeOnLoadMethod(BeforeSceneLoad)` hook or a build-index-0 boot scene — it must
      construct the controller **before** the gameplay scene's `Start()` (LAUNCH-AND-READINESS §5).
@@ -62,7 +62,7 @@ emissions** — without searching game code. Output
      **uncaptured** (CR-001), reusing the layer's `cancellationTokenSource` timeout; (d) the
      **play-path** — suppress the scene's auto-start under `IsInLudeoFlow`, restore resets/reloads the
      already-live scene (phase 11). Record the uncaptured-vs-upgrade choice (LAUNCH-AND-READINESS §4).
-4. **Document the callback chains** (CR-009): `OpenRoom` cb → `AddGamePlayer`; `RoomReady` notification
+4. **Document the callback chains** (CR-009): `OpenRoom` cb → `AddPlayer`; `RoomReady` notification
    → `Begin`; `End`/`Abort` cb → `CloseRoom`. **Not** game call sites.
 5. **Plan the notification registration** (§5 table) — registered once, before `Activate`.
 6. **Plan the non-gameplay emissions** from `SDK_INTEGRATION_POINTS.non_ludeoable`:
@@ -88,15 +88,15 @@ Surface to the orchestrator:
 
 | Notification `[SDK]` | Required? | Handler responsibility |
 | --- | --- | --- |
-| `AddNotifyLudeoSelected` | ✅ | Enter play flow — **stub** here (`GetLudeo` + cache reader); restore flow is phase 11, data read-back phase 12. |
-| `AddNotifyRoomReady` | ✅ | Gameplay-start gate **and** post-Ludeo-load resume: **apply → unfreeze → `Begin`** (never unfreeze first); restore `Begin` also waits on the scene-load leg (CR-010/CR-009). |
-| `AddNotifyConsentUpdated` | ✅ | Feed `LudeoFlowSwitch.SetFlags(canCreate, canPlay)` + gate the gallery button (CR-012). |
-| `AddNotifyPauseGame` | ✅ | **Freeze the simulation** (`Time.timeScale = 0f`) — the #1 mid-play failure if missing (CR-011). |
-| `AddNotifyResumeGame` | ✅ | Unfreeze the sim (`Time.timeScale = 1f`) (CR-011). |
-| `AddNotifyReturnToMainMenu` | ✅ | A CR-007 exit: stop tracking, `CloseRoom`, load the menu scene. |
-| `AddNotifyMuteRequest` / `AddNotifyLocalizationChanged` | optional | Mute audio / set language. |
+| `LudeoSelected` | ✅ | Enter play flow — **stub** here (`GetLudeo` + cache reader); restore flow is phase 11, data read-back phase 12. |
+| `RoomReady` | ✅ | Gameplay-start gate **and** post-Ludeo-load resume: **apply → unfreeze → `Begin`** (never unfreeze first); restore `Begin` also waits on the scene-load leg (CR-010/CR-009). |
+| `PlayerConsentUpdated` | ✅ | Feed `LudeoFlowSwitch.SetFlags(canCreate, canPlay)` + gate the gallery button (CR-012). |
+| `PauseGameRequested` | ✅ | **Freeze the simulation** (`Time.timeScale = 0f`) — the #1 mid-play failure if missing (CR-011). |
+| `ResumeGameRequested` | ✅ | Unfreeze the sim (`Time.timeScale = 1f`) (CR-011). |
+| `GameBackToMenuRequested` | ✅ | A CR-007 exit: stop tracking, `CloseRoom`, load the menu scene. |
+| `MuteGameRequested` / `LocalizationUpdated` | optional | Mute audio / set language. |
 
-> ⚠️ `AddNotifyPauseGame`/`AddNotifyResumeGame` take a plain `Action` (no data struct). The overlay
+> ⚠️ `PauseGameRequested`/`ResumeGameRequested` take a plain `Action` (no data struct). The overlay
 > pause (SDK-driven) is **distinct** from the game-initiated capture-hygiene `PauseLudeo`/`ResumeLudeo`.
 
 - **Plan the layer, not scattered calls.** Game code calls the `[Layer]` façade; the façade calls
@@ -115,7 +115,7 @@ Surface to the orchestrator:
   create-only).
 - **Hook points** — table of 🎮 game-initiated edits: file · class/method · line · `[SDK]`/`[Layer]`
   call · CR.
-- **Callback chains** — `OpenRoom→AddGamePlayer`, `RoomReady→Begin`, `End→CloseRoom`.
+- **Callback chains** — `OpenRoom→AddPlayer`, `RoomReady→Begin`, `End→CloseRoom`.
 - **Notification registration** — the §5 table with planned handler bodies/stubs.
 - **Non-gameplay plan** — the `StartNoneLudeable`/`StopNoneLudeable` (and `PauseLudeo`/`ResumeLudeo`)
   façade methods + emit sites (edits deferred to phases 6–7) + the platform global-trigger note.
@@ -138,7 +138,7 @@ Surface to the orchestrator:
 ## 8. Common Mistakes
 
 - **Scattering raw `[SDK]` calls** instead of the façade (breaks CR-001/CR-007).
-- **Planning `AddGamePlayer`/`Begin`/`CloseRoom` as game call sites** (CR-009).
+- **Planning `AddPlayer`/`Begin`/`CloseRoom` as game call sites** (CR-009).
 - **Planning a config class / re-gathering auth** — it's `LudeoSettings.asset` (phase 0).
 - **Unfreezing before applying** in `onRoomReady` (CR-010).
 - **Forgetting to close a non-ludeoable/pause span on session `End`** — dangling exclusion.

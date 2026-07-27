@@ -51,9 +51,11 @@ No `gh`? Open `https://github.com/ludeo-labs/unity-plugin-releases/releases/late
 
 The asset is `Release_LudeoSDK_Unity_Plugin_v<version>.zip` (~250 MB). **Extract it** → it unpacks to
 `Release/com.ludeo.sdk@<version>/` (a `Release/` parent + a version-suffixed folder, e.g.
-`Release/com.ludeo.sdk@4.2.2/`), and **that folder is the UPM package** — its `package.json` has
+`Release/com.ludeo.sdk@4.2.0/`), and **that folder is the UPM package** — its `package.json` has
 `name: com.ludeosdk.unity`. The release ships **one** UPM package (no `.unitypackage` asset, no git-URL
-install); it supports **Unity 2019.4+** and this skill is validated for **2021.3 LTS+**.
+install); its `package.json` requires **Unity 2021.2+** and this skill is validated for **2021.3 LTS+**.
+This skill is pinned to the **v4.2.0** API (see `ludeo-integration-docs/12-SDK-API-REFERENCE.md`); if
+the latest release is a newer major with further API changes, re-verify against the installed package.
 - `Glob("**/ProjectSettings/ProjectVersion.txt")` to record the project's Unity version; report it and
   confirm with the user. If Ludeo handed you a `.unitypackage` instead, use the *Import Package* path in Step 1.
 
@@ -97,7 +99,7 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
 - **QA/dev builds that must change `runWithoutLauncher` / `launcherUserId` / `ludeoToAutoStart` without
   rebuilding:** the baked `.asset` can't do this. Set up the `LUDEO_DEV`-gated dev-override shim
   (`unity/UPM-INSTALL-AND-DEFINES.md` → *Dev/QA runtime overrides*): a `ludeo-dev.ini` next to the build +
-  a loader applied before `InitLudeoSession`. **Gather the real QA values from the user and seed the file
+  a loader applied before `LudeoManager.Initialize()`. **Gather the real QA values from the user and seed the file
   with them** — don't leave placeholders. Production builds (no `LUDEO_DEV`) ignore it, so phase 13's baked
   `runWithoutLauncher` gate stays authoritative.
 
@@ -146,17 +148,21 @@ evidence where it comes from code; mark unknowns `?`; **ask** the human-only ite
      only the game-level classification + save-entry-points now.
 
 ### Step 4 — Smoke-test the native layer
-Add a throwaway bootstrap call and confirm it reaches its callback.
+Add a throwaway bootstrap call and confirm it returns a `LudeoResult`.
 
-> **⚠️ `InitLudeoSession` is NOT an inert probe — do not auto-fire it in the Editor.** It instantiates
-> `LudeoUnityManager` (`DontDestroyOnLoad`) and brings up Ludeo's overlay / native layer (cohtml),
-> which **hooks the OS cursor/input**. The Editor does **not** tear that native layer down when you stop
-> play mode, so initializing it in the Editor can leave the **cursor hidden/hooked across the entire
-> Editor** after a single play-stop (worse when the game also hides its own cursor — many do). The
-> symptom only shows *after* you stop play, so it reads as "did the integration break my Editor?". This
-> is a preview of **CR-007** (`00-CRITICAL-REQUIREMENTS.md`): the native/overlay layer is not released
-> on stop, which is exactly why phase 4 must route **every** gameplay exit through clean
-> `End`/`Abort` + SDK teardown.
+> **v4.2.0:** init is **synchronous and two-step** — `LudeoManager.Initialize()` (returns a
+> `LudeoResult`) then `LudeoManager.SessionManager.CreateSession(out LudeoSession)`. There is no
+> `InitLudeoSession` callback anymore; check the returned `LudeoResult` directly.
+
+> **⚠️ `LudeoManager.Initialize()` is NOT an inert probe — do not auto-fire it in the Editor.** It
+> instantiates `LudeoUnityManager` (`DontDestroyOnLoad`) and brings up Ludeo's overlay / native layer
+> (cohtml), which **hooks the OS cursor/input**. The Editor does **not** tear that native layer down
+> when you stop play mode, so initializing it in the Editor can leave the **cursor hidden/hooked across
+> the entire Editor** after a single play-stop (worse when the game also hides its own cursor — many
+> do). The symptom only shows *after* you stop play, so it reads as "did the integration break my
+> Editor?". This is a preview of **CR-007** (`00-CRITICAL-REQUIREMENTS.md`): the native/overlay layer is
+> not released on stop, which is exactly why phase 4 must route **every** gameplay exit through clean
+> `EndGameplay`/`AbortGameplay` + SDK teardown (and dispose the session on quit).
 
 The smoke test has two legs — the **Editor** and a **player build** (IL2CPP + native plugins differ
 from the Editor). **Never use a bare auto-firing init** (`[RuntimeInitializeOnLoadMethod]` with no
@@ -169,30 +175,34 @@ snippet** as the canonical shape:
 private static void LudeoSmokeTest()
 {
     if (Application.isEditor) return;                                   // [Unity] don't hook the Editor cursor/input
-    LudeoManager.InitLudeoSession(data =>                              // [SDK]
-        Debug.Log($"[Ludeo] init result: {data.resultCode}"));         // [Unity] Debug.Log
+    LudeoResult init = LudeoManager.Initialize();                      // [SDK] sync
+    LudeoResult create = (init == LudeoResult.Success)                 // [SDK] sync
+        ? LudeoManager.SessionManager.CreateSession(out LudeoSession session)
+        : init;
+    Debug.Log($"[Ludeo] init={init} create={create}");                // [Unity] Debug.Log
+    session?.Dispose();                                                // [SDK] you own the session — release it
 }
 ```
 
 - **Editor leg — fire it once, manually, then stop.** Trigger a single init from a `[MenuItem]` button
-  (or one hand-invoked call), read the log, confirm a `resultCode`, then **stop play immediately**. Do
-  **not** leave an init auto-firing in the Editor. As soon as this leg returns a `resultCode`, **delete
-  the Editor trigger.**
+  (or one hand-invoked call), read the log, confirm a `LudeoResult`, then **stop play immediately**. Do
+  **not** leave an init auto-firing in the Editor. As soon as this leg returns a result, **delete the
+  Editor trigger.**
 - **Player-build leg — often deferred** (first IL2CPP builds run ~30–60 min). The gated snippet above
   auto-fires **only in the built player**, so it's safe to leave in for that one build without ever
-  touching the Editor cursor. Run the build, confirm the `resultCode` in `Player.log`.
+  touching the Editor cursor. Run the build, confirm the result in `Player.log`.
 - **Read the result from Unity's log** — the agent can't see the Editor Console. Follow
   `ludeo-integration-docs/unity/READING-UNITY-LOGS.md` (read `Editor.log` / `Player.log`, or run
   headless with `-logFile`) and grep for `[Ludeo]` / `WrapperDllNotFound`.
-- Any `resultCode` proves the native plugin loaded. **`WrapperDllNotFound`** means it did not — a
-  platform/plugin/build problem; fix before continuing (`04-BUILD-INTEGRATION.md`).
+- Any `LudeoResult` from `Initialize()` proves the native plugin loaded. **`WrapperDllNotFound`** means
+  it did not — a platform/plugin/build problem; fix before continuing (`04-BUILD-INTEGRATION.md`).
 - **Delete the throwaway entirely once both legs pass** — the real init lives in the layer (phase 4).
 
 ### Step 5 — (moved to phase 6) Verify the player build is self-contained
 > **Moved to guideline phase 6 (verification & cloud)** — `references/13-upload-build.md` Step 3–4. The
 > self-contained check (native plugins shipped, 3rd-party deps resolved durably) + the `validate-build`
 > gate run at upload time, not at install. Phase 0's job ends at a **clean Editor + player-build smoke test**
-> (Step 4 above): an `InitLudeoSession` callback with a `resultCode` (not `WrapperDllNotFound`). Upload
+> (Step 4 above): `LudeoManager.Initialize()` returning a `LudeoResult` (not `WrapperDllNotFound`). Upload
 > readiness is phase 6's concern.
 
 ## 4. Questions to ask the human
@@ -302,8 +312,8 @@ The gate — satisfy all before advancing to phase 1.
 - [ ] Integration branch created (`feature/ludeo-integration-#N`).
 - [ ] Unity version detected; install method chosen + confirmed.
 - [ ] `LudeoSettings.asset` present with a real `apiKey`; dev flags appropriate for the build.
-- [ ] `InitLudeoSession` reaches its callback with a `resultCode` (not `WrapperDllNotFound`), in the
-      **Editor and a player build**.
+- [ ] `LudeoManager.Initialize()` returns a `LudeoResult` (not `WrapperDllNotFound`), and
+      `SessionManager.CreateSession` succeeds, in the **Editor and a player build**.
 - [ ] _(Self-contained build + `validate-build` — **moved to phase 6**, `13-upload-build.md` Step 3–4.)_
 
 ## 8. Common Mistakes
@@ -316,7 +326,7 @@ The gate — satisfy all before advancing to phase 1.
   **manual** per entity regardless of how complete the save is.
 - **Treating a transition/streaming cache as the canonical save** — it holds partial deltas only.
 - **Building the per-entity restore matrix now** — defer to `phase 8`; the object model doesn't exist yet.
-- **Leaving an auto-running `InitLudeoSession` smoke test active in the Editor** — a bare
+- **Leaving an auto-running `LudeoManager.Initialize()` smoke test active in the Editor** — a bare
   `[RuntimeInitializeOnLoadMethod]` re-inits the Ludeo overlay every play and can leave the OS cursor
   hooked across the Editor after you stop. Gate it player-only (`if (Application.isEditor) return;`) or
   remove it once the smoke test passes.

@@ -32,10 +32,10 @@ sequenceDiagram
   participant Layer as LudeoController [Layer]
   participant SDK as LudeoSDK [SDK]
   Game->>Layer: match start
-  Layer->>SDK: OpenRoom → (cb) AddGamePlayer → RoomReady → Begin
+  Layer->>SDK: OpenRoom → (cb) AddPlayer → RoomReady → Begin
   loop each active frame
     Game->>Layer: UpdateStateObjects()
-    Layer->>SDK: LudeoStateObject.SetAttribute(...)
+    Layer->>SDK: LudeoWritableObject.WriteData(...)
   end
   Game->>Layer: exit path → End/Abort → CloseRoom
 ```

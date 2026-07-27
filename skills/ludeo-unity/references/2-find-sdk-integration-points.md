@@ -34,7 +34,7 @@ boundary actions will go.
   - **If `CODE_MAP.launch_model.readiness_gate_required` is `true`** (boot-straight / preselected /
     fast-skippable menu), also read `ludeo-integration-docs/unity/LAUNCH-AND-READINESS.md` — the init
     site and the gameplay-start (`OpenRoom`) site **collapse onto the same scene**, and `OpenRoom`
-    becomes **gate-driven**, not a synchronous game call after `InitLudeoSession`.
+    becomes **gate-driven**, not a synchronous game call after `Initialize`/`Activate`.
 
 ## 3. Steps
 
@@ -75,7 +75,7 @@ Surface to the orchestrator; don't guess:
 
 ## 5. Patterns to apply
 
-- **⚠️ Ludeo Session ≠ Gameplay Session.** `InitLudeoSession`/`Activate`/release belong at **app
+- **⚠️ Ludeo Session ≠ Gameplay Session.** `Initialize`/`CreateSession`/`Activate`/session `Dispose` belong at **app
   startup/shutdown** (bootstrap/init scene), never inside level start/end. `OpenRoom`…`End`/`Abort`
   is the per-moment Gameplay Session.
 
@@ -83,11 +83,11 @@ Surface to the orchestrator; don't guess:
 
 | Integration point | Kind | When | Find in CODE_MAP |
 | --- | --- | --- | --- |
-| `LudeoManager.InitLudeoSession` | `[SDK]` | App startup, once | `entry_points` / bootstrap MonoBehaviour in init scene |
+| `LudeoManager.Initialize` + `SessionManager.CreateSession` | `[SDK]` | App startup, once (both sync) | `entry_points` / bootstrap MonoBehaviour in init scene |
 | register `AddNotify*` then `LudeoSession.Activate` | `[SDK]` | Right after init, before gameplay | same bootstrap site |
 | `LudeoSession.OpenRoom` | `[SDK]` (via `[Layer]`) | A match/level **starts** (every start path) | `session_boundaries` (start) — **enumerate every call site that reaches live-run state**, then bind to the **convergent runtime signal they all hit** (the state-machine transition into the in-game/"Ongoing" state), **not** a plausibly-named entry method. No-per-level-scene games: `open-world.md` §3 |
 | per-frame `UpdateStateObjects()` sampling | `[Layer]` | While gameplay active | a gameplay MonoBehaviour `Update` `[Unity]` |
-| `LudeoGameplaySession.End` / `Abort` | `[SDK]` (via `[Layer]`) | Gameplay ends — **ALL exit paths** | `session_boundaries` (end) — no-per-level-scene games: wire **every** `exit_sites[]` (its `ludeo:` field says End vs Abort) |
+| `LudeoPlayer.End` / `Abort` | `[SDK]` (via `[Layer]`) | Gameplay ends — **ALL exit paths** | `session_boundaries` (end) — no-per-level-scene games: wire **every** `exit_sites[]` (its `ludeo:` field says End vs Abort) |
 | `StartNoneLudeable` / `StopNoneLudeable` | `[SDK]` `SendAction` (via `[Layer]`) | Enter/exit a mid-gameplay non-ludeoable area | `non_ludeoable_candidates[].enter` / `.exit` |
 | session release | `[SDK]` | App shutdown | `OnApplicationQuit` `[Unity]` |
 
@@ -103,8 +103,8 @@ Surface to the orchestrator; don't guess:
 
 **Callback-driven — NOT game integration points (CR-009).** Note where the façade will wire them, but
 they are not call sites picked from game code:
-- `LudeoRoom.AddGamePlayer` ← fired from the `OpenRoom` callback.
-- `LudeoGameplaySession.Begin` ← fired on the `RoomReady` notification (after restore, in play flow).
+- `LudeoRoom.AddPlayer` ← fired from the `OpenRoom` callback.
+- `LudeoPlayer.Begin` ← fired on the `RoomReady` notification (after restore, in play flow).
 - `LudeoRoom.CloseRoom` ← fired after `End`/`Abort`.
 
 ## 6. Output Contract
@@ -116,17 +116,17 @@ they are not call sites picked from game code:
   "code_map_source": "ludeo-integration-plan/CODE_MAP.json",
   "threading": "<from CODE_MAP — expect main-thread>",
   "integration_points": [
-    { "call": "LudeoManager.InitLudeoSession", "kind": "SDK", "scene_or_file": "...", "class_method": "...", "line": "...", "timing": "Once at startup", "notes": "register AddNotify* then Activate here" }
+    { "call": "LudeoManager.Initialize + SessionManager.CreateSession", "kind": "SDK", "scene_or_file": "...", "class_method": "...", "line": "...", "timing": "Once at startup (sync)", "notes": "subscribe session events (+=) then Activate here" }
   ],
   "exit_paths": [
-    { "call": "LudeoGameplaySession.End|Abort", "scene_or_file": "...", "class_method": "...", "line": "...", "trigger": "level complete | death | quit-to-menu | restart | OnApplicationQuit | ReturnToMainMenu" }
+    { "call": "LudeoPlayer.End|Abort", "scene_or_file": "...", "class_method": "...", "line": "...", "trigger": "level complete | death | quit-to-menu | restart | OnApplicationQuit | ReturnToMainMenu" }
   ],
   "non_ludeoable": [
     { "kind": "shop|dialogue|tutorial|safezone|cutscene", "enter": { "action": "StartNoneLudeable", "file": "...", "line": "...", "trigger": "..." }, "exit": { "action": "StopNoneLudeable", "file": "...", "line": "...", "trigger": "..." }, "platform_trigger_mapping": "one-time, out-of-code (phases 6-7)" }
   ],
   "callback_driven": {
     "note": "wired by the LudeoController façade, NOT picked from game code (CR-009)",
-    "AddGamePlayer": "from OpenRoom callback", "Begin": "from RoomReady notification", "CloseRoom": "after End/Abort"
+    "AddPlayer": "from OpenRoom callback", "Begin": "from RoomReady notification", "CloseRoom": "after End/Abort"
   },
   "warnings": ["<timing/threading/missing-CODE_MAP-section/dangling-non-ludeoable concerns; OpenRoom-before-consent race (2c); entry paths that skip the bound OpenRoom site (2b)>"]
 }
@@ -154,7 +154,7 @@ they are not call sites picked from game code:
   of the convergent in-gameplay transition — Editor auto-enter / resume / bypass paths skip it (step 2b).
 - **Assuming consent is known at run-start** — `Activate`/`ConsentUpdated` are async; an `OpenRoom`
   before they land silently no-ops (step 2c).
-- **Treating `AddGamePlayer`/`Begin`/`CloseRoom` as game call sites** (CR-009).
+- **Treating `AddPlayer`/`Begin`/`CloseRoom` as game call sites** (CR-009).
 - **Guessing locations when a CODE_MAP section is missing** — report it instead.
 - **Leaving a non-ludeoable area with no `StopNoneLudeable`** — capture never re-enables.
 - **Suggesting code** — this task outputs locations; implementation is task 4.

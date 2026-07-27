@@ -82,7 +82,7 @@ This task **is** the human interaction:
 | --- | --- | --- |
 | `CS0246: LudeoSDK / Ludeo* not found` | Package not resolved, or a custom asmdef with "Override References" doesn't see the auto-referenced assembly | Confirm `Packages/manifest.json` has the package; if asmdefs, add the `LudeoSDK` reference (or Auto Referenced) — `04-BUILD-INTEGRATION.md` |
 | `CS1503` / arg-type mismatch on a callback | Wrong `Action<…CallbackData>` type | Match the exact callback-data struct in doc 12 (CR-003) |
-| `CS0103: AddNotifyPauseGameRequest` | Used the C++ name | It's `AddNotifyPauseGame`/`AddNotifyResumeGame` (no `…Request`) |
+| `CS0103: PauseGameRequestedRequest` | Used the C++ name | It's `PauseGameRequested`/`ResumeGameRequested` (no `…Request`) |
 | `CS0117: …Begin/End/Abort` signature | Wrong overload | Reproduce the signature from doc 12 verbatim |
 | `CS0246` only when `LUDEO_SDK` is OFF | `#else` fallback types missing | Provide stub fallback types in the `#else` branch |
 | `CS0234: LudeoManager.Tick` | Tried to call the internal tick | Remove it — the plugin ticks itself (CR-005) |
