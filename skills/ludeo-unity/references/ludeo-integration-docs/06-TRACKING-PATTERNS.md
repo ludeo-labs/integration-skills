@@ -237,7 +237,7 @@ You **register** through the façade, **sample** each tick, and **unregister** o
 goes through `LudeoController` `[Layer]`, so when the SDK is disabled the dummy makes it a no-op
 (CR-001) — no `#if` needed.
 
-> **The handler owns the write scope (CR-002).** In v4.2.0 every `WriteData` must run inside
+> **The handler owns the write scope (CR-002).** In v4.3.0 every `WriteData` must run inside
 > `using (obj.EnterObjectScope())`. The `DefaultLudeoStateHandler` opens that scope once per tick
 > around your `OnStateDataUpdate` lambda (see `unity/REFERENCE-ARCHITECTURE.md`), so the game-facing
 > lambdas below just call `obj.WriteData(...)` — **do not** open a scope in game code.

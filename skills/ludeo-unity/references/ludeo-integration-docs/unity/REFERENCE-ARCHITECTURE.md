@@ -5,11 +5,11 @@
 > reproduce in the game's project (adapting names/fields to the game); the **full compiling source**
 > lives in the plugin's bundled reference integration under `Assets/_LudeoNonBuild/`.
 >
-> **Pinned to the Ludeo Unity plugin v4.2.0 API** — see [`12-SDK-API-REFERENCE.md`](../12-SDK-API-REFERENCE.md).
-> Signatures used here come from that doc. If you have older layer code, note v4.2.0 renamed almost
+> **Pinned to the Ludeo Unity plugin v4.3.0 API** — see [`12-SDK-API-REFERENCE.md`](../12-SDK-API-REFERENCE.md).
+> Signatures used here come from that doc. If you have older layer code, note v4.3.0 renamed almost
 > every SDK type/method it calls (init is now `Initialize()` + `SessionManager.CreateSession`,
 > notifications are C# events, capture goes through `LudeoRoom.Writer` + scoped `WriteData`, the
-> gameplay session is `LudeoPlayer`) — see that doc's "What changed in v4.2.0".
+> gameplay session is `LudeoPlayer`) — see that doc's "What changed in v4.3.0".
 >
 > **Opt-out:** if a game already has a strong session/manager architecture, you may map the same
 > responsibilities onto it — but keep the component boundaries, the dummy/disabled wiring (CR-001),
@@ -121,7 +121,7 @@ public class LudeoIntegrationData
     public bool isGameplayActive, isInLudeo, isDisplayPlayableMoment;
     public LudeoSession ludeoSession;
     public LudeoRoom ludeoRoom;
-    public LudeoPlayer ludeoPlayer;                           // v4.2.0: was LudeoGameplaySession
+    public LudeoPlayer ludeoPlayer;                           // v4.3.0: was LudeoGameplaySession
     public string gamePlayerId, ludeoPlayerId, roomId;
     public Guid ludeoId = default;
     public LudeoTrackedDefinitions ludeoTrackedDefinitions;   // game-defined "level config" DTO
@@ -253,7 +253,7 @@ public class LudeoController
     { m_roomReady = false; m_sceneReadyForRestore = false; m_data.ludeoPlayer = null; }
 
     // ── lifecycle ────────────────────────────────────────────────────
-    // v4.2.0: init is SYNCHRONOUS and two-step — Initialize() then SessionManager.CreateSession(out …).
+    // v4.3.0: init is SYNCHRONOUS and two-step — Initialize() then SessionManager.CreateSession(out …).
     // Neither takes a callback; check the returned LudeoResult inline. (Replaces the old async
     // InitLudeoSession(cb) + HandleInitSessionDone.)
     private void InitializeSdkAndSession()
@@ -646,7 +646,7 @@ public class LudeoGameplaySessionManager : ILudeoGameplaySessionManager
 
     public ILudeoStateHandler StartTrackingLudeoState(ILudeoStateHandler handler, string objectType, Action<LudeoWritableObject> onUpdate)
     {
-        // v4.2.0: object creation moved to LudeoRoom.Writer.
+        // v4.3.0: object creation moved to LudeoRoom.Writer.
         if (m_data.ludeoRoom.Writer.CreateObject(objectType, out LudeoWritableObject obj) != LudeoResult.Success) return null;
         handler.SetLudeoStateObjectForUpdate(obj, onUpdate);
         m_tracked.Add(handler);

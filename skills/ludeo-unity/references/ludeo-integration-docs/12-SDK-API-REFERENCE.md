@@ -6,11 +6,11 @@
 > `Assets/_LudeoNonBuild/`). If a signature here ever disagrees with the installed package, the
 > installed package wins — re-verify against it.
 >
-> **Pinned to:** Ludeo Unity package `com.ludeosdk.unity` **v4.2.0** (CoreSDK 4.2.0). Verify the
+> **Pinned to:** Ludeo Unity package `com.ludeosdk.unity` **v4.3.0** (CoreSDK 4.2.0). Verify the
 > version in the project's `Packages/manifest.json` / package `package.json`.
 >
-> **⚠️ v4.2.0 is a breaking rewrite** that aligned the Unity API with the Unreal plugin. If you have
-> seen older skill guidance (or an older integration), read [§ What changed in v4.2.0](#-what-changed-in-v420)
+> **⚠️ v4.3.0 is a breaking rewrite** that aligned the Unity API with the Unreal plugin. If you have
+> seen older skill guidance (or an older integration), read [§ What changed in v4.3.0](#-what-changed-in-v430)
 > at the bottom — many old names (`InitLudeoSession`, `LudeoStateObject`, `SetAttribute`,
 > `AddGamePlayer`, `AddNotify*`, `LudeoGameplaySession`) **no longer exist**.
 
@@ -166,7 +166,7 @@ The `AddPlayer` callback delivers the `LudeoPlayer` (`data.player`).
 ## `LudeoRoomWriter` — capture + actions (Creator flow)
 
 Obtained from `LudeoRoom.ActiveRoom.Writer` (or `data.ludeoRoom.Writer`). This is where object
-creation and actions moved to in v4.2.0.
+creation and actions moved to in v4.3.0.
 
 | Member | Signature | Notes |
 | --- | --- | --- |
@@ -374,12 +374,12 @@ C# closure instead.
 
 ---
 
-## 🔄 What changed in v4.2.0
+## 🔄 What changed in v4.3.0
 
-Old skill guidance / older integrations used the pre-4.2.0 API. Everything in the left column is
+Old skill guidance / older integrations used the pre-4.3.0 API. Everything in the left column is
 **gone** (no compatibility shims):
 
-| Removed / old (≤4.0.x) | New (v4.2.0) |
+| Removed / old (≤4.0.x) | New (v4.3.0) |
 | --- | --- |
 | `LudeoManager.InitLudeoSession(cb)` (async, delivers session) | `LudeoManager.Initialize()` + `LudeoManager.SessionManager.CreateSession(out session)` (both sync) |
 | `LudeoSessionInitCallbackData` | *(none — `CreateSession` uses an `out` param)* |
@@ -403,7 +403,7 @@ Old skill guidance / older integrations used the pre-4.2.0 API. Everything in th
 | `<T>` clientData overloads + `GetClientData<T>()` | *(removed — use C# closures)* |
 | `LudeoSessionLocalizationData` | `LudeoSessionSetLocalizationParameters` |
 
-New in v4.2.0: `…Async` (`Task`) overloads for every callback op; thread-safe writer via
+New in v4.3.0: `…Async` (`Task`) overloads for every callback op; thread-safe writer via
 `LudeoSessionOpenRoomParameters.ThreadSafe` / `MaxConcurrentWrites`; `LudeoRoomWriter.SetSendSettings`;
 bulk restore reads via `GetAllAttributes(out LudeoAttributesCollection)`. `LudeoDataReader` was
 intentionally **not** renamed.
