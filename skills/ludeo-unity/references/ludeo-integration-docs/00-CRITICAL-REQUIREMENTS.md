@@ -11,7 +11,7 @@
 > reintroduce them. Signatures referenced here are defined in
 > [`12-SDK-API-REFERENCE.md`](./12-SDK-API-REFERENCE.md).
 >
-> **⚠️ v4.2.0 note:** CR-002 (object/component scope) is **no longer N/A** — the v4.2.0 write/read
+> **⚠️ v4.3.0 note:** CR-002 (object/component scope) is **no longer N/A** — the v4.3.0 write/read
 > API is explicitly scoped (`using EnterObjectScope()`), so it is now a real Unity requirement. See
 > CR-002 below.
 
@@ -77,8 +77,8 @@ Most integrations never need this — keep the package installed and rely on the
 
 ## 🔴 CR-002: Scope every write and read (`using EnterObjectScope()`)
 
-> **Changed in v4.2.0.** This used to be "N/A — handled by the plugin". It is **not** anymore. The
-> v4.2.0 write/read API is explicitly scoped: `WriteData`/`ReadData` only take effect while the
+> **Changed in v4.3.0.** This used to be "N/A — handled by the plugin". It is **not** anymore. The
+> v4.3.0 write/read API is explicitly scoped: `WriteData`/`ReadData` only take effect while the
 > object's (or component's) scope is open, and the scope is an `IDisposable` you must close.
 
 **Required — wrap every `WriteData`/`ReadData` in a `using` scope:**
@@ -235,7 +235,7 @@ foreach (var (obj, restore) in created) {
 `LudeoDataReader.GetObjects` returns a **managed** `LudeoReadableObject[]`. There is nothing to
 release; GC handles it. No `ObjectsInfo_Release` equivalent.
 
-> **v4.2.0 caveat:** `LudeoDataReader` itself is now `IDisposable`. You don't release the *array*, but
+> **v4.3.0 caveat:** `LudeoDataReader` itself is now `IDisposable`. You don't release the *array*, but
 > the reader you got from the `GetLudeo` callback can be `Dispose()`d when the run is done (or left to
 > the session teardown, which invalidates it). It's tied to the session lifetime, not a single run.
 
@@ -391,7 +391,7 @@ captured to restored objects. Restoration matches by **`ObjectType` bucket**.
 - **CR-005:** no SDK tick wired; attribute sampling runs per active-gameplay frame on the main thread.
 - **CR-006:** Pass 1 creates all objects; Pass 2 reads attributes + resolves refs by your keys. Reset matched/singleton instances (player) to baseline before applying — they kept the prior run's gameplay **and visual** state (HUD/VFX/post-fx included).
 - **CR-007 (⚠️):** every gameplay exit path routes through `End`/`Abort`; tested quit/restart/menu.
-- **CR-002 (⚠️ v4.2.0):** every `WriteData`/`ReadData` is inside `using EnterObjectScope()`; component scopes nested in the object scope.
+- **CR-002 (⚠️ v4.3.0):** every `WriteData`/`ReadData` is inside `using EnterObjectScope()`; component scopes nested in the object scope.
 - **CR-009:** `AddPlayer`/`BeginGameplay`/`CloseRoom` only from their driving callbacks; restore `BeginGameplay` gates on RoomReady ∧ AddPlayer ∧ scene-loaded.
 - **CR-010 (⚠️):** restoring-flag first → start load (onBeginRestore) → freeze → cache reader → on RoomReady **apply → unfreeze → BeginGameplay** (never unfreeze before apply; never `timeScale=0` around an awaited spawn — suppress instead).
 - **CR-011 (⚠️):** `PauseGameRequested`/`ResumeGameRequested` events subscribed before Activate; freeze sim.

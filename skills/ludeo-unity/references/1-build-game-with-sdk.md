@@ -51,10 +51,10 @@ No `gh`? Open `https://github.com/ludeo-labs/unity-plugin-releases/releases/late
 
 The asset is `Release_LudeoSDK_Unity_Plugin_v<version>.zip` (~250 MB). **Extract it** → it unpacks to
 `Release/com.ludeo.sdk@<version>/` (a `Release/` parent + a version-suffixed folder, e.g.
-`Release/com.ludeo.sdk@4.2.0/`), and **that folder is the UPM package** — its `package.json` has
+`Release/com.ludeo.sdk@4.3.0/`), and **that folder is the UPM package** — its `package.json` has
 `name: com.ludeosdk.unity`. The release ships **one** UPM package (no `.unitypackage` asset, no git-URL
 install); its `package.json` requires **Unity 2021.2+** and this skill is validated for **2021.3 LTS+**.
-This skill is pinned to the **v4.2.0** API (see `ludeo-integration-docs/12-SDK-API-REFERENCE.md`); if
+This skill is pinned to the **v4.3.0** API (see `ludeo-integration-docs/12-SDK-API-REFERENCE.md`); if
 the latest release is a newer major with further API changes, re-verify against the installed package.
 - `Glob("**/ProjectSettings/ProjectVersion.txt")` to record the project's Unity version; report it and
   confirm with the user. If Ludeo handed you a `.unitypackage` instead, use the *Import Package* path in Step 1.
@@ -150,7 +150,7 @@ evidence where it comes from code; mark unknowns `?`; **ask** the human-only ite
 ### Step 4 — Smoke-test the native layer
 Add a throwaway bootstrap call and confirm it returns a `LudeoResult`.
 
-> **v4.2.0:** init is **synchronous and two-step** — `LudeoManager.Initialize()` (returns a
+> **v4.3.0:** init is **synchronous and two-step** — `LudeoManager.Initialize()` (returns a
 > `LudeoResult`) then `LudeoManager.SessionManager.CreateSession(out LudeoSession)`. There is no
 > `InitLudeoSession` callback anymore; check the returned `LudeoResult` directly.
 

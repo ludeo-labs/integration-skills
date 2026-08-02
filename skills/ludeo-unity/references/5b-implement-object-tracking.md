@@ -221,7 +221,7 @@ Surface to the orchestrator; don't guess:
 - **No `#if LUDEO_SDK_ENABLED` at capture sites** — disable is runtime via the dummy (CR-001). Only the
   optional package-excluding `LUDEO_SDK` define uses `#if` (the rare ship-without-package case).
 - **No ID map, no macros** — identity is bucket + your own key (`06 §4`). Writes **are** scoped in
-  v4.2.0 (CR-002), but the `DefaultLudeoStateHandler` owns `using EnterObjectScope()` per tick — the
+  v4.3.0 (CR-002), but the `DefaultLudeoStateHandler` owns `using EnterObjectScope()` per tick — the
   game's `OnStateDataUpdate` lambda just calls `WriteData`, no manual scope at capture sites.
 - **Capture is creator-only** — guard every register + the sampler on `!IsInLudeoFlow` (`06 §3` rule box).
 - **No SDK tick** (CR-005); sample on the **main thread** (CR-013); never key on `GetInstanceID()` (CR-014).

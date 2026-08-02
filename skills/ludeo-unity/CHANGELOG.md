@@ -3,7 +3,7 @@
 
 ### ⚠ BREAKING CHANGES
 
-* **ludeo-unity:** align the skill with the Ludeo Unity plugin **v4.2.0** breaking API rewrite. All
+* **ludeo-unity:** align the skill with the Ludeo Unity plugin **v4.3.0** breaking API rewrite. All
   SDK signatures, code patterns, and CRs updated across the API reference, reference architecture,
   critical requirements, lifecycle/tracking/restoration docs, every phase workflow, and the game-pattern
   and unity/* guides. Highlights:

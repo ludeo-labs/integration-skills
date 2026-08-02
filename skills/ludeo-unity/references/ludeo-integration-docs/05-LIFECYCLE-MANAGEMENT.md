@@ -110,7 +110,7 @@ LudeoManager.SessionManager.CreateSession(out session)   [SDK]  ← synchronous,
 
 ## Subscribing to session events (before `Activate`) — all `[SDK]`
 
-Events are C# `event`s on `LudeoSession` (v4.2.0 replaced the old `AddNotify*`/`RemoveNotify*`
+Events are C# `event`s on `LudeoSession` (v4.3.0 replaced the old `AddNotify*`/`RemoveNotify*`
 methods). Subscribe with `+=`, unsubscribe with `-=`.
 
 | Event `[SDK]` | Handler arg | Role |
