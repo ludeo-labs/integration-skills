@@ -86,8 +86,17 @@ Subscribe to both (plain `Action`, no data struct) before `Activate`:
 session.PauseGameRequested  += HandlePauseRequested;   // [SDK] C# event — NOT the old AddNotifyPauseGame
 session.ResumeGameRequested += HandleResumeRequested;  // [SDK] C# event
 
-void HandlePauseRequested()  => PauseGame(showMenu: false);   // freeze AND emit the trigger — see §3.2
-void HandleResumeRequested() => ResumeGame();
+void HandlePauseRequested()
+{
+    m_ludeoOverlayPause = true;      // the overlay owns this pause — read by the ESC handler below
+    PauseGame(showMenu: false);      // freeze AND emit the trigger — see §3.2
+}
+
+void HandleResumeRequested()
+{
+    m_ludeoOverlayPause = false;
+    ResumeGame();
+}
 ```
 - **Freeze the sim**, e.g. `Time.timeScale = 0f` `[Unity]` (plus the game's own pause for audio /
   streaming jobs if those advance world state). Input-only pausing leaves the game playing under the

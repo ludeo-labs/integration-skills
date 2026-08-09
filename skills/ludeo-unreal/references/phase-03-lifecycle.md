@@ -1792,9 +1792,10 @@ Correspondingly, the game's own pause key must stand down **while the overlay is
 void AMyPlayerController::OnEscapePressed()
 {
     // Query the Subsystem's flag — don't cache a copy on the PC (the PC is per-world and dies on
-    // travel; the Subsystem is persistent, §5.2):
-    //   GetGameInstance()->GetSubsystem<ULudeoIntegrationSubsystem>()->IsLudeoOverlayPause()
-    if (bLudeoOverlayPause)
+    // travel; the Subsystem is persistent, §5.2).
+    const ULudeoIntegrationSubsystem* Ludeo =
+        GetGameInstance()->GetSubsystem<ULudeoIntegrationSubsystem>();
+    if (Ludeo && Ludeo->IsLudeoOverlayPause())   // accessor over the bLudeoOverlayPause set in §5.9.4
     {
         return;   // SDK intercepts ESC, opens the overlay, and sends OnPauseGameRequested
     }
