@@ -68,8 +68,12 @@ emissions** — without searching game code. Output
 6. **Plan the non-gameplay emissions** from `SDK_INTEGRATION_POINTS.non_ludeoable`:
    - For each, plan the `[Layer]` façade method that wraps `SendAction("StartNoneLudeable")` /
      `"StopNoneLudeable"` at the enter/exit sites — the actual edits land in phase 6.
-   - Plan the **capture-hygiene pause** pair (`PauseLudeo`/`ResumeLudeo`) if the game has a true
-     sim-freeze pause/cutscene (distinct from the overlay pause notification).
+   - Plan the **pause/resume trigger** pair (`PauseLudeo`/`ResumeLudeo`) at the game's **pause primitive** —
+     the function every pause path funnels through. Cover the player's ESC/pause menu, cutscenes, dialogue,
+     loading screens, **and the `PauseGameRequested` handler** — its freeze stops the simulation, but only this
+     action stops the **objective timer**. Preferred wiring: route that handler through the same **freeze**
+     primitive (not a menu-showing one — it would stack under the overlay); if the game has no freeze-only
+     path, emit directly from the handler instead. Either way plan a span flag so each pause reports once.
    - Note the **one-time platform global-trigger mapping** (out-of-code; phase 6) so non-ludeoable
      windows are backend-excluded.
    - **No dangling non-ludeoable:** ensure each `Start`/`Pause` has a matching `Stop`/`Resume`, and that
@@ -91,13 +95,18 @@ Surface to the orchestrator:
 | `LudeoSelected` | ✅ | Enter play flow — **stub** here (`GetLudeo` + cache reader); restore flow is phase 5 · task 3, data read-back phase 5 · task 4. |
 | `RoomReady` | ✅ | Gameplay-start gate **and** post-Ludeo-load resume: **apply → unfreeze → `Begin`** (never unfreeze first); restore `Begin` also waits on the scene-load leg (CR-010/CR-009). |
 | `PlayerConsentUpdated` | ✅ | Feed `LudeoFlowSwitch.SetFlags(canCreate, canPlay)` + gate the gallery button (CR-012). |
-| `PauseGameRequested` | ✅ | **Freeze the simulation** (`Time.timeScale = 0f`) — the #1 mid-play failure if missing (CR-011). |
-| `ResumeGameRequested` | ✅ | Unfreeze the sim (`Time.timeScale = 1f`) (CR-011). |
+| `PauseGameRequested` | ✅ | **Freeze the simulation** (`Time.timeScale = 0f`) — the #1 mid-play failure if missing (CR-011) — **and emit `PauseLudeo`**, or the objective timer runs on under the overlay. Don't open the game's own pause menu (stacks under the overlay). |
+| `ResumeGameRequested` | ✅ | Unfreeze the sim (`Time.timeScale = 1f`) **and emit `ResumeLudeo`** — same pairing as the row above (CR-011). |
 | `GameBackToMenuRequested` | ✅ | A CR-007 exit: stop tracking, `CloseRoom`, load the menu scene. |
 | `MuteGameRequested` / `LocalizationUpdated` | optional | Mute audio / set language. |
 
-> ⚠️ `PauseGameRequested`/`ResumeGameRequested` take a plain `Action` (no data struct). The overlay
-> pause (SDK-driven) is **distinct** from the game-initiated capture-hygiene `PauseLudeo`/`ResumeLudeo`.
+> ⚠️ `PauseGameRequested`/`ResumeGameRequested` take a plain `Action` (no data struct) and fire in **cloud
+> Player Flow only** — never in Creator Flow, and **never in a local build**, so plan to verify this half on
+> the streamed build. They are the SDK → game half of pause/resume; the game → SDK half
+> (`SendAction("PauseLudeo")`/`("ResumeLudeo")`) is what actually stops the **objective timer**, and it is
+> required on **every** pause — including the one these requests announce. Wire both, and route the handler
+> through the same emit — see
+> [`ludeo-integration-docs/unity/CONSENT-AND-OVERLAY.md`](./ludeo-integration-docs/unity/CONSENT-AND-OVERLAY.md) §3.
 
 - **Plan the layer, not scattered calls.** Game code calls the `[Layer]` façade; the façade calls
   `[SDK]`. Scattering `LudeoSDK` calls makes CR-001/CR-007 nearly impossible.
@@ -111,7 +120,7 @@ Surface to the orchestrator:
 `ludeo-integration-plan/SDK_LIFECYCLE_PLAN_<GameName>.md` containing:
 - **Layer file list** — each `[Layer]` class to create (path + responsibility), or the opt-out mapping.
 - **Bootstrap** — the init-scene MonoBehaviour + the `LudeoController` construction with game-supplied
-  delegates (`onInitDone`, `onRoomReady`, `onStopGame`, `onExitToMainMenu`, + `onBeginRestore` unless
+  delegates (`onInitDone`, `onRoomReady`, `onStopGame`, `onResumeGame`, `onExitToMainMenu`, + `onBeginRestore` unless
   create-only).
 - **Hook points** — table of 🎮 game-initiated edits: file · class/method · line · `[SDK]`/`[Layer]`
   call · CR.

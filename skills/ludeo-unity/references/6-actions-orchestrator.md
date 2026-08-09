@@ -20,7 +20,7 @@
 Find the in-code points where significant **player actions** fire and insert `SendAction` calls so they
 emit in **both** the Creator (capture) and Player (restore) flows — plus emit the **non-gameplay standard
 actions** planned in phase 3 (`StartNoneLudeable`/`StopNoneLudeable` at non-ludeoable area boundaries,
-`PauseLudeo`/`ResumeLudeo` for capture-hygiene pause) and document the **one-time platform global-trigger
+`PauseLudeo`/`ResumeLudeo` for every pause, SDK-requested included) and document the **one-time platform global-trigger
 mapping** the backend uses to exclude those windows. Deliverable: a reviewed action map + the wired
 `SendAction` calls, with emission confirmed in the log in both flows.
 
@@ -102,8 +102,12 @@ The orchestrator relays whatever a subagent surfaces — it does not invent its 
   what binds `SendAction` (parameterless in Unity) to the right player.
 - **Non-gameplay handling is emitted here** (planned in phase 3). Three distinct mechanisms — whole
   non-gameplay screens (no action, session bracketing), non-ludeoable *areas*
-  (`StartNoneLudeable`/`StopNoneLudeable` + platform global-trigger exclusion), capture-hygiene pause
-  (`PauseLudeo`/`ResumeLudeo`, distinct from the SDK overlay pause). Don't conflate them.
+  (`StartNoneLudeable`/`StopNoneLudeable` — objective timer **keeps running**, backend keeps the data), and
+  pause/resume (`PauseLudeo`/`ResumeLudeo` — objective timer **stops**, backend saves nothing). Don't
+  conflate them; **both action pairs belong in every integration.** Pause/resume covers **every** pause — the
+  player's own pause menu, cutscenes/loading, **and the SDK's `PauseGameRequested`** (phase 3), whose freeze
+  stops the simulation but not the clock. Route that handler through the same emit; report once per
+  transition.
 
 ## 6. Output Contract
 
@@ -131,7 +135,14 @@ The orchestrator confirms **all** of these before advancing to phase 7:
 
 **Skill-specific additions:**
 - [ ] Non-gameplay standard actions emitted — `StartNoneLudeable`/`StopNoneLudeable` at non-ludeoable area
-      boundaries (no dangling open span on `EndGameplay`), `PauseLudeo`/`ResumeLudeo` for capture-hygiene.
+      boundaries, **and** `PauseLudeo`/`ResumeLudeo` at the game's pause primitive for **every** pause path
+      (player's menu, cutscenes/loading, and the SDK's `PauseGameRequested` handler). Both pairs, not one; no
+      dangling open span on `EndGameplay`.
+- [ ] **Objective timer verified stopping** — pause from the game's own menu and confirm exactly one
+      `PauseLudeo` per pause in the log, with a matching `ResumeLudeo`. The **overlay** pause path can only be
+      exercised on the cloud build (`PauseGameRequested` never fires locally) — check it there, not here.
+- [ ] **Global Trigger mapping confirmed with the integrator** — the emitted string is silently ignored until
+      it's mapped as a Pause/Resume trigger in Studio Lab, so "action in the log" is not proof the timer stopped.
 - [ ] The **platform global-trigger mapping** documented as a one-time out-of-code step for the integrator.
 - [ ] Player-scoped actions guarded on the player as actor/subject; global actions fired unguarded.
 - [ ] No `#if` guard at call sites (CR-001 runtime); all calls route through the `[Layer]` façade.

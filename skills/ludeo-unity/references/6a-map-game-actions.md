@@ -94,10 +94,26 @@ Read the non-ludeoable boundary-action mappings from `SDK_INTEGRATION_POINTS.jso
   `StartNoneLudeable`, exit site → `StopNoneLudeable`. Tracking keeps running; the **backend** excludes the
   window via a one-time platform global-trigger mapping (task 2 documents it). Flag any candidate **missing
   a clear exit** (a dangling `StartNoneLudeable` never re-enables capture).
-- **Capture-hygiene pause / cutscene** (a true sim freeze the game initiates, distinct from the SDK overlay
-  pause) — `PauseLudeo` / `ResumeLudeo`. Identify the enter/exit sites if present; if none exist, note it.
+- **Pause / resume** — `PauseLudeo` / `ResumeLudeo`, for **every** pause. Find the game's **pause primitive** —
+  the single **freeze** function every pause path funnels through (`GameManager.Pause()`, `SetPaused(bool)`,
+  …) — and map *that*, not the ESC keybinding and **not** the menu-showing function (`PauseMenu.Show()`): the
+  SDK's handler routes through this primitive, and opening the game's menu there stacks it under the Ludeo
+  overlay. If freeze and menu-show are the same function, note it — phase 3 needs a freeze-only path.
+  Enumerate the callers so nothing is missed:
+  the player's pause menu, cutscenes, dialogue boxes, loading screens, focus loss, **and the SDK's
+  `PauseGameRequested` handler** (phase 3/5) — its freeze stops the simulation but not the objective timer, so
+  it must reach this emit too. Also record every **unpause/exit** path — a `PauseLudeo` with no reachable
+  `ResumeLudeo` leaves the timer stopped for the rest of the run. If the game has no pause at all, say so
+  explicitly.
+  - Note whether the SDK handler and the primitive would **both** emit — the pause must be reported once per
+    transition, so flag it if they're separate paths that each need the action.
 
-These use the **standard names** (already seeded in `LudeoActionKeys` in phase 3). They are session/area
+Pick the pair by **what should happen to the clock**: non-ludeoable keeps the objective timer running and the
+backend keeps the span's data; pause/resume stops the timer and the backend saves nothing. Both pairs belong
+in every integration.
+
+These use the **standard names** (already seeded in `LudeoActionKeys` in phase 3) — conventions the
+integrator maps onto the platform's Global Triggers, not SDK constants. They are session/area
 events — **not** player-guarded. Like all actions, task 2 emits them in **both** flows.
 
 ### Step 7: Produce output
@@ -194,8 +210,8 @@ game has no controllable side at all, flag it.
 |---|---|---|---|---|
 | StartNoneLudeable | Enter shop | ShopUI.Open | session/area | platform global-trigger excludes window; needs matching StopNoneLudeable |
 | StopNoneLudeable | Exit shop | ShopUI.Close | session/area | closes the window |
-| PauseLudeo | Cutscene begins | CutsceneMgr.Play | session | capture-hygiene; NOT the SDK overlay pause |
-| ResumeLudeo | Cutscene ends | CutsceneMgr.End | session | |
+| PauseLudeo | **Any pause** | GameManager.PauseGame | session | stops the objective timer; the pause primitive, not the keybinding. Callers: PauseMenu.Show, CutsceneMgr.Play, LoadingScreen.Show, OnApplicationFocus(false), **and the SDK's PauseGameRequested handler** |
+| ResumeLudeo | Any unpause | GameManager.ResumeGame | session | every unpause/exit path — a dangling PauseLudeo leaves the timer stopped |
 
 ## Gaps
 | Expected Action | Reason |

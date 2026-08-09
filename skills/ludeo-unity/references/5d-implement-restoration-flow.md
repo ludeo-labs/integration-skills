@@ -212,8 +212,10 @@ Map `m_onStopGame` onto this game's "freeze the active run" hook. The gallery en
   gated on **`RoomReady` ∧ `AddPlayer` ∧ `sceneLoaded`** (CR-009 + the restore scene-load leg,
   `NotifySceneReadyForRestore()`) — don't re-trigger `Begin` from a game event, and ensure the scene loader
   actually signals completion (an `async void` loader won't).
-- **Mid-play overlay (CR-011):** wire `PauseGameRequested`/`ResumeGameRequested` `[SDK]` → freeze/resume,
-  and `GameBackToMenuRequested` `[SDK]` → a CR-007 exit (stop tracking + `CloseRoom` + load menu). Keep
+- **Mid-play overlay (CR-011):** wire `PauseGameRequested`/`ResumeGameRequested` `[SDK]` → freeze/resume
+  **and the `PauseLudeo`/`ResumeLudeo` emit** (the freeze alone leaves the objective timer draining under the
+  overlay — `unity/CONSENT-AND-OVERLAY.md` §3), and `GameBackToMenuRequested` `[SDK]` → a CR-007 exit (stop
+  tracking + `CloseRoom` + load menu). Keep
   the **CR-010 restore freeze and the CR-011 overlay pause on two separate flags** (engine paused iff
   *either* is set) — one shared flag lets a mid-play `ResumeGame` unfreeze a restore. Names have **no
   `Request` suffix**.

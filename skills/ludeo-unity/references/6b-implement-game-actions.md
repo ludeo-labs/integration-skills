@@ -17,7 +17,7 @@
 Turn the approved `GAME_ACTIONS_MAP.md` into wired `SendAction` calls: add the `LudeoActionKeys` constants,
 insert each kept gameplay action at its `file:line` (player-guarded or global per the map), emit the
 **non-gameplay standard actions** (`StartNoneLudeable`/`StopNoneLudeable` at non-ludeoable boundaries,
-`PauseLudeo`/`ResumeLudeo` for capture-hygiene), and document the **one-time platform global-trigger
+`PauseLudeo`/`ResumeLudeo` for every pause, SDK-requested included), and document the **one-time platform global-trigger
 mapping**. Every call fires in **both** the Creator (capture) and Player (restore) flows.
 
 ## 2. Inputs (Input Contract)
@@ -124,23 +124,43 @@ From the map's **Non-Gameplay Actions** section + `SDK_INTEGRATION_POINTS.json`:
   **both** flows (no player guard — it's a session/area event). **Ensure every `StartNoneLudeable` has a
   reachable `StopNoneLudeable` on all exit paths** — a dangling open span leaves capture suppressed for the
   rest of the run (mirror of the CR-007 "no dangling on EndGameplay" rule).
-- **Capture-hygiene pause** — at a game-initiated cutscene/pause begin emit `PauseLudeo`, at its end emit
-  `ResumeLudeo`. This is **distinct from the SDK overlay pause** (`PauseGameRequested`/`ResumeGame`, wired in
-  phase 3/5 — that's the Ludeo overlay covering the game, not a game-initiated capture-hygiene pause).
+- **Pause/resume** — at **every** pause emit `PauseLudeo`, at its end emit `ResumeLudeo`. This is what stops
+  the **Ludeo objective timer**; freezing the simulation does not, so without it the clock drains through
+  every pause. "Every" means the **player's ESC / pause menu**, cutscenes, dialogue, loading screens, focus
+  loss — **and the SDK's own `PauseGameRequested`** (wired in phase 3/5), whose handler must reach this same
+  emit. Wire it at the game's **pause primitive** (the one function every pause path funnels through), not at
+  the ESC key.
+  - **Emit once per transition.** If both the `PauseGameRequested` handler and the pause primitive emit, the
+    pause is reported twice — route the handler *through* the primitive and guard it with a span flag.
+  - **The action does nothing until it's mapped** to a Pause/Resume **Global Trigger** in Studio Lab (Step 6).
+    An unmapped or mismatched string is silently ignored: the log shows the action, the timer keeps running.
+  - `PauseLudeo` ≠ `StartNoneLudeable`: pause/resume **stops** the timer and the backend saves nothing;
+    non-ludeoable **keeps** the timer running and the backend keeps the data. Wire **both** pairs.
 
 ```csharp
 // non-ludeoable area boundary (e.g. shop):
 void OpenShop()  { /* … */ LudeoController.Instance.SendAction(LudeoActionKeys.StartNoneLudeable); }  // [Layer]
 void CloseShop() { /* … */ LudeoController.Instance.SendAction(LudeoActionKeys.StopNoneLudeable); }   // also on every early-exit path
+
+// pause/resume — at the game's pause primitive; EVERY pause path funnels here,
+// including the SDK's PauseGameRequested handler. Guard with m_ludeoPauseSpanOpen so a
+// pause arriving via two paths reports once: full form in
+// ludeo-integration-docs/unity/CONSENT-AND-OVERLAY.md §3.2.
+void PauseGame()  { /* … existing freeze … */   /* if span open, return */ SendAction(LudeoActionKeys.PauseLudeo); }
+void ResumeGame() { /* … existing unfreeze … */ /* if span closed, return */ SendAction(LudeoActionKeys.ResumeLudeo); }
 ```
 
 ### Step 6: Document the one-time platform global-trigger mapping (out-of-code)
-`StartNoneLudeable`/`StopNoneLudeable` only take effect once the integrator maps them onto the platform's
-**global triggers** so the **backend** excludes those time windows from the captured Ludeo. This is a
+**Both** non-gameplay pairs are ordinary `SendAction` strings — **not SDK constants**. They only acquire
+meaning once the integrator maps them onto the platform's **Global Triggers** (Studio Lab → the
+environment → *Global Triggers* → which tracked events **start** and **end** each segment). This is a
 **one-time, out-of-code step** the integrator performs on the Ludeo platform — not something you wire in
-code. Record it in your summary as an explicit action item for the human:
-> *"Map the `StartNoneLudeable` / `StopNoneLudeable` actions to the platform's global triggers so the
-> backend excludes non-ludeoable windows. One-time, performed on the Ludeo platform."*
+code. Use the standard names anyway so the mapping is predictable, and record it in your summary as an
+explicit action item for the human:
+> *"In Studio Lab → Global Triggers, map `StartNoneLudeable`/`StopNoneLudeable` to a **Non-Ludeoable Area**
+> trigger (backend excludes the window from capture; timer keeps running) and `PauseLudeo`/`ResumeLudeo` to a
+> **Pause/Resume** trigger (objective timer and event tracking stop). Both pairs, one-time, performed on the
+> Ludeo platform. Until this is done the emitted actions have no effect."*
 
 > **Open cross-skill item:** whether `StartNoneLudeable`/`StopNoneLudeable`
 > is one generic start/stop pair for all non-ludeoable areas or needs per-area names is a platform
@@ -200,7 +220,8 @@ Surface to the orchestrator; don't guess:
       actions fired unguarded.
 - [ ] **Nothing** from the Dropped table implemented.
 - [ ] `StartNoneLudeable`/`StopNoneLudeable` emitted at the boundary sites with **no dangling open span**;
-      `PauseLudeo`/`ResumeLudeo` at capture-hygiene pause (distinct from the SDK overlay pause).
+      `PauseLudeo`/`ResumeLudeo` at **every** pause — the player's menu, cutscenes/loading, **and the SDK's
+      `PauseGameRequested`** (its freeze does not stop the objective timer). Once per transition.
 - [ ] **No** `SendAction` gated on `IsInLudeoFlow`; all calls route through the `[Layer]` façade; no `#if` guard.
 - [ ] The platform global-trigger mapping documented as a one-time out-of-code step; backups for edited files.
 

@@ -7,18 +7,26 @@ question: null
 sanitized: true
 ---
 
-# Send StopNoneLudeable before EndGameplay if game was paused
+# Close any open pause / non-ludeoable span before EndGameplay
 
-If the match ends while the game is in a paused/non-ludeoable state (Creator Flow), send `StopNoneLudeable` before calling `EndGameplay`. Otherwise the recording has a dangling pause marker with no matching resume.
+If the match ends while a span is still open, send its **end** action before calling `EndGameplay`. Otherwise the recording carries a dangling start marker with no matching end — and for a pause span, the objective timer stays stopped for the rest of the run.
+
+Close whichever span is actually open, by its own trigger type (phase 03 §5.9.1) — a **pause** closes with `ResumeLudeo` in either flow, **not** with `StopNoneLudeable`, which is the non-ludeoable-area type and leaves the timer running:
 
 ```cpp
-// In EndGameplay(), before ending:
-if (bWasPaused && !bIsPlayerFlow && RoomHandle is valid)
+// In EndGameplay(), BEFORE bGameplayActive flips (the send bails on !bGameplayActive):
+if (bTriggerSpanOpen && RoomHandle is valid)
 {
-    SendAction("StopNoneLudeable");
+    SendAction("ResumeLudeo");        // pause span — either flow
+    bTriggerSpanOpen = false;
 }
-bWasPaused = false;
-bMenuOverlayOpen = false;
+if (bNonLudeoableSpanOpen && RoomHandle is valid)
+{
+    SendAction("StopNoneLudeable");   // non-ludeoable area span — separate call site, separate flag
+    bNonLudeoableSpanOpen = false;
+}
+bWasPausedLastFrame = false;
+bMenuOverlayOpen    = false;
 ```
 
-Also reset `bMenuOverlayOpen` in EndGameplay to prevent stale state on next match.
+Order matters: both sends bail on `!bGameplayActive`, so run this before that flag flips. Also reset the span flags (and `bMenuOverlayOpen`) here so nothing carries into the next match — a span flag left `true` makes the next run's first pause hit the idempotency guard and never get reported.

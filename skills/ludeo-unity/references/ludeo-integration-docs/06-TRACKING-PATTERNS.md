@@ -430,11 +430,14 @@ void Update()
         LudeoController.Instance.UpdateStateObjects();      // [Layer] — paused frames capture nothing
 }
 ```
-While the gate is closed, attributes simply aren't sampled (the last captured values stand). This is
-distinct from the **overlay pause** (CR-011, `PauseGameRequested` → `Time.timeScale = 0f`), which
-freezes the whole sim while the Ludeo UI is up — see
-[`unity/CONSENT-AND-OVERLAY.md`](unity/CONSENT-AND-OVERLAY.md). Common non-gameplay states: main menu,
-lobby, loading screen, shop/inventory overlay, safe zone/hub, cutscene.
+While the gate is closed, attributes simply aren't sampled (the last captured values stand). Common
+non-gameplay states: main menu, lobby, loading screen, shop/inventory overlay, safe zone/hub, cutscene.
+
+Closing this sampling gate is **not** the same as pausing, and does not substitute for either half of
+CR-011 — see [`unity/CONSENT-AND-OVERLAY.md`](unity/CONSENT-AND-OVERLAY.md) §3. Those states still need
+their SDK-facing wiring: the overlay pause freezes the whole sim (`PauseGameRequested` → `timeScale = 0f`),
+and any of the above that is a genuine **pause** (pause menu, cutscene, dialogue, loading screen) must also
+emit `PauseLudeo`/`ResumeLudeo` or the **objective timer keeps counting down** while sampling is idle.
 
 ---
 

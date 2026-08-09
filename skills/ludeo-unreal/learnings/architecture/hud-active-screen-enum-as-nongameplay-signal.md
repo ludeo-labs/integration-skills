@@ -15,7 +15,7 @@ The game routes its full-screen UI through a single state variable on the HUD (o
 
 ## Why it matters
 
-Stage 5 must mark non-gameplay UI segments (`StartNoneLudeable`/`StopNoneLudeable`, or `PauseLudeo`/`ResumeLudeo` in Player Flow). When the integrator asks to cover several overlays (e.g. "the pause menu **and** the inventory screen"), hunting for a separate boolean per overlay is fragile — each lives on a different widget BP, and you may not know all of them.
+Stage 5 must mark non-gameplay UI segments — by **trigger type, not by flow** (phase 03 §5.9.1): a screen that *pauses* the game (pause menu) takes `PauseLudeo`/`ResumeLudeo` in either flow; a browsable overlay that leaves play running (inventory, shop) takes `StartNoneLudeable`/`StopNoneLudeable`. When the integrator asks to cover several overlays (e.g. "the pause menu **and** the inventory screen"), hunting for a separate boolean per overlay is fragile — each lives on a different widget BP, and you may not know all of them.
 
 If the HUD already collapses "which full-screen UI is up" into one enum, that single value is a complete, uniform signal: **non-default = some non-gameplay screen is open**. It covers every overlay the HUD knows about in one read, including ones you didn't enumerate.
 

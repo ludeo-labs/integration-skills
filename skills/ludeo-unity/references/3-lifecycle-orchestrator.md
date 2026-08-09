@@ -79,21 +79,36 @@ The orchestrator relays whatever a subagent surfaces — it does not invent its 
 
 ### Non-Gameplay Handling — the Unity model (standard action names)
 
-Three distinct mechanisms; don't conflate them:
+Three distinct mechanisms; don't conflate them (the third is itself two opposite-direction wirings):
 
-1. **Whole non-gameplay screens** (main menu, lobby, loading) — sit **outside** any Gameplay Session.
-   Nothing tracks them; **no action needed**. Handled purely by session bracketing (`Begin` only when
-   gameplay starts; `End`/`Abort` on every exit — CR-007).
-2. **Non-ludeoable *areas* inside live play** (shops, NPC dialogue, tutorials, safe zones, in-game
-   menus) — tracking **keeps running**; the game emits **boundary actions** at enter/exit using the
+1. **Whole non-gameplay screens OUTSIDE any Gameplay Session** (main menu, lobby, the Ludeo gallery, a
+   between-runs loading screen) — nothing tracks them; **no action needed**, and none is even valid: actions
+   belong to a live gameplay session. Handled purely by session bracketing (`Begin` only when gameplay
+   starts; `End`/`Abort` on every exit — CR-007). Pause these with the game's own in-game functions.
+   *A mid-session loading screen is a different thing — it's a pause, see (3).*
+2. **Non-ludeoable *areas* inside live play** (shops, tutorials, safe zones, browsable in-game
+   menus — segments the sim **keeps running** through) — tracking **keeps running**; the game emits
+   **boundary actions** at enter/exit using the
    standard names **`StartNoneLudeable`** / **`StopNoneLudeable`** (`[SDK]` `SendAction(string)`). A
    **one-time, out-of-code step** maps those actions onto the platform's **global triggers**, and the
    **backend** excludes those time windows. (Identify the enter/exit sites in task 1; plan the emit in
    task 3; the `SendAction` calls land in phase 6.)
-3. **Pause / cutscene = local capture hygiene** — a true sim freeze, distinct from non-ludeoable areas.
-   Standard names **`PauseLudeo`** / **`ResumeLudeo`**. Note: the **overlay** pause is SDK-driven and
-   separate — `PauseGameRequested`/`ResumeGameRequested` freeze `Time.timeScale` (CR-011); that is the
-   Ludeo overlay covering the game, not a game-initiated capture-hygiene pause.
+3. **Pause / resume — two wirings in opposite directions, both required (CR-011).** Unlike (2), a pause
+   **stops the Ludeo objective timer** and the backend saves nothing for the span. Covers anything that
+   freezes the sim *inside* a session: the pause menu, cutscenes, dialogue, mid-run loading — **(2) vs (3)
+   is decided by whether the sim keeps running, not by what the segment is called.**
+   - **Requests, SDK → game** (`PauseGameRequested`/`ResumeGameRequested`, plain `Action`): the Ludeo
+     overlay is covering the game — freeze `Time.timeScale`. **Cloud Player Flow only** — never in Creator
+     Flow and never in a local build, so this half can only be verified on the streamed build. The handler
+     must **also** reach the trigger emit below.
+   - **Triggers, game → SDK** (`SendAction` with the standard names **`PauseLudeo`** / **`ResumeLudeo`**):
+     **every** pause, in either flow — the player's ESC/pause menu, cutscenes, dialogue, loading screens, and
+     the SDK-requested overlay pause. This is the **only** thing that stops the objective timer (freezing the
+     sim doesn't), and it only takes effect once mapped to a Studio Lab Global Trigger. Plan the emit at the
+     game's **pause primitive**, not the keybinding, and once per transition.
+
+   → Canonical rules + pause-origin table:
+   [`ludeo-integration-docs/unity/CONSENT-AND-OVERLAY.md`](./ludeo-integration-docs/unity/CONSENT-AND-OVERLAY.md) §3.
 
 > **Open cross-skill items:** (a) whether `StartNoneLudeable`/
 > `StopNoneLudeable` is one generic start/stop pair for all non-ludeoable areas or needs per-area
@@ -122,8 +137,10 @@ The orchestrator confirms **all** of these before advancing — they are produce
       by the package (not `Activate()` args).
 - [ ] **Menus/transitions excluded from capture** — session bracketing; non-ludeoable areas planned
       with `StartNoneLudeable`/`StopNoneLudeable`.
-- [ ] **Pause/resume bracketed correctly** — overlay `PauseGameRequested`/`Resume` freeze the sim;
-      capture-hygiene `PauseLudeo`/`ResumeLudeo` planned.
+- [ ] **Pause/resume wired in BOTH directions (CR-011)** — (a) `PauseGameRequested`/`Resume` freeze the sim,
+      and (b) `PauseLudeo`/`ResumeLudeo` planned at the game's pause primitive for **every** pause — the
+      player's pause menu, cutscenes/loading, **and (a)'s handler**, which must route through it. Freezing
+      without emitting leaves the objective timer running under the overlay. Emitted once per transition.
 - [ ] **No dangling non-ludeoable on `End`** — any open `StartNoneLudeable`/`PauseLudeo` span is closed
       before a Gameplay Session ends.
 - [ ] **Project compiles with/without the SDK** (task 5).
@@ -138,7 +155,8 @@ The orchestrator confirms **all** of these before advancing — they are produce
 - **Treating callback-driven ops as game call sites** (`AddPlayer`/`Begin`/`CloseRoom` — CR-009).
 - **Planning a config class / re-gathering auth** — config is `LudeoSettings.asset` (phase 1).
 - **Conflating the three non-gameplay mechanisms** — whole-screen bracketing vs non-ludeoable areas
-  (backend-excluded, tracking continues) vs capture-hygiene pause (sim freeze).
+  (backend-excluded, tracking and objective timer continue) vs a pause (objective timer stops, backend
+  saves nothing — and it applies to every pause, including the SDK-requested overlay one).
 
 ## Related / Next
 

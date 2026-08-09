@@ -84,7 +84,7 @@ Surface to the orchestrator; don't guess:
 | Integration point | Kind | When | Find in CODE_MAP |
 | --- | --- | --- | --- |
 | `LudeoManager.Initialize` + `SessionManager.CreateSession` | `[SDK]` | App startup, once (both sync) | `entry_points` / bootstrap MonoBehaviour in init scene |
-| register `AddNotify*` then `LudeoSession.Activate` | `[SDK]` | Right after init, before gameplay | same bootstrap site |
+| subscribe the `LudeoSession` C# events (`+=`, **not** the removed `AddNotify*`) then `LudeoSession.Activate` | `[SDK]` | Right after init, before gameplay | same bootstrap site |
 | `LudeoSession.OpenRoom` | `[SDK]` (via `[Layer]`) | A match/level **starts** (every start path) | `session_boundaries` (start) — **enumerate every call site that reaches live-run state**, then bind to the **convergent runtime signal they all hit** (the state-machine transition into the in-game/"Ongoing" state), **not** a plausibly-named entry method. No-per-level-scene games: `open-world.md` §3 |
 | per-frame `UpdateStateObjects()` sampling | `[Layer]` | While gameplay active | a gameplay MonoBehaviour `Update` `[Unity]` |
 | `LudeoPlayer.End` / `Abort` | `[SDK]` (via `[Layer]`) | Gameplay ends — **ALL exit paths** | `session_boundaries` (end) — no-per-level-scene games: wire **every** `exit_sites[]` (its `ludeo:` field says End vs Abort) |

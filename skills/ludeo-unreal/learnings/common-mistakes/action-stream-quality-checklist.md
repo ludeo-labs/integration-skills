@@ -19,7 +19,7 @@ The cloud's highlight picker depends on action density and signal quality. Spars
 | 2 | **Combat heartbeat** | Per-shot or per-damage-taken actions fire during firefights. Without this the cloud has no "intensity" signal — it can't distinguish a 30-second firefight from 30 seconds of standing still. |
 | 3 | **Kill-method split** | `Headshot`, `Melee`, `Explosive`, `Stealth` are separate actions. The cloud cannot derive method from a generic `Kill`. |
 | 4 | **Mission-beat actions** | Map-specific scripted moments fire as actions (e.g. `DeviceStarted`, `DeviceActivated`, `AreaBreached`, `ExtractionArrived`). Highlights anchor on these. |
-| 5 | **Pause/resume markers** | `PauseGame` / `ResumeGame` fire as actions. The cloud distinguishes player-driven pauses from cloud-driven (Player Flow) pauses, and trims correctly. |
+| 5 | **Pause/resume markers** | Pause/resume fire as actions — conventionally **`PauseLudeo` / `ResumeLudeo`** (phase 03 §5.9.1). Every pause, any origin, once per transition: this is the only thing that stops the objective timer, and the string must match the Studio Lab Pause/Resume **Global Trigger** or it is silently ignored. *(An earlier revision of this checklist named these `PauseGame`/`ResumeGame`. Both are just strings — what matters is that the emitted name equals the mapped one; use `PauseLudeo`/`ResumeLudeo` unless the game's Studio Lab config says otherwise.)* |
 
 ## Anti-pattern: the two-action Stage 4
 

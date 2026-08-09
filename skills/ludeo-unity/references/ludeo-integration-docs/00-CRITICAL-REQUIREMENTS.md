@@ -317,22 +317,39 @@ awaited spawn** (deadlock); pausing input only while physics/AI keep running dur
 
 ---
 
-## 🔴 CR-011: While the Ludeo overlay is active during playback, pause the game
+## 🔴 CR-011: Wire pause/resume in **both** directions
 
 > **⚠️ #1 MID-PLAY FAILURE:** "the overlay covers a game that's still playing itself."
 
-Distinct from CR-010 (the one-time post-load freeze). This is the ongoing contract: overlay opens →
-pause; overlay closes → resume. Subscribe to the events **once, after `CreateSession` and before `Activate`**.
+Distinct from CR-010 (the one-time post-load freeze). Pause/resume is **two wirings, opposite directions**;
+a complete integration needs both, and each fails in its own way when missing.
 
-**Required:**
+**Required — (a) requests, SDK → game.** The overlay opens → freeze the sim; closes → resume. Subscribe
+**once, after `CreateSession` and before `Activate`**. **Cloud Player Flow only** — never in Creator Flow and
+**never in a local build**, so this half cannot be exercised locally and a broken handler stays invisible
+until the game is streamed.
 ```csharp
-session.PauseGameRequested  += () => Time.timeScale = 0f;   // [SDK] event + [Unity] — subscribe before Activate
-session.ResumeGameRequested += () => Time.timeScale = 1f;   // [SDK] event + [Unity]
+session.PauseGameRequested  += HandlePauseRequested;   // [SDK] event — subscribe before Activate
+session.ResumeGameRequested += HandleResumeRequested;  // must freeze AND emit (b)
 ```
 
-**Forbidden:** not registering the notifications; suppressing input only; conflating with CR-010.
-Note both callbacks are a plain `Action` (no data struct). Handlers must be idempotent across
-repeated open/close toggles.
+**Required — (b) triggers, game → SDK.** **Every** pause **during an active gameplay session** emits
+`SendAction(LudeoActionKeys.PauseLudeo)` / `ResumeLudeo` at the game's pause primitive — the SDK-requested
+overlay pause included, not just ESC, cutscenes, and loading screens. Freezing the sim is invisible to the
+backend: the **objective timer** is frozen server-side only when your tracked action reaches its **Studio Lab
+Global Trigger**. Miss this and the clock drains through every pause on **every** environment. Outside a
+gameplay session (waiting to play a Ludeo, between `Begin` and `End`/`Abort`), pause with the game's own
+in-game functions and emit **nothing**. Copy the idempotent form from
+[`unity/CONSENT-AND-OVERLAY.md`](./unity/CONSENT-AND-OVERLAY.md) §3.2.
+
+**Forbidden:** not registering the notifications; suppressing input only; conflating with CR-010; opening
+the game's own pause menu from the request handler (it stacks under the overlay); **freezing without
+emitting** — the #1 way the timer drains under the overlay; emitting from *both* the request handler and the
+pause primitive (report once per transition — guard with a span flag). Note both callbacks are a plain
+`Action` (no data struct). Handlers must be idempotent across repeated open/close toggles.
+
+→ Full rules, the pause-origin table, and `PauseLudeo` vs `StartNoneLudeable`:
+[`unity/CONSENT-AND-OVERLAY.md`](./unity/CONSENT-AND-OVERLAY.md) §3.
 
 > **Persistent-singleton trap:** the CR-010 freeze and CR-011 pause flags must **start `false` each run**.
 > When the integration layer is a persistent singleton (`ScriptableObject` service / `DontDestroyOnLoad` /
@@ -394,7 +411,7 @@ captured to restored objects. Restoration matches by **`ObjectType` bucket**.
 - **CR-002 (⚠️ v4.2.0):** every `WriteData`/`ReadData` is inside `using EnterObjectScope()`; component scopes nested in the object scope.
 - **CR-009:** `AddPlayer`/`BeginGameplay`/`CloseRoom` only from their driving callbacks; restore `BeginGameplay` gates on RoomReady ∧ AddPlayer ∧ scene-loaded.
 - **CR-010 (⚠️):** restoring-flag first → start load (onBeginRestore) → freeze → cache reader → on RoomReady **apply → unfreeze → BeginGameplay** (never unfreeze before apply; never `timeScale=0` around an awaited spawn — suppress instead).
-- **CR-011 (⚠️):** `PauseGameRequested`/`ResumeGameRequested` events subscribed before Activate; freeze sim.
+- **CR-011 (⚠️):** both directions — (a) `PauseGameRequested`/`ResumeGameRequested` subscribed before Activate, freeze the sim; (b) `PauseLudeo`/`ResumeLudeo` emitted at the game's pause primitive on **every** pause, the SDK-requested one included, so the objective timer actually stops. Freezing ≠ stopping the clock. Emit once per transition; the action must be mapped to a Studio Lab Global Trigger to have any effect.
 - **CR-012:** consent flags gate create/play and the gallery button.
 - **CR-013:** SDK/GameObject access on the main thread.
 - **CR-014:** no cross-run instance ids; stable-id-as-attribute only when re-binding.
