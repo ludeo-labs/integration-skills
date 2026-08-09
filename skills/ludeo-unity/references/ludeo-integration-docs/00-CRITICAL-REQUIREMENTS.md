@@ -327,7 +327,8 @@ a complete integration needs both, and each fails in its own way when missing.
 **Required — (a) requests, SDK → game.** The overlay opens → freeze the sim; closes → resume. Subscribe
 **once, after `CreateSession` and before `Activate`**. **Cloud Player Flow only** — never in Creator Flow and
 **never in a local build**, so this half cannot be exercised locally and a broken handler stays invisible
-until the game is streamed.
+until the game is streamed. **In a local build the whole obligation is (b)** — the player pauses with the
+game's own menu and the game emits the actions; don't stand that menu down on a flow flag.
 ```csharp
 session.PauseGameRequested  += HandlePauseRequested;   // [SDK] event — subscribe before Activate
 session.ResumeGameRequested += HandleResumeRequested;  // must freeze AND emit (b)

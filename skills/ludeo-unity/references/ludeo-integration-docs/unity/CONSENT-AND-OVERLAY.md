@@ -110,25 +110,29 @@ void HandleResumeRequested() => ResumeGame();
   game — it is a UI-layer freeze signal, **not** the tracked event that stops the timer. That one can only
   come from your game.
 - **Do not open the game's own pause menu here** — the Ludeo overlay is already on screen; the player
-  would see both stacked. On the game's ESC handler, no-op when in the play flow and let the SDK own it:
+  would see both stacked. Stand the game's ESC handler down **while the overlay is actually up** — i.e. while
+  the SDK's own pause is in effect — not for the whole play flow:
   ```csharp
   void OnEscapePressed()
   {
-      if (LudeoController.Instance.IsInLudeoFlow) return;  // [Layer] — SDK opens the overlay + requests pause
-      OpenPauseMenu();                                      // normal gameplay: the game's own menu (see §3.2)
+      if (m_ludeoOverlayPause) return;  // overlay already on screen (cloud only) — the SDK owns this pause
+      OpenPauseMenu();                  // every other case, incl. the entire local build: the game's own menu (§3.2)
   }
   ```
+  ⚠️ Gating on `IsInLudeoFlow` instead would be wrong: that flag is set during playback in a **local** build
+  too, where no overlay exists and no request ever arrives — the player would be left unable to pause at all.
 - **⚠️ These never fire in a local build, and never in Creator Flow — they are cloud Player Flow only.**
-  There is no browser to intercept ESC locally, so nothing raises them. Two consequences worth planning
-  around:
+  There is no browser to intercept ESC locally, so nothing raises them. **A local build's entire pause/resume
+  obligation is §3.2**: the player pauses with the game's own menu, and the game emits `PauseLudeo` /
+  `ResumeLudeo` — no part of §3.1 runs, and nothing else is needed. Two consequences worth planning around:
   - **You cannot exercise or regression-test §3.1 locally at all.** Wire it from this doc and verify it on
     the cloud build; a clean local run is no evidence the handler works, or even that it runs.
   - **A broken §3.1 is invisible until the game is streamed** — which is usually late. §3.2, by contrast,
     is fully testable locally (emit the action, read the log), so test what you can and don't mistake
     "works locally" for "works".
-- **Two independent flags, not one boolean.** Track the overlay pause (CR-011) and the post-Ludeo-load
-  restore freeze ([CR-010](../00-CRITICAL-REQUIREMENTS.md)) separately; the engine is paused iff
-  *either* is set. One shared flag lets `ResumeGame` unfreeze a mid-restoration pause, or `RoomReady`
+- **Two independent flags, not one boolean.** Track the overlay pause (CR-011 — `m_ludeoOverlayPause` above)
+  and the post-Ludeo-load restore freeze ([CR-010](../00-CRITICAL-REQUIREMENTS.md)) separately; the engine is
+  paused iff *either* is set. One shared flag lets `ResumeGame` unfreeze a mid-restoration pause, or `RoomReady`
   cancel a player-opened overlay.
 - **Idempotent.** The pair toggles repeatedly across one play session — handlers must tolerate
   repeated open/close.
@@ -265,7 +269,8 @@ notifications" and [`REFERENCE-ARCHITECTURE.md`](./REFERENCE-ARCHITECTURE.md) `H
 | Pause reported twice / timer resumes early | Both the SDK handler *and* the pause primitive emit | Emit from **one** choke point; keep `m_ludeoPauseSpanOpen` idempotent (§3.2) |
 | **Game unfreezes while the player's own pause menu is still open** | One boolean owns both the freeze and the report, so closing the overlay released a freeze the game still wanted | Track pause **sources** (set/refcount) for the freeze; `HandleResumeRequested` releases only the SDK's source. The span flag governs reporting only (§3.2) |
 | Game's second pause reason is lost (audio keeps playing, streaming jobs run) | The span-flag early return sits **before** the game's freeze work in `PauseGame()` | Move the return **after** the freeze — it guards the report, never the freeze (§3.2) |
-| Ludeo overlay and the game's pause menu both on screen | Game's ESC handler still opens its menu during the play flow | No-op the game's ESC handler when in the play flow; the SDK owns the overlay (§3.1) |
+| Ludeo overlay and the game's pause menu both on screen | Game's ESC handler still opens its menu while the overlay is up | Stand the ESC handler down while the SDK's overlay pause is in effect (§3.1) |
+| **Player can't pause at all while replaying a Ludeo locally** | ESC handler gated on `IsInLudeoFlow` — but locally no overlay exists and no pause request ever arrives, so nothing takes its place | Gate on the overlay-pause flag, not the flow (§3.1). Locally, pause is the game's own menu + §3.2's actions |
 | Objective timer never restarts after a pause | Dangling `PauseLudeo` — an exit path skips `ResumeLudeo` | Emit `ResumeLudeo` on **every** unpause/exit path (§3.2) |
 | Gallery button on a consent-off run does nothing | Visibility not gated on consent | Gate on `canCreateLudeo \|\| canPlayLudeo` (CR-012) |
 | Resume unfreezes a mid-restoration pause | One shared pause flag | Separate CR-010 / CR-011 flags; paused iff either set |

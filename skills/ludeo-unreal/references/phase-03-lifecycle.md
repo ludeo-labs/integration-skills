@@ -1768,6 +1768,7 @@ void ULudeoIntegrationSubsystem::HandlePauseGameRequested()
     // no game-specific mechanism was found; never PC->SetPause
     // ([[use-setgamepaused-not-pc-setpause]] — it doesn't reliably flip GetWorld()->IsPaused()).
     UGameplayStatics::SetGamePaused(this, true);
+    bLudeoOverlayPause = true;   // "the SDK's overlay owns this pause" — read by the ESC handler below
     // Also suppress gameplay input and, if physics steps independently of pause, halt it.
     // Do NOT open the game's pause menu — the Ludeo overlay is already visible.
     // PauseLudeo is sent by the detector on the next tick (5.9.2/5.9.3) — verify it in the log.
@@ -1776,6 +1777,7 @@ void ULudeoIntegrationSubsystem::HandlePauseGameRequested()
 void ULudeoIntegrationSubsystem::HandleResumeGameRequested()
 {
     UGameplayStatics::SetGamePaused(this, false);   // same caveat — the game's own mechanism
+    bLudeoOverlayPause = false;
     // ResumeLudeo likewise follows from the detector's unpause transition.
     // If the game can also be paused by its OWN source at the same time, release only the SDK's
     // source here — don't unfreeze a game the player still has paused behind the overlay (§8.28).
@@ -1784,21 +1786,23 @@ void ULudeoIntegrationSubsystem::HandleResumeGameRequested()
 
 > ⚠️ If the game's pause mechanism doesn't flip the signal the detector polls (a custom `Paused` bool, time-dilation pausing — see the warning in §5.9.2), the detector never fires and **no trigger is ever sent for the overlay pause**. In that case send it explicitly from this handler and suppress the detector's duplicate. Confirm which by log-counting `PauseLudeo` for one overlay open.
 
-Correspondingly, the game's own pause key must stand down during Player Flow so the two pause paths don't collide:
+Correspondingly, the game's own pause key must stand down **while the overlay is actually up** so the two pause paths don't collide — but only then:
 
 ```cpp
 void AMyPlayerController::OnEscapePressed()
 {
-    // bIsPlayerFlow is the Subsystem's flow flag — query it, don't cache a copy on the PC
-    // (the PC is per-world and dies on travel; the Subsystem is persistent, §5.2):
-    //   GetGameInstance()->GetSubsystem<ULudeoIntegrationSubsystem>()->IsPlayerFlow()
-    if (bIsPlayerFlow)
+    // Query the Subsystem's flag — don't cache a copy on the PC (the PC is per-world and dies on
+    // travel; the Subsystem is persistent, §5.2):
+    //   GetGameInstance()->GetSubsystem<ULudeoIntegrationSubsystem>()->IsLudeoOverlayPause()
+    if (bLudeoOverlayPause)
     {
         return;   // SDK intercepts ESC, opens the overlay, and sends OnPauseGameRequested
     }
-    OpenPauseMenu();   // normal gameplay — this path DOES emit the trigger (5.9.3)
+    OpenPauseMenu();   // every other case, incl. the whole local build — this path emits the trigger (5.9.3)
 }
 ```
+
+> ⚠️ **Gate on the overlay flag, not on `IsPlayerFlow()`.** Player Flow is also what a **local** build runs when replaying a Ludeo, and there `OnPauseGameRequested` never arrives — a flow-gated ESC handler would leave the player unable to pause by any route. **A local build's whole pause/resume obligation is the trigger half (§5.9.2/§5.9.3)**: the player pauses with the game's own menu, the detector observes it, and `PauseLudeo`/`ResumeLudeo` go out. Nothing from §5.9.4 runs locally, and nothing else is needed.
 
 #### 5.9.5 Non-Ludeoable Map Detection
 

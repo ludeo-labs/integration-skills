@@ -104,8 +104,10 @@ Surface to the orchestrator:
 > Player Flow only** — never in Creator Flow, and **never in a local build**, so plan to verify this half on
 > the streamed build. They are the SDK → game half of pause/resume; the game → SDK half
 > (`SendAction("PauseLudeo")`/`("ResumeLudeo")`) is what actually stops the **objective timer**, and it is
-> required on **every** pause — including the one these requests announce. Wire both, and route the handler
-> through the same emit — see
+> required on **every** pause — including the one these requests announce. **A local build's whole
+> pause/resume obligation is that second half**, so don't plan to stand the game's own pause menu down on a
+> flow flag — gate it on the overlay pause itself, which only ever happens on the cloud. Wire both, and route
+> the handler through the same emit — see
 > [`ludeo-integration-docs/unity/CONSENT-AND-OVERLAY.md`](./ludeo-integration-docs/unity/CONSENT-AND-OVERLAY.md) §3.
 
 - **Plan the layer, not scattered calls.** Game code calls the `[Layer]` façade; the façade calls
