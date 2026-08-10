@@ -136,6 +136,10 @@ From the map's **Non-Gameplay Actions** section + `SDK_INTEGRATION_POINTS.json`:
     An unmapped or mismatched string is silently ignored: the log shows the action, the timer keeps running.
   - `PauseLudeo` ≠ `StartNoneLudeable`: pause/resume **stops** the timer and the backend saves nothing;
     non-ludeoable **keeps** the timer running and the backend keeps the data. Wire **both** pairs.
+  - **If phase 2 recorded no pause primitive, do not build one.** Emit at whatever freeze the game does have
+    (including the one the `PauseGameRequested` handler performs for the overlay) and skip the rest — never add
+    a pause menu, keybinding, or freeze path the game didn't have. If it can't freeze at all, emit nothing here
+    and say so in your summary.
 
 ```csharp
 // non-ludeoable area boundary (e.g. shop):
@@ -150,17 +154,16 @@ void PauseGame()  { /* … existing freeze … */   /* if span open, return */ S
 void ResumeGame() { /* … existing unfreeze … */ /* if span closed, return */ SendAction(LudeoActionKeys.ResumeLudeo); }
 ```
 
-### Step 6: Document the one-time platform global-trigger mapping (out-of-code)
-**Both** non-gameplay pairs are ordinary `SendAction` strings — **not SDK constants**. They only acquire
-meaning once the integrator maps them onto the platform's **Global Triggers** (Studio Lab → the
-environment → *Global Triggers* → which tracked events **start** and **end** each segment). This is a
-**one-time, out-of-code step** the integrator performs on the Ludeo platform — not something you wire in
-code. Use the standard names anyway so the mapping is predictable, and record it in your summary as an
-explicit action item for the human:
-> *"In Studio Lab → Global Triggers, map `StartNoneLudeable`/`StopNoneLudeable` to a **Non-Ludeoable Area**
-> trigger (backend excludes the window from capture; timer keeps running) and `PauseLudeo`/`ResumeLudeo` to a
-> **Pause/Resume** trigger (objective timer and event tracking stop). Both pairs, one-time, performed on the
-> Ludeo platform. Until this is done the emitted actions have no effect."*
+### Step 6: Tell the user to create the Global Triggers (out-of-code, required)
+Both pairs are ordinary `SendAction` strings — **not SDK constants**. They do nothing until a matching **Global
+Trigger exists** on the platform. A missing or misnamed trigger drops the action **silently**: no error, the
+action still shows in the log, the timer keeps counting. You have no Studio Lab access, so don't just note it —
+**tell the user, verbatim, that it's required and yours to hand over**:
+> *"**Needed on the Ludeo platform — I can't do this.** In Studio Lab → your environment → Global Triggers,
+> create (or confirm) a **Pause/Resume** trigger starting on `PauseLudeo` and ending on `ResumeLudeo`, and a
+> **Non-Ludeoable Area** trigger starting on `StartNoneLudeable` and ending on `StopNoneLudeable`. Names must
+> match exactly — that's what the code emits. Until both exist, pauses won't stop the player's clock and
+> non-ludeoable areas won't be excluded, with nothing in any log to say so."*
 
 > **Open cross-skill item:** whether `StartNoneLudeable`/`StopNoneLudeable`
 > is one generic start/stop pair for all non-ludeoable areas or needs per-area names is a platform

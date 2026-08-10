@@ -286,6 +286,15 @@ neither — and any of those can be boot-straight or menu-gated.
        callers (pause menu, cutscene, loading screen, focus loss) **and whether every one of them, including
        the SDK handler, routes through the same primitive** — if some bypass it, phase 6 needs the emit
        guarded so the pause is reported exactly once.
+       - **Plenty of games have no pause, and must not be given one.** If the search finds no primitive, record
+         `pause_overlay: []` with a one-line `pause_capability` note and **do not add a pause feature, menu, or
+         keybinding** — that's a design change, not an integration. Decide from the code; don't ask the user.
+         The question that decides the wiring is **"can the sim be frozen?"**, not "is there a pause feature":
+         a game with no player-facing pause still gets `PauseGameRequested` on the cloud, and freezing in
+         response is an overlay response, not a new feature. Three outcomes for phase 3/6:
+         `primitive` (wire both halves there) · `freezable-only` (no player pause: handle the request with a
+         freeze, report *that* pause, add nothing player-facing) · `not-freezable` (rare — a live session that
+         can't stop; wire neither half and say so, since the objective timer then can't be stopped).
    - `non_ludeoable_candidates` — mid-gameplay non-ludeoable segments (shops/dialogue/tutorials/safe
      zones/cutscenes), each `{ kind, enter: {file, line, trigger}, exit: {file, line, trigger} }`.
      Phase 3 maps these to `StartNoneLudeable`/`StopNoneLudeable` boundary actions. Empty if none found.
