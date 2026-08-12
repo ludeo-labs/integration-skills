@@ -117,7 +117,8 @@ file — so the user experiences each as a single phase.
      docs, the dashboard, or their own backlog.
   2. **SDK API names — `LudeoRoom`, `WriteData`, `SendAction`.** Correct and necessary when the
      subject *is* the code they'll read or write. Do not let the API name stand in for explaining the
-     behaviour: "`OpenRoom` starts the recording when a run begins", not a bare `OpenRoom`.
+     behaviour: "`OpenRoom` starts capturing the run, `CloseRoom` ends it", not a bare `OpenRoom`
+     — and note what that gloss avoids saying: "recording". See the paraphrase trap below.
   3. **Skill-internal shorthand — `CR-006`, `Wave 1`, "two-pass", "non-ludeoable", "readiness gate",
      per-engagement issue tags (`SHIP-2`), phase numbers used as nouns.** This is ours, not theirs,
      and it buys them nothing. Fine agent-to-agent and inside `ludeo-integration-plan/` artifacts;
@@ -129,10 +130,11 @@ file — so the user experiences each as a single phase.
   replacing a term, ask *what distinction it was carrying* and check the replacement still carries it —
   especially where the vocabulary exists precisely because two things are easy to confuse. **Observed
   failure:** an agent rendered `Room` as "recording" while following this very rule. That implied video
-  (it is captured *state*, not footage) and collapsed `Room` into `Ludeo` — the exact conflation
-  `references/state-file-schema.md` warns mis-scopes phase 3, which the agent had read twice that
-  session. Correct: a Room brackets one captured gameplay segment; the platform *derives* Ludeos from
-  it. **A simplification that makes a warned-against confusion easier is not a simplification.**
+  (it is captured *state*, not footage) and collapsed `Room` into `Ludeo` — a conflation that
+  mis-scopes phase 3, and which the agent had been warned about twice in the same session. **Correct
+  (per the live SDK docs, `GameplaySessions`): a Room brackets one captured gameplay segment; the
+  platform *derives* Ludeos from that segment — the game does not decide how many a segment yields.**
+  A simplification that makes a warned-against confusion easier is not a simplification.
 
   **The test:** could a competent Unity developer who has never heard of this SDK follow every
   sentence — and *disagree* with it? Their disagreement is the main error-correction available during

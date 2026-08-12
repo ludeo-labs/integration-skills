@@ -49,8 +49,8 @@ just leaves them unable to read anything official.
 
 SDK API names (`LudeoRoom`, `WriteData`, `SendAction`) are likewise legitimate when
 the subject is code they will read or write. What they must not do is *replace* the
-explanation: "`OpenRoom` starts the recording when a run begins" — not a bare
-`OpenRoom`.
+explanation: "`OpenRoom` starts capturing the run, `CloseRoom` ends it" — not a bare
+`OpenRoom`. (Note what that gloss does **not** say: "recording". See the trap below.)
 
 Everything below is the third category: **ours, not theirs.**
 
@@ -78,9 +78,10 @@ the confusion the vocabulary was built to prevent.
   inventory, the generation seed — which is what makes a Ludeo *playable* rather than
   watchable. Exactly backwards.
 - **It collapsed `Room` into `Ludeo`.** A Room brackets one captured gameplay segment;
-  the platform *derives* Ludeos from that segment. `references/state-file-schema.md`
-  warns that conflating them mis-scopes phase 3 — and the agent had read that warning
-  twice in the same session, including once in the target repo's own state file.
+  the platform *derives* Ludeos from that segment, and the game does not decide how many
+  a segment yields. The skill's own notes warn that conflating the two mis-scopes phase
+  3 — and the agent had read that warning **twice** in the same session, including once
+  in the target repo's own state file.
 
 The skill was not unclear. The paraphrase step is where it was lost.
 
