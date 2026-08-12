@@ -63,9 +63,14 @@ keeps each task in isolated context and lets the user experience one continuous 
 
 **Task 1 runs automatically as a subagent**, then the orchestrator **surfaces the action map to the human
 for approval** (the action list is a judgment call — naming, keep/drop, scope). **Task 2 runs after
-approval**, then the orchestrator **runs the single human gate**: recompile clean + play and confirm each
-action **emits in the log in BOTH flows** (capture *and* replay). This compile+log gate is the single
-unavoidable human touch-point in phase 6 (the agent can't see the Console; emission is log-only evidence).
+approval**, then the orchestrator **runs the gate**: recompile clean + play and confirm each action
+**emits in the log in BOTH flows** (capture *and* replay).
+
+**Split this gate — only the play half needs a human.** The agent recompiles headlessly
+(`-batchmode -quit … -logFile`) and reads the result itself; emission evidence is log-only, and the log is
+readable, so the agent verifies it directly once the run has happened. What the agent cannot do is *play*
+the game to produce that run — capture and replay need the integrator. Do not hand over the compile half
+as well. See `learnings/common-mistakes/agent-can-run-unity-compile-gates-headlessly.md`.
 
 ### Reading the logs (the gate)
 
