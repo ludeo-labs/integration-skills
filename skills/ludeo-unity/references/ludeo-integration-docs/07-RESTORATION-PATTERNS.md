@@ -758,7 +758,9 @@ private void HandleLudeoRoomReady(/* LudeoSessionRoomReadyCallbackData */)      
 ### 10.3 Mid-play overlay (CR-011) — separate flag
 
 While the player has the overlay open *during* playback, `PauseGameRequested`/`ResumeGameRequested` `[SDK]`
-freeze/resume the sim. Track the **CR-010 restore freeze and the CR-011 overlay pause on two separate flags**
+freeze/resume the sim — **and must also emit `PauseLudeo`/`ResumeLudeo`**, or the objective timer keeps
+counting down under the overlay ([`unity/CONSENT-AND-OVERLAY.md`](unity/CONSENT-AND-OVERLAY.md) §3).
+Track the **CR-010 restore freeze and the CR-011 overlay pause on two separate flags**
 (engine paused iff *either* set) — one shared flag lets a mid-play `ResumeGame` unfreeze a restore, or
 `RoomReady` cancel a player-opened overlay. `GameBackToMenuRequested` `[SDK]` is a **CR-007 exit** (stop
 tracking + `CloseRoom` + load menu). Full detail in

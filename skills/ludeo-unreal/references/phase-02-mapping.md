@@ -674,7 +674,7 @@ and how they connect to the game's classes. See Lyra TDD for format.]
 | EndGameplay | [Gameplay end signal] | |
 | Player added | [Player join/spawn mechanism] | |
 | Player removed | [Player leave/despawn] | |
-| Pause/Resume | [Game's pause mechanism — recorded in `integration.json → pauseMechanism`]. How the game pauses matters: `UGameplayStatics::SetGamePaused`, `APlayerController::SetPause`, custom pause manager, time dilation, or CommonUI-driven. The SDK's `OnPauseGameRequested` callback fires when the overlay appears — the game must respond using its own mechanism. | |
+| Pause/Resume | [Game's pause mechanism — recorded in `integration.json → pauseMechanism`]. How the game pauses matters: `UGameplayStatics::SetGamePaused`, `APlayerController::SetPause`, custom pause manager, time dilation, or CommonUI-driven. The SDK's `OnPauseGameRequested` callback fires when the overlay appears — the game must respond using its own mechanism. **If the game has no pause, leave this empty — never add one** (a design change, not an integration); phase 03 §5.9.1 then wires by whether the sim can be frozen at all. | |
 | Non-ludeoable areas | [Menus, loading screens, cinematics] | |
 
 ## Integration Plan

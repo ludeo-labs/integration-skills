@@ -177,19 +177,20 @@ public class LudeoController
     // game-supplied hooks:
     private readonly Action<bool> m_onInitDone;       // arg: starting in Ludeo (play) flow?
     private readonly Action m_onBeginRestore;         // fires at Ludeo-SELECTION, before the room opens (see HandleGetLudeoDone)
-    private readonly Action m_onRoomReady, m_onStopGame, m_onExitToMainMenu;
+    private readonly Action m_onRoomReady, m_onStopGame, m_onResumeGame, m_onExitToMainMenu;
     private readonly Action<Action> m_activateWhenReady;   // implicit-auth gate: game fires the supplied Activate once Steam is ready (null = activate inline)
     private bool m_gameplayStarted;
     private bool m_roomReady;              // leg 1 of the begin gate (see HandleRoomReady)
     private bool m_sceneReadyForRestore;   // leg 3 (restore only): the gameplay scene the apply writes into has finished loading
 
     public LudeoController(Action<bool> onInitDone, Action onRoomReady,
-                           Action onStopGame, Action onExitToMainMenu,
+                           Action onStopGame, Action onResumeGame, Action onExitToMainMenu,
                            Action onBeginRestore = null, Action<Action> activateWhenReady = null)
     {
         Instance = this;
         m_onInitDone = onInitDone; m_onRoomReady = onRoomReady;
-        m_onStopGame = onStopGame; m_onExitToMainMenu = onExitToMainMenu;
+        m_onStopGame = onStopGame; m_onResumeGame = onResumeGame;   // CR-011 pair: each freezes/unfreezes AND emits its action
+        m_onExitToMainMenu = onExitToMainMenu;
         m_onBeginRestore = onBeginRestore;   // restore-only; null in create-only games
         m_activateWhenReady = activateWhenReady;   // implicit-auth (Steam) gate; null → Activate inline (explicit / cloud / Steam already up)
         m_switch = new LudeoFlowSwitch(m_data);
@@ -270,8 +271,10 @@ public class LudeoController
         s.LudeoSelected        += HandleLudeoSelected;
         s.RoomReady            += HandleRoomReady;
         s.PlayerConsentUpdated += HandleConsentUpdated;   // CR-012
-        s.PauseGameRequested   += () => m_onStopGame?.Invoke(); // CR-011 (Time.timeScale = 0 in the game)
-        s.ResumeGameRequested  += () => { /* resume */ };       // CR-011
+        // CR-011 — the handler must freeze the sim AND reach the PauseLudeo emit; the freeze alone
+        // leaves the Ludeo objective timer draining under the overlay. See CONSENT-AND-OVERLAY §3.
+        s.PauseGameRequested   += () => m_onStopGame?.Invoke();  // → game freezes (timeScale=0) + SendAction(PauseLudeo)
+        s.ResumeGameRequested  += () => m_onResumeGame?.Invoke(); // → unfreeze + SendAction(ResumeLudeo)
         s.GameBackToMenuRequested += HandleReturnToMainMenu;    // CR-007 exit path
         s.MuteGameRequested    += d => { /* mute audio = d.isMuted */ };
         s.LocalizationUpdated  += d => { /* set language = d.language */ };
@@ -487,8 +490,8 @@ timeout it activates anyway (and logs) so a no-Steam machine is never blocked fo
 #else                                        // cloud token build / no Steam compiled in
     Action<Action> authGate = null;          // nothing to wait for — Activate immediately
 #endif
-    m_controller = new LudeoController(onInitDone, onRoomReady, onStopGame, onExitToMainMenu,
-                                       onBeginRestore, authGate);
+    m_controller = new LudeoController(onInitDone, onRoomReady, onStopGame, onResumeGame,
+                                       onExitToMainMenu, onBeginRestore, authGate);
 
 #if STEAMWORKS_NET && !STEAMWORKS_OFF
 IEnumerator ActivateWhenSteamReady(Action activate)
@@ -746,7 +749,12 @@ m_ludeo = new LudeoController(                                            // [La
     onInitDone:      startingInLudeo => { if (startingInLudeo) {/* go to level for replay */} else {/* main menu, OR boot-straight: release the readiness gate */} },
     // SYNCHRONOUS apply: apply WHILE frozen, then Begin, then unfreeze (07 §10.1). Never unfreeze before apply.
     onRoomReady:     () => { ApplyRestoredState(); m_ludeo.BeginGameplay(() => Time.timeScale = 1f); }, // [Unity]+[Layer] CR-010
-    onStopGame:      () => Time.timeScale = 0f,   // [Unity] CR-011 pause
+    // CR-011 pair — each does BOTH halves: freeze/unfreeze AND report, or the objective timer
+    // keeps draining under the overlay. PauseGame/ResumeGame are the game's own primitives, which
+    // emit PauseLudeo/ResumeLudeo (CONSENT-AND-OVERLAY §3.2); showMenu:false avoids stacking the
+    // game's pause UI under the Ludeo overlay.
+    onStopGame:      () => PauseGame(showMenu: false),  // [Unity] freeze + SendAction(PauseLudeo)
+    onResumeGame:    () => ResumeGame(),                // [Unity] unfreeze + SendAction(ResumeLudeo)
     onExitToMainMenu:() => LoadMenuScene(),       // [Unity] SceneManager.LoadScene
     // SELECTION-TIME hook (restore only): kick the async scene load + suppress intros; call
     // m_ludeo.NotifySceneReadyForRestore() from the loader's completion (begin-gate leg 3).

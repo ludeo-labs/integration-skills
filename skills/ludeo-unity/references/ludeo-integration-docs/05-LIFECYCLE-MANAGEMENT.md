@@ -215,8 +215,17 @@ RoomReady ∧ AddPlayer ∧ sceneLoaded (NotifySceneReadyForRestore)   ← all t
 
 ## Pause / resume / return-to-menu (runtime contract)
 
-- **`PauseGameRequested` / `ResumeGameRequested`** `[SDK]` events — overlay open/close during playback.
-  Freeze the **simulation**: `Time.timeScale = 0f` `[Unity]` / restore `1f` (CR-011). Idempotent.
+- **`PauseGameRequested` / `ResumeGameRequested`** `[SDK]` events — overlay open/close during playback,
+  **cloud Player Flow only** — never in Creator Flow and never in a local build, so verify this half on the
+  streamed build. Freeze the **simulation**: `Time.timeScale = 0f` `[Unity]` / restore `1f` (CR-011).
+  Idempotent. Don't open the game's own pause menu here (it stacks under the overlay) — and the handler must
+  **also** emit the pause trigger below; freezing alone leaves the objective timer running under the overlay.
+- **`SendAction("PauseLudeo")` / `("ResumeLudeo")`** — the **other direction**, and required on **every**
+  pause: the SDK-requested overlay pause, the player's ESC/pause menu, cutscenes, dialogue, loading screens.
+  This is the only thing that stops the **Ludeo objective timer** — it's frozen server-side when the action
+  matches its **Studio Lab Global Trigger**, so an unmapped string is silently ignored. Emit at the game's
+  pause primitive, once per transition, with a reachable `ResumeLudeo` on every exit path.
+  → [`unity/CONSENT-AND-OVERLAY.md`](./unity/CONSENT-AND-OVERLAY.md) §3.
 - **`GameBackToMenuRequested`** `[SDK]` event — treat as a CR-007 exit: stop tracking, `CloseRoom`
   `[SDK]`, load the menu scene (`SceneManager.LoadScene` `[Unity]`).
 

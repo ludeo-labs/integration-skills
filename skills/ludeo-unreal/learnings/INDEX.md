@@ -103,7 +103,7 @@ Total: 297
 - common-mistakes/check-existing-pattern-before-deep-dive.md | universal | p4 | When an actor is "missing on replay," check if you track it AT ALL before theorizing about why it's broken
 - common-mistakes/check-sdk-logs-not-just-game-logs.md | universal | p5 | Always check SDK-level logs ([Ludeo] prefix), not just game integration logs
 - common-mistakes/classify-tracking-data-as-state-not-actions.md | universal | p5 | Continuous input/telemetry is writable-object STATE, not actions — classify the data before picking the SDK primitive
-- common-mistakes/close-dangling-nonludeable-on-endgameplay.md | universal | p3 | Send StopNoneLudeable before EndGameplay if game was paused
+- common-mistakes/close-dangling-nonludeable-on-endgameplay.md | universal | p3 | Close any open pause / non-ludeoable span before EndGameplay
 - common-mistakes/compiled-out-feature-toggles.md | generalizable | p6 | Does the game use preprocessor feature toggles (#define USE_X 0/1) that may compile out event systems or messaging?
 - common-mistakes/component-attaches-to-all-gamestate-including-menu.md | universal | p3 | Does the game have non-gameplay worlds (main menu, lobby, transition levels) that also spawn a GameState?
 - common-mistakes/damage-tags-not-bool-flags-for-action-discrimination.md | generalizable | p6 | Does the game use a damage event struct that exposes BOTH per-hit boolean flags (bIsCritical, bIsKillshot, ...) AND a damage-type tag container? If yes, derive kill-method actions from the tags, not from the booleans + …
@@ -132,7 +132,6 @@ Total: 297
 - common-mistakes/dont-defer-player-begingameplay-past-its-window.md | universal | p3 | Are you tempted to delay `Player->BeginGameplay()` until after some post-room-ready cleanup completes? Don't — call it as soon as your N-way gate (Room Ready + Player Added + Game Phase) latches. Cleanup runs after.
 - common-mistakes/dont-defer-to-prior-agent-decisions.md | universal | p5 | When a Ludeo integration has prior-agent-added engine helpers (Ludeo_RestoreState, etc.), how much should we defer to those design decisions?
 - common-mistakes/dont-leave-skip-this-comments-without-filing-the-work.md | universal | p5 | Don't leave "we're skipping this for now" comments — file the work, or implement it
-- common-mistakes/dont-send-sdk-actions-from-sdk-callbacks.md | universal | p3 | Don't send SDK actions from SDK callbacks — detect game state changes instead
 - common-mistakes/doreplifetime-scan-not-cherry-pick.md | universal | p4 | DOREPLIFETIME Scan — Don't Cherry-Pick Properties
 - common-mistakes/elimination-debouncing-with-message-subsystem.md | generalizable | p6 | Does the game use a message/event bus where elimination events might be received multiple times (e.g., from multiple processors rebroadcasting)?
 - common-mistakes/enemy-death-signal-varies-across-families.md | generalizable | p6 | Does this game have more than one enemy family (e.g. regular mobs, bosses, special creatures), often from different marketplace packs? If so, do they all expose the same health/death property by the same name and type, …
@@ -206,6 +205,7 @@ Total: 297
 - common-mistakes/refresh-project-binaries-after-core-sdk-swap.md | universal | p3 | After swapping the core C SDK, the project's own Binaries/ copy of the DLL is NOT refreshed by an incremental build
 - common-mistakes/registerentity-must-write-initial-attributes.md | universal | p5 | `RegisterEntity` / `CreateObject` must write all readable attributes synchronously — deferring to the next tick crashes on replay
 - common-mistakes/remove-player-uses-string-id-not-handle.md | universal | p3 | FLudeoRoomRemovePlayerParameters uses PlayerID (FString), not PlayerHandle
+- common-mistakes/report-every-pause-detect-state-not-per-callback.md | universal | p3 | Send the pause trigger for every pause — detect the state change, don't wire it per callback
 - common-mistakes/restore-ai-destroy-trips-death-escalation-mechanic.md | generalizable | p5 | Does this game escalate a GLOBAL alert/phase/reinforcement state as a SIDE EFFECT of AI death or destruction (an alarm on an unanswered kill, a 'call it in' radio, aggro/panic spread, a reinforcement timer)? If yes, you…
 - common-mistakes/reverify-prior-session-blockers.md | universal | p4 | Don't trust prior-session "blockers" without re-verifying — misdiagnoses persist in `knownIssues` notes
 - common-mistakes/room-is-not-highlight.md | universal | p2 | Ludeo Room ≠ Playable Highlight

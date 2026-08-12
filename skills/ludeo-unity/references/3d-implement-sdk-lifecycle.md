@@ -70,7 +70,11 @@ In the init-scene MonoBehaviour from the plan (`Awake`/`Start`):
 m_ludeo = new LudeoController(                                              // [Layer]
     onInitDone:       startingInLudeo => { /* play flow → replay scene; else → main menu */ },
     onRoomReady:      () => { ApplyRestoredState(); m_ludeo.BeginGameplay(() => Time.timeScale = 1f); }, // CR-010: apply WHILE frozen → Begin → unfreeze
-    onStopGame:       () => Time.timeScale = 0f,    // CR-011 overlay pause  [Unity]
+    // CR-011 pair — freeze AND report; the freeze alone leaves the objective timer draining.
+    // PauseGame/ResumeGame are the game's own freeze primitives, which emit PauseLudeo/ResumeLudeo
+    // (phase 6); showMenu:false keeps the game's pause UI from stacking under the Ludeo overlay.
+    onStopGame:       () => PauseGame(showMenu: false),  // CR-011a freeze + CR-011b action  [Unity]
+    onResumeGame:     () => ResumeGame(),                // CR-011a unfreeze + CR-011b action
     onExitToMainMenu: () => SceneManager.LoadScene("Menu"),                 // [Unity]
     onBeginRestore:   () => { Time.timeScale = 0f; StartCoroutine(LoadRestoreSceneThenNotify()); });    // [Unity]+[Layer]
 m_ludeo.SetGameplayerId(localPlayerId);
@@ -111,11 +115,16 @@ on the `LudeoSession`. If the plan omitted any, **add it anyway** — hard requi
 | `PlayerConsentUpdated` | Flow switch never enables; create/play stay disabled; gallery button wrong (CR-012). |
 | `PauseGameRequested` | **Game keeps running while the overlay covers it — the #1 mid-play failure (CR-011).** |
 | `ResumeGameRequested` | Overlay closes but the game stays paused (or never paused). |
+| *(handler freezes but sends no action)* | Game freezes correctly, but the **Ludeo objective timer keeps draining** under the overlay — CR-011's second half. |
 | `GameBackToMenuRequested` | "Back to menu" from the overlay leaves the player stuck in the Ludeo (CR-007). |
 | `MuteGameRequested` / `LocalizationUpdated` | Mute / language requests ignored (optional). |
 
 > ⚠️ Names are `PauseGameRequested`/`ResumeGameRequested` — **not** `…PauseGameRequest`. Both take a
-> plain `Action`. The pause handler must freeze the **simulation** (`Time.timeScale = 0f`), not just input.
+> plain `Action`. The pause handler must freeze the **simulation** (`Time.timeScale = 0f`), not just input —
+> **and must also reach the `PauseLudeo`/`ResumeLudeo` emit** (phase 6), because freezing the game does not
+> stop the Ludeo objective timer. Route the handler through the game's **freeze** primitive (not a
+> menu-showing one), or emit directly from it. See
+> [`ludeo-integration-docs/unity/CONSENT-AND-OVERLAY.md`](./ludeo-integration-docs/unity/CONSENT-AND-OVERLAY.md) §3.
 
 ## 4. Questions to ask the human
 
@@ -146,7 +155,9 @@ artifacts don't resolve it. Otherwise implement the plan as written.
       `OnApplicationQuit` → `Shutdown()` ends/aborts **and** `Dispose()`s the session.
 - [ ] `UpdateStateObjects()` called per active-gameplay frame; **no** SDK tick wired (CR-005).
 - [ ] **All six required notifications registered before `Activate`** (§4.5).
-- [ ] Pause handler sets `Time.timeScale = 0f` (CR-011).
+- [ ] Pause handler **freezes the sim** (`Time.timeScale = 0f`, directly or via the game's freeze primitive)
+      **and reaches the `PauseLudeo` emit**; resume handler mirrors it (CR-011 — both halves, once per
+      transition). Freezing without emitting leaves the objective timer running under the overlay.
 - [ ] SDK access goes through interfaces with `Dummy*`/`Disabled*` fallbacks (CR-001).
 - [ ] Backups exist for every edited game file.
 

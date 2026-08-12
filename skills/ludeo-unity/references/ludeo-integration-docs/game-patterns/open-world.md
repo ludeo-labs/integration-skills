@@ -128,6 +128,10 @@ simulation** — not just input. In a streaming world:
   `GameManager.PauseGame()` / `StateManager.Paused`); the `PauseGameRequested` `[SDK]` handler drives
   it (or sets `Time.timeScale = 0f` `[Unity]`). If the game's pause only stops input, build a sim
   freeze.
+  - ✅ **That same primitive is where `PauseLudeo` is emitted** (CR-011's other half — the objective-timer
+    trigger, [`../unity/CONSENT-AND-OVERLAY.md`](../unity/CONSENT-AND-OVERLAY.md) §3.2), so driving it from
+    the SDK handler is the *desired* wiring: the overlay pause then both freezes the world and stops the
+    clock. Just keep the emit idempotent so a pause reaching the primitive by two paths reports once.
 - **Streaming jobs / coroutines** (terrain Jobs, asset loading, AI ticks) must also be paused if they
   **advance world state**. Background asset *I/O* that doesn't mutate gameplay state can keep running.
 - Track the overlay pause (CR-011) and the post-Ludeo-load restore freeze
@@ -176,8 +180,8 @@ state** — the moments the game itself considers safe to persist or close.
 | Player dies (permadeath) | `PlayerDeath` → `TitleMenuFromDeath` | `[Layer]` `EndGameplay` → `LudeoPlayer.End` `[SDK]` |
 | Return to menu | `StartMethods.TitleMenu` | `[Layer]` `AbortGameplay` → `LudeoPlayer.Abort` `[SDK]` |
 | Load different save while in-game | `LoadDaggerfallUnitySave` while in `Game` | `Abort` `[SDK]` then `OpenRoom` `[SDK]` for the new run |
-| Pause menu / inventory open | `StateManager.Paused` / `UI` | *(local pause only — not a boundary)* |
-| Ludeo overlay opened | `PauseGameRequested` `[SDK]` | `GameManager.PauseGame()` / `Time.timeScale = 0f` `[Unity]` (CR-011) |
+| Pause menu / inventory open | `StateManager.Paused` / `UI` | Not a session boundary, but **emit `PauseLudeo`/`ResumeLudeo`** `[Layer]` — only the game can stop the objective timer (CR-011b) |
+| Ludeo overlay opened | `PauseGameRequested` `[SDK]` | `GameManager.PauseGame()` / `Time.timeScale = 0f` `[Unity]` — freeze **and** emit `PauseLudeo`; the freeze alone leaves the clock running (CR-011a+b) |
 | Application quit | `Application.Quit` `[Unity]` | `End`/`Abort` `[SDK]` if mid-run, then **`Dispose()` the owned `LudeoSession`** in `Shutdown()` (the plugin does **not** dispose it — required for Editor re-init; see `05` "Shutdown") |
 
 The `CODE_MAP.session_boundaries` block produced in [`phase 2`](../../2-map-game-code.md) §6 is the
@@ -199,7 +203,8 @@ genre **tracking checklist** for whichever genre(s) the game blends, produced in
 
 **`[SDK]`** (verbatim — authority: [`../12-SDK-API-REFERENCE.md`](../12-SDK-API-REFERENCE.md)):
 `LudeoManager.Initialize` · `SessionManager.CreateSession` · `LudeoSession.Activate` · `LudeoSession.OpenRoom` ·
-`LudeoSession.AddNotify{LudeoSelected, RoomReady, PauseGame}` · `LudeoRoom.AddPlayer` ·
+`LudeoSession` events `{LudeoSelected, RoomReady, PauseGameRequested, ResumeGameRequested}` (v4.2.0 C# events
+— **not** the old `AddNotify*` methods) · `LudeoRoom.AddPlayer` ·
 `LudeoRoom.CloseRoom` · `LudeoPlayer.Begin/End/Abort` · `LudeoPlayer.SendAction`.
 
 **`[Layer]`** (from [`../unity/REFERENCE-ARCHITECTURE.md`](../unity/REFERENCE-ARCHITECTURE.md) —

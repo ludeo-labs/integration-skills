@@ -29,6 +29,9 @@ Required artifacts from prior phases:
 - [ ] `.ludeo/cloud-upload.json` initialized (by the `cloud-upload` skill)
 - [ ] Shipping build configuration and output path known (or captured in Step 1)
 - [ ] **Game ID** + **Access Token** from [Studio Labs](https://studio.ludeo.com) → Environments
+- [ ] **Global Triggers created** in Studio Labs → the environment: Pause/Resume on
+      `PauseLudeo`/`ResumeLudeo`, Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. Ask the user to
+      confirm — without them the pause never stops the objective timer, and the failure is silent (phase 03 §5.9.1)
 - [ ] CLI installed: `npm install -g @ludeo/cli`
 - [ ] Test account + network for verification scenarios
 - [ ] Access token via env var / `ludeo auth set-token` — **never** in git or `ludeo.json`

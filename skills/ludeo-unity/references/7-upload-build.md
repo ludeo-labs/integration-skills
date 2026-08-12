@@ -33,6 +33,10 @@ final phase — when it passes, the build is live on the platform.
       to install it or for the path to the binary; do **not** invent a download source.
 - [ ] A Ludeo **access token** and the game's **Game Version ID** (from the Ludeo studio/platform). Ask if
       not provided.
+- [ ] **Global Triggers created** in Studio Lab → the environment: Pause/Resume on `PauseLudeo`/`ResumeLudeo`,
+      Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. **Ask the user to confirm** — the cloud run
+      is the first place the overlay pause happens, and without the trigger it won't stop the objective timer.
+      The failure is silent (phase 6 · task 2 Step 6).
 - [ ] [`ludeo-integration-docs/unity/READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md)
       — the agent can't see the Console; the release-build gate (Step 2) reads `Editor.log`.
 

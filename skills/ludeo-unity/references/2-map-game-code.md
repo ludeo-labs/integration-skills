@@ -112,11 +112,25 @@ results. All patterns are **Unity-native** — adapt based on what the project r
 - **List every distinct way gameplay is left** — each is a required `End`/`Abort` site later (CR-007).
 
 **6b. Non-ludeoable areas (mid-gameplay segments)** — segments *inside* live play that should never
-become a Ludeo: shops, NPC dialogue, tutorials, safe zones, in-game inventory/map screens, cutscenes.
+become a Ludeo: shops, tutorials, safe zones, in-game inventory/map screens.
 These are **distinct** from whole-screen menus (which sit outside any gameplay session — nothing to do)
-and from a true sim-freeze pause. Tracking **keeps running** through them; phase 3 plans boundary
-actions (`StartNoneLudeable`/`StopNoneLudeable`) at their enter/exit and the backend excludes the
-window. Probe for the **enter/exit sites**:
+and from a pause (which stops the objective timer — see `pause_overlay[]` in the Output Contract below).
+Tracking and the objective timer **keep running** through non-ludeoable areas; phase 3 plans boundary actions
+(`StartNoneLudeable`/`StopNoneLudeable`) at their enter/exit and the backend excludes the window from
+capture while keeping the span's data.
+
+> **⚠️ Same candidates, two different answers — decide by whether the sim keeps running.** Dialogue,
+> cutscenes, and loading screens show up in *both* categories, and the grep below will surface all of them.
+> The deciding question is **not** what the segment is called, it's **what happens to the clock**:
+> - The segment **freezes the sim** (nothing is happening; a pause) → **`PauseLudeo`/`ResumeLudeo`**, timer
+>   stops, backend saves nothing. Record it under `pause_overlay[]`, not here.
+> - The segment **keeps playing** but is unreproducible or shouldn't be captured (browsable shop, walk-and-talk
+>   dialogue, tutorial) → **`StartNoneLudeable`/`StopNoneLudeable`**, timer keeps running, data kept.
+>
+> So "cutscene" is only a non-ludeoable area if the game keeps simulating through it. **Record which, per
+> candidate, with the observed evidence** (does the enter site freeze the sim?) — don't classify by name.
+
+Probe for the **enter/exit sites**:
 - `Grep("Shop|Store|Vendor|Dialogue|Dialog|Conversation|Tutorial|SafeZone|SafeRoom|Cutscene|Cinematic|InventoryScreen|MapScreen")`
 - For each hit, record the **enter** and **exit** site (`file:line` + the trigger/method). A segment
   with no clear exit is a flag for phase 3 (a dangling non-ludeoable would never re-enable capture).
@@ -263,8 +277,24 @@ neither — and any of those can be boot-straight or menu-gated.
      - `model` — one-line classification (e.g. `"state-machine + event-dispatch; single streaming world"`)
      - `start_sites[]` — each `{ trigger, file, line, meaning }` for events that begin a live run
      - `exit_sites[]` — each `{ trigger | state, file, line, ludeo: "End" | "Abort" | "End/Abort" }`
-     - `pause_overlay[]` — the game's pause primitive(s) to wire to `PauseGameRequested`/`ResumeGameRequested`
-       ([CR-011](ludeo-integration-docs/00-CRITICAL-REQUIREMENTS.md))
+     - `pause_overlay[]` — the game's pause primitive(s), i.e. the function(s) every pause path funnels
+       through. Both halves of [CR-011](ludeo-integration-docs/00-CRITICAL-REQUIREMENTS.md) anchor here and
+       **both belong on this one choke point**: the `PauseGameRequested`/`ResumeGameRequested` handler drives
+       the **freeze**, and phase 6 emits `PauseLudeo`/`ResumeLudeo` here so the objective timer actually stops
+       — for *every* pause, the SDK-requested one included
+       ([`unity/CONSENT-AND-OVERLAY.md`](ludeo-integration-docs/unity/CONSENT-AND-OVERLAY.md) §3). Record the
+       callers (pause menu, cutscene, loading screen, focus loss) **and whether every one of them, including
+       the SDK handler, routes through the same primitive** — if some bypass it, phase 6 needs the emit
+       guarded so the pause is reported exactly once.
+       - **Plenty of games have no pause, and must not be given one.** If the search finds no primitive, record
+         `pause_overlay: []` with a one-line `pause_capability` note and **do not add a pause feature, menu, or
+         keybinding** — that's a design change, not an integration. Decide from the code; don't ask the user.
+         The question that decides the wiring is **"can the sim be frozen?"**, not "is there a pause feature":
+         a game with no player-facing pause still gets `PauseGameRequested` on the cloud, and freezing in
+         response is an overlay response, not a new feature. Three outcomes for phase 3/6:
+         `primitive` (wire both halves there) · `freezable-only` (no player pause: handle the request with a
+         freeze, report *that* pause, add nothing player-facing) · `not-freezable` (rare — a live session that
+         can't stop; wire neither half and say so, since the objective timer then can't be stopped).
    - `non_ludeoable_candidates` — mid-gameplay non-ludeoable segments (shops/dialogue/tutorials/safe
      zones/cutscenes), each `{ kind, enter: {file, line, trigger}, exit: {file, line, trigger} }`.
      Phase 3 maps these to `StartNoneLudeable`/`StopNoneLudeable` boundary actions. Empty if none found.

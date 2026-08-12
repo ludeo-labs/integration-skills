@@ -1601,47 +1601,70 @@ All shutdown occurs in `ULudeoSessionSubsystem::Deinitialize()`.
 
 ### 5.9 Non-Gameplay Handling Patterns
 
-**Note on scope:** Basic pause/resume handling (SDK overlay → game pause → `PauseLudeo`/`StartNoneLudeable` actions) is wired up in the Subsystem during startup (see 5.2). The patterns below cover the complete implementation: advanced pause detection that goes beyond the basic SDK overlay callback, menu/overlay detection via CommonUI layer polling, non-ludeoable map gating, non-ludeoable segment marking, and close-dangling-nonludeable-on-endgameplay. If the SDK overlay pause is already working, these patterns extend it with game-specific detection.
+**Note on scope:** The SDK's pause/resume **request** callbacks (overlay → freeze the game) are registered in the Subsystem during startup (see 5.2) and implemented in 5.9.4. That is only **one** of the two directions pause/resume needs — 5.9.1 explains both, and a working overlay freeze is *not* evidence the other half exists. The patterns below cover the complete implementation: the game → SDK **trigger** actions and the pause detection that drives them, pause detection beyond the SDK callback, menu/overlay detection via CommonUI layer polling, non-ludeoable map gating, non-ludeoable segment marking, and close-dangling-nonludeable-on-endgameplay.
 
 #### 5.9.1 Non-Gameplay Segment Marking — Two Trigger Types
 
-The Ludeo SDK uses two distinct trigger types for non-gameplay periods. These are configured in Studio Labs (Ludeo Settings > Triggers) but must be signaled from the game via `SendAction`.
+Pause/resume has **two independent wirings that travel in opposite directions**. Both are required; each fails in its own way when missing. Do not let one stand in for the other.
+
+| | **Triggers** (game → SDK) | **Requests** (SDK → game) |
+|---|---|---|
+| Mechanism | `RoomWriter.SendAction(…)` — §5.9.1–5.9.3 | `OnPauseGameRequested`/`OnResumeGameRequested` delegates — §5.9.4 |
+| Meaning | game tells the backend *"stop the clock / don't capture here"* | SDK tells the game *"freeze now"* |
+| Occurs in | **every** pause during an active gameplay session, either flow — including the one a request announces | **Player Flow, cloud only** — never in Creator Flow, and **never in a local build** |
+
+> **Freezing the game does not stop the Ludeo timer.** The objective timer is frozen server-side only when the game's **tracked pause event** reaches its Studio Lab Global Trigger (`SendAction` → `game.events` → the trigger's `PAUSE_KEY` action → `stateManager.pause(eventTime)`). So a request handler that only calls `SetGamePaused` leaves the clock running under the overlay. **Responding to the request is necessary but not sufficient — the handler must also send the trigger action.**
+
+> **First, does this game pause at all?** Many don't, and **none should be given a pause it didn't have** — adding a pause menu or keybinding is a design change, not an integration. Decide from `integration.json → pauseMechanism` and the code, not by asking the user. The wiring follows **whether the sim can be frozen**, not whether a pause feature exists: a game with no player-facing pause still receives `OnPauseGameRequested` on the cloud, and freezing for the overlay is a response to the SDK, not a new feature — so the trigger half still applies to *that* pause. Wire neither half only when the sim genuinely can't stop; record it, since the objective timer can then never be stopped. Where `pauseMechanism` is empty, the detector (§5.9.2) has nothing to poll — don't invent a signal for it.
+
+> **Triggers belong to an active gameplay session.** Emit only between `BeginGameplay` and `End`/`Abort` — which is what the `!bGameplayActive` bail in §5.9.3 enforces, by design rather than by omission. Pauses outside a session (the player waiting to pick a Ludeo, menus between matches) are handled with the game's **own** in-game pause functions and send **nothing**.
+
+The trigger side has **two types**, configured in Studio Lab (**Global Triggers**) and signaled from the game via `SendAction`. Pick by **what should happen to the clock**:
 
 | Feature | Non-Ludeoable Area Trigger | Pause/Resume Trigger |
 |---------|---------------------------|---------------------|
 | Prevents Ludeo creation | Yes | Yes |
-| Pauses timers & tracking | No | Yes |
+| Pauses objective timer & event tracking | No | Yes |
 | Data saved by backend | Yes | No |
-| Use case | Irreproducible gameplay (warmup, scoreboard) | No active gameplay (pause menu, SDK overlay) |
+| Use case | Irreproducible gameplay (warmup, scoreboard, custom-physics segment) | No active gameplay (pause menu, cutscene, dialogue, loading screen) |
 
-**Different action names per flow:**
+**Both trigger types belong in every integration** — they cover different situations, not different environments or flows. The conventional action names, and the flow each type is *typically* used for:
 
-| Flow | Start Non-Ludeoable | Stop Non-Ludeoable | Pause | Resume |
-|------|---------------------|-------------------|-------|--------|
-| Creator Flow | `StartNoneLudeable` | `StopNoneLudeable` | `StartNoneLudeable` | `StopNoneLudeable` |
-| Player Flow | `PauseLudeo` | `ResumeLudeo` | `PauseLudeo` | `ResumeLudeo` |
+| Trigger type | Start action | End action | Typically used in |
+|------|---------------------|-------------------|-------|
+| Non-Ludeoable Area | `StartNoneLudeable` | `StopNoneLudeable` | Creator Flow (irreproducible capture segments) |
+| Pause/Resume | `PauseLudeo` | `ResumeLudeo` | Player Flow (the objective timer must stop) |
 
-**Note the spelling:** `StartNoneLudeable` / `StopNoneLudeable` — the SDK uses this exact spelling. Do not "correct" it to `NonLudeoable`.
+> **These names are a convention, not SDK constants.** `SendAction` takes an arbitrary string; the strings only acquire meaning once a matching trigger **exists** in **Studio Lab → the environment → Global Triggers** (which tracked events start and end each segment). You can't see or create them, so **tell the user to create both — Pause/Resume on `PauseLudeo`/`ResumeLudeo`, Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`.** A missing or misnamed trigger drops the action silently: no error, the action still logs, the objective timer keeps counting.
+
+> **Time-dilation pausing: the component keeps ticking, but `DeltaTime` is scaled.** `bTickEvenWhenPaused` covers *engine* pause; a game that "pauses" by driving `TimeDilation` toward zero leaves the component ticking with `DeltaTime` scaled by the same factor. The transition detector is unaffected (it reads a boolean, not elapsed time), but any `DeltaTime` accumulator in the same component — a write-throttle, a debounce, a deferred-unpause timer — effectively stalls. Use unscaled time (`FApp::GetDeltaTime()` / real-time seconds) for anything that must advance while the game is "paused."
+
+> **Pick by situation, not by flow.** The "typically used in" column above is which flow each type usually *matters* in, **not** a branch to write in code. A pause is a pause in either flow, so it emits `PauseLudeo`/`ResumeLudeo` in either flow (§5.9.3); a non-ludeoable area emits `StartNoneLudeable`/`StopNoneLudeable` from its own enter/exit sites in either flow. Emitting `StartNoneLudeable` for a pause because you're in Creator Flow is wrong by the table above — that type keeps the objective timer running. Only branch on `bIsPlayerFlow` if the game's Studio Lab config actually maps different event names per flow; **you cannot inspect Studio Lab, so if you don't know, don't branch.**
+
+**Note the spelling:** `StartNoneLudeable` / `StopNoneLudeable` — this is the spelling used across Ludeo's docs and config examples. Do not "correct" it to `NonLudeoable`; match whatever you mapped in Studio Lab.
 
 #### 5.9.2 Pause Detection via Tick Polling
 
 **Do not assume the game uses engine pause.** Many games pause WITHOUT calling `SetGamePaused` — e.g. a `Paused` bool plus zeroing `CustomTimeDilation` on tagged actors, or a custom PauserPlayerState. On those games `GetWorld()->IsPaused()` stays **false** during an in-game (ESC) pause, so an `IsPaused`-only detector silently never marks the segment non-ludeoable. **Confirm the game's pause mechanism first** (BP call-graph: `graph` / `graph-function` on the pause function), then detect on the game's OWN pause signal — usually a flag/property, often on the GameState your component already owns — **OR'd with** `GetWorld()->IsPaused()` (which still catches the SDK's own overlay pause). See [[custom-pause-via-timedilation-not-engine-pause]] and [[actiongame-uses-setpausedpreferred-not-setgamepaused]].
 
-Poll the combined pause signal (the game's own pause flag OR'd with `GetWorld()->IsPaused()`, per the warning above) in `TickComponent` with `bTickEvenWhenPaused = true`. Branch on Creator vs Player Flow for the correct action names:
+Poll the combined pause signal (the game's own pause flag OR'd with `GetWorld()->IsPaused()`, per the warning above) in `TickComponent` with `bTickEvenWhenPaused = true`.
+
+> **✅ A transition detector is the right architecture precisely because it is origin-blind.** Every pause must be reported — the SDK-requested overlay pause as much as the local ESC menu — so detecting the *state change* covers all origins with one emit and no per-origin wiring. `bTriggerSpanOpen` keeps it to exactly one report per transition, which is what matters: **report every pause once**, not "report only the ones the SDK didn't ask for."
 
 ```cpp
 // In Component constructor or BeginPlay
 PrimaryComponentTick.bTickEvenWhenPaused = true;
 
-// In header
+// In Component header
 bool bWasPausedLastFrame = false;
+bool bTriggerSpanOpen    = false;   // we sent a start action and owe the matching end (5.9.3)
 
 void ULudeoIntegrationComponent::TickComponent(float DeltaTime, ELevelTick TickType,
     FActorComponentTickFunction* ThisTickFunction)
 {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-    // Pause state change detection
+    // Pause state change detection — fires for EVERY origin: SDK request, ESC menu, cutscene, focus loss.
     // OR the game's own pause signal (see "Do not assume engine pause" above) with engine pause:
     const bool bIsPaused = GetWorld()->IsPaused() || bGamePausedSignal; // bGamePausedSignal = the game's own pause flag (confirm via call-graph)
     if (bIsPaused != bWasPausedLastFrame)
@@ -1665,30 +1688,28 @@ void ULudeoIntegrationComponent::TickComponent(float DeltaTime, ELevelTick TickT
 }
 ```
 
+Because the detector already covers the SDK-requested pause, `OnPauseGameRequested` (§5.9.4) needs only to freeze — the trigger follows on the next tick. If instead you send the action directly from that handler, make sure the detector doesn't also send it for the same transition; one report per pause either way.
+
 #### 5.9.3 Segment Marking Implementation
 
-Send the correct action names based on flow type and segment type:
+A pause is a pause in **either flow**, from **any origin** — so it emits the **Pause/Resume** trigger (`PauseLudeo`/`ResumeLudeo`) unconditionally, exactly once per transition.
+
+> **Do not flow-branch this call site.** Emitting `StartNoneLudeable` for a Creator-Flow pause is wrong by §5.9.1's own table: the non-ludeoable type **keeps the objective timer running**, which is the opposite of what a pause needs. The two trigger types are for different *situations*, not different flows — non-ludeoable areas have their own enter/exit call sites (phase 06), not a flow branch of this one. If the game's Studio Lab config genuinely maps different event names per flow, branch on `bIsPlayerFlow` here — but **if you don't know, don't branch.**
 
 ```cpp
 void ULudeoIntegrationComponent::HandleGamePaused()
 {
+    // Fires for every pause origin, SDK-requested included — that is intended.
+    // The Ludeo timer stops ONLY because of this action (5.9.1).
     FLudeoRoom* Room = GetActiveRoom();
     if (!Room || !bGameplayActive) return;
+    if (bTriggerSpanOpen) return;   // idempotent: one report per pause, whatever observed it
+    bTriggerSpanOpen = true;
 
     FLudeoRoomWriter RoomWriter = Room->GetRoomWriter();
     FLudeoRoomWriterSendActionParameters Params;
-
-    if (bIsPlayerFlow)
-    {
-        Params.ActionName = "PauseLudeo";
-    }
-    else
-    {
-        Params.ActionName = "StartNoneLudeable";
-    }
-
-    // PlayerID of the local player
-    Params.PlayerID = TCHAR_TO_UTF8(*LocalPlayerID);
+    Params.ActionName = "PauseLudeo";              // stops the objective timer + event tracking
+    Params.PlayerID   = TCHAR_TO_UTF8(*LocalPlayerID);
     RoomWriter.SendAction(Params);
 }
 
@@ -1696,51 +1717,95 @@ void ULudeoIntegrationComponent::HandleGameResumed()
 {
     FLudeoRoom* Room = GetActiveRoom();
     if (!Room || !bGameplayActive) return;
+    if (!bTriggerSpanOpen) return;   // no span open — nothing to close
+    bTriggerSpanOpen = false;
 
     FLudeoRoomWriter RoomWriter = Room->GetRoomWriter();
     FLudeoRoomWriterSendActionParameters Params;
-
-    if (bIsPlayerFlow)
-    {
-        Params.ActionName = "ResumeLudeo";
-    }
-    else
-    {
-        Params.ActionName = "StopNoneLudeable";
-    }
-
-    Params.PlayerID = TCHAR_TO_UTF8(*LocalPlayerID);
+    Params.ActionName = "ResumeLudeo";
+    Params.PlayerID   = TCHAR_TO_UTF8(*LocalPlayerID);
     RoomWriter.SendAction(Params);
 }
 ```
 
-#### 5.9.4 SDK Pause/Resume Callbacks (Player Flow Only)
+`bTriggerSpanOpen` keeps start/end paired and the reporting idempotent: one `PauseLudeo` per pause however many paths observe it, and never a `ResumeLudeo` without a matching start. It is also what makes §5.9.4's fallback safe — if you send the action from the request handler instead, the detector's transition hits this guard and doesn't duplicate it.
 
-The SDK requests the game to pause when its overlay appears. These callbacks are already registered in the Subsystem — implement the handlers:
+**At room open / `BeginGameplay`, seed the flags from the current pause state — do not blindly zero them:**
 
 ```cpp
-// In Subsystem — bound during callback registration (Step 4)
+// On room open / BeginGameplay:
+const bool bPausedNow = /* the same combined signal the detector polls */;
+bWasPausedLastFrame = bPausedNow;          // don't wait for a transition that already happened
+bTriggerSpanOpen    = false;
+if (bPausedNow) HandleGamePaused();        // open the span now — gameplay began already paused
+```
+
+Blindly zeroing both is a silent hole: the detector is **transition**-based and updates `bWasPausedLastFrame` even on ticks where the emit bailed on `!bGameplayActive`. So if the game is already paused when gameplay becomes active — a pre-match intro or a streaming hold that releases *after* `BeginGameplay`, a restore that begins frozen — there is no later transition to observe. **No `PauseLudeo` is ever sent, the objective timer runs through the whole span, and the eventual unpause sends nothing because `bTriggerSpanOpen` is false.** Seeding closes it.
+
+**Close any still-open span before `bGameplayActive` flips on `EndGameplay`** — see [[close-dangling-nonludeable-on-endgameplay]]. Both handlers bail on `!Room || !bGameplayActive` before touching the flag, so a span left open when gameplay ends would otherwise stay `true` into the next run — where the first pause hits the guard above and is never reported. **This matters most in games that run many matches per session** without returning to the main menu: nothing restarts the process to clear it.
+
+The **non-ludeoable area** trigger pair (`StartNoneLudeable`/`StopNoneLudeable`) is emitted from the area's own enter/exit sites, with the same start/end pairing discipline — not from this pause detector.
+
+#### 5.9.4 SDK Pause/Resume Requests (Player Flow Only)
+
+The SDK asks the game to pause when the player opens the Ludeo overlay mid-session (ESC, which the SDK intercepts) or when the platform stops/expires the Ludeo timer. These callbacks are already registered in the Subsystem — implement the handlers.
+
+> **⚠️ Cloud Player Flow only — these never fire in a local build.** There is no browser to intercept ESC locally, and they never fire in Creator Flow at all. So this half **cannot be exercised or regression-tested locally**: a clean local run is no evidence the handler works, or that it even runs. Wire it from this section and verify on the streamed build. Plan for the consequence — a broken freeze handler stays invisible until the game is on the cloud, which is usually late. §5.9.2/§5.9.3 (the trigger half) *is* testable locally, so test what you can and don't read "fine locally" as "fine".
+
+> ⚠️ **Not every Ludeo-owned screen raises these.** [[sdk-overlay-input-no-callback-release-mouse-yourself]] recorded 0 occurrences of both callbacks for the pre-play/intro overlay — that screen is not the mid-session pause overlay, and it grabs input without asking the game to pause. Confirm by log-counting which of your overlays actually fire these before you hang behavior off them ([[verify-sdk-callback-fires-before-hooking]]); the pause detector (§5.9.2) is what covers the rest.
+
+**Freezing is necessary but not sufficient.** The trigger action must also be sent for this pause, or the objective timer keeps draining under the overlay (§5.9.1). The clean wiring is to let the §5.9.2 detector observe the pause and send it — the handler then only freezes, and the trigger follows on the next tick. Do not open the game's own pause menu here; the Ludeo overlay is already on screen.
+
+```cpp
+// In Subsystem — bound during callback registration (Step 4).
 void ULudeoIntegrationSubsystem::HandlePauseGameRequested()
 {
-    // Player Flow only — SDK overlay is shown
-    APlayerController* PC = GetWorld()->GetFirstPlayerController();
-    if (PC)
-    {
-        PC->SetPause(true);
-    }
+    // Cloud Player Flow only — SDK overlay is shown. Never runs in a local build.
+    // Use the game's OWN pause mechanism from integration.json → pauseMechanism (see §8.7). Do NOT
+    // hardcode this call: on a game that overrides or replaces engine pause, SetGamePaused no-ops
+    // SILENTLY — the game then never freezes AND the 5.9.2 detector never fires, so no PauseLudeo is
+    // sent either. One bad assumption, both halves of CR-011 dead, no error anywhere.
+    // (A worked instance: [[actiongame-uses-setpausedpreferred-not-setgamepaused]] — game-specific
+    // tier, so take its detection method, not its conclusion.) SetGamePaused is the DEFAULT only when
+    // no game-specific mechanism was found; never PC->SetPause
+    // ([[use-setgamepaused-not-pc-setpause]] — it doesn't reliably flip GetWorld()->IsPaused()).
+    UGameplayStatics::SetGamePaused(this, true);
+    bLudeoOverlayPause = true;   // "the SDK's overlay owns this pause" — read by the ESC handler below
+    // Also suppress gameplay input and, if physics steps independently of pause, halt it.
+    // Do NOT open the game's pause menu — the Ludeo overlay is already visible.
+    // PauseLudeo is sent by the detector on the next tick (5.9.2/5.9.3) — verify it in the log.
 }
 
 void ULudeoIntegrationSubsystem::HandleResumeGameRequested()
 {
-    APlayerController* PC = GetWorld()->GetFirstPlayerController();
-    if (PC)
-    {
-        PC->SetPause(false);
-    }
+    UGameplayStatics::SetGamePaused(this, false);   // same caveat — the game's own mechanism
+    bLudeoOverlayPause = false;
+    // ResumeLudeo likewise follows from the detector's unpause transition.
+    // If the game can also be paused by its OWN source at the same time, release only the SDK's
+    // source here — don't unfreeze a game the player still has paused behind the overlay (§8.28).
 }
 ```
 
-The Component's pause detection (5.9.2) will pick up the state change and send the appropriate `PauseLudeo`/`ResumeLudeo` actions automatically.
+> ⚠️ If the game's pause mechanism doesn't flip the signal the detector polls (a custom `Paused` bool, time-dilation pausing — see the warning in §5.9.2), the detector never fires and **no trigger is ever sent for the overlay pause**. In that case send it explicitly from this handler and suppress the detector's duplicate. Confirm which by log-counting `PauseLudeo` for one overlay open.
+
+Correspondingly, the game's own pause key must stand down **while the overlay is actually up** so the two pause paths don't collide — but only then:
+
+```cpp
+void AMyPlayerController::OnEscapePressed()
+{
+    // Query the Subsystem's flag — don't cache a copy on the PC (the PC is per-world and dies on
+    // travel; the Subsystem is persistent, §5.2).
+    const ULudeoIntegrationSubsystem* Ludeo =
+        GetGameInstance()->GetSubsystem<ULudeoIntegrationSubsystem>();
+    if (Ludeo && Ludeo->IsLudeoOverlayPause())   // accessor over the bLudeoOverlayPause set in §5.9.4
+    {
+        return;   // SDK intercepts ESC, opens the overlay, and sends OnPauseGameRequested
+    }
+    OpenPauseMenu();   // every other case, incl. the whole local build — this path emits the trigger (5.9.3)
+}
+```
+
+> ⚠️ **Gate on the overlay flag, not on `IsPlayerFlow()`.** Player Flow is also what a **local** build runs when replaying a Ludeo, and there `OnPauseGameRequested` never arrives — a flow-gated ESC handler would leave the player unable to pause by any route. **A local build's whole pause/resume obligation is the trigger half (§5.9.2/§5.9.3)**: the player pauses with the game's own menu, the detector observes it, and `PauseLudeo`/`ResumeLudeo` go out. Nothing from §5.9.4 runs locally, and nothing else is needed.
 
 #### 5.9.5 Non-Ludeoable Map Detection
 
@@ -1923,8 +1988,10 @@ ULudeoGameStateComponent::BeginPlay()
   // GAME-SPECIFIC: player ready event         →    AddPlayer per human player (Creator)
 // GAME-SPECIFIC: gate conditions all met    →    TryBeginGameplay (N-way gate)
   [Active gameplay]                               [State tracking + Actions]
-  [SDK overlay / pause menu]                  →    StartNoneLudeable (Creator) / PauseLudeo (Player)
-  [Resume gameplay]                           →    StopNoneLudeable (Creator) / ResumeLudeo (Player)
+  [SDK overlay opens (Player)]                →    freeze + PauseLudeo (freeze alone won't stop the clock)
+  [Game's own pause: ESC menu / cutscene]     →    PauseLudeo   (either flow — stops the objective timer)
+  [Resume from the game's own pause]          →    ResumeLudeo  (either flow)
+  [Enter / exit a non-ludeoable area]         →    StartNoneLudeable / StopNoneLudeable (separate sites)
 // GAME-SPECIFIC: playable unit end signal   →    EndGameplay + RemovePlayer + CloseRoom
 [Map transition to menu]                     →    CloseRoom before travel; no room on menu map
 [Map transition to gameplay]                 →    OpenRoom on new map
@@ -2187,7 +2254,7 @@ public:
 **Non-gameplay handling** (private):
 
 - `IsCurrentMapLudeoable()` — gates room opening; called in `TryOpenRoom()`
-- `bWasPausedLastFrame` + `HandleGamePaused()` / `HandleGameResumed()` — pause detection and segment marking with flow-aware action names (`StartNoneLudeable`/`StopNoneLudeable` vs `PauseLudeo`/`ResumeLudeo`)
+- `bWasPausedLastFrame` + `bTriggerSpanOpen` + `HandleGamePaused()` / `HandleGameResumed()` — origin-blind pause detection emitting `PauseLudeo`/`ResumeLudeo` for **every** pause in either flow (SDK-requested included), once per transition. Non-ludeoable areas (`StartNoneLudeable`/`StopNoneLudeable`) are separate enter/exit sites, not a flow branch here.
 - `bTickEvenWhenPaused = true` — set in constructor so pause detection works during engine pause
 
 **State tracking** (private, stubs filled in Phase 6+):
@@ -2254,7 +2321,7 @@ public:
 ### Pause/Resume Handling
 - Detection method: [TickComponent poll / custom pause delegate]
 - SDK pause callback: [SetPause / custom mechanism]
-- Segment marking: Creator Flow = StartNoneLudeable/StopNoneLudeable, Player Flow = PauseLudeo/ResumeLudeo
+- Segment marking by situation, not flow: a pause = PauseLudeo/ResumeLudeo (either flow); a non-ludeoable area = StartNoneLudeable/StopNoneLudeable (either flow)
 
 ### Map Transition Handling
 - Travel method: [ServerTravel / SeamlessTravel / OpenLevel]
@@ -2286,7 +2353,7 @@ public:
 - [ ] Activation includes apiKey + game version + auth
 - [ ] Restoration entry point defined as part of the lifecycle
 - [ ] Menus/transitions excluded from capture
-- [ ] Pause/resume bracketed correctly (standard actions: `StartNoneLudeable`, `StopNoneLudeable`, `PauseLudeo`, `ResumeLudeo`)
+- [ ] Pause/resume wired in **both** directions (§5.9.1): (a) `OnPauseGameRequested`/`OnResumeGameRequested` freeze/unfreeze the game, and (b) `PauseLudeo`/`ResumeLudeo` emitted for **every** pause in either flow — the SDK-requested overlay pause included — exactly once per transition via `bTriggerSpanOpen`. Missing (b) drains the objective timer on **every** environment (§8.30); emitting from two paths double-reports (§8.31).
 - [ ] No dangling non-ludeoable on EndGameplay
 
 ---
@@ -2470,13 +2537,19 @@ These are errors from prior integration attempts. The skill should actively prev
 **Mistake:** If the game's pause menu and the SDK overlay both call `SetPause(true)`, you get a nested pause. UE's pause system is binary (not refcounted by default). The first `SetPause(false)` unpauses even if both sources are still active.
 **Prevention:** Track pause sources explicitly if the game has multiple pause triggers.
 
-### 8.29 Wrong Action Names for Segment Marking
+### 8.29 Action Names Not Matching the Studio Lab Trigger Mapping
 
-**Mistake:** Creator Flow uses `StartNoneLudeable`/`StopNoneLudeable`. Player Flow uses `PauseLudeo`/`ResumeLudeo`. Sending Creator-flow action names during Player Flow (or vice versa) causes the backend to ignore the segment markers.
-**Prevention:** Always branch on `bIsPlayerFlow` when sending segment actions.
+**Mistake:** Sending action names the platform's **Global Triggers** config doesn't map. These strings are a convention (`StartNoneLudeable`/`StopNoneLudeable`, `PauseLudeo`/`ResumeLudeo`), not SDK constants — an unmapped string is silently ignored by the backend, and so is a mapped one whose flow branch never fires.
+**Prevention:** Use the conventional names, branch on `bIsPlayerFlow` only if the game's Studio Lab config actually distinguishes per flow (§5.9.1), and hand the integrator an explicit mapping action item. Verify in the log that the emitted string matches what's configured.
 
-### 8.30 Not Sending Segment Actions in Player Flow
+### 8.30 Freezing on a Pause Request Without Sending the Trigger
 
-**Mistake:** During Player Flow, responding to SDK pause/resume callbacks (freezing the game) is necessary but not sufficient. You must ALSO send `PauseLudeo`/`ResumeLudeo` actions via `SendAction`.
-**Why it's wrong:** The callbacks handle game-side behavior; the actions handle SDK-side segment marking. Both are required.
-**Prevention:** The Component's `TickComponent` pause detection (5.9.2) handles sending actions automatically when the pause state changes — ensure `bTickEvenWhenPaused = true` is set in the constructor.
+**Mistake:** Treating `OnPauseGameRequested` as satisfied by `SetGamePaused` alone. Responding to the request is **necessary but not sufficient** — the game must ALSO send `PauseLudeo`/`ResumeLudeo` via `SendAction` for that same pause.
+**Why it's wrong:** The freeze stops *your* simulation; it tells the backend nothing. The **Ludeo objective timer** is frozen server-side only when the tracked pause action reaches its Studio Lab Global Trigger. Freeze without trigger = the player sits under the Ludeo overlay while their clock drains. This is true on the cloud exactly as much as locally — the platform does not infer the pause from having asked for it.
+**Prevention:** Let the §5.9.2 detector observe the pause and send the action (it is origin-blind by design), or send it from the handler. Verify by log-counting one `PauseLudeo` per overlay open — and confirm the string is mapped as a Pause/Resume Global Trigger, or it's silently ignored (§8.29).
+
+### 8.31 Reporting the Same Pause Twice
+
+**Mistake:** Sending `PauseLudeo` from `OnPauseGameRequested` **and** letting the `TickComponent` detector send it for the same transition.
+**Why it's wrong:** One pause, two reports. The pairing breaks and a single `ResumeLudeo` can leave the backend still believing a span is open.
+**Prevention:** Pick one emitter. `bTriggerSpanOpen` (§5.9.3) makes the pair idempotent so a pause observed by two paths still reports once — the goal is *every pause exactly once*, not *skip the SDK's*. See [[report-every-pause-detect-state-not-per-callback]].

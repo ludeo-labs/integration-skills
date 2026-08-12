@@ -133,8 +133,10 @@ Get it from `SessionManager.CreateSession`. **Subscribe to the events below (wit
 session.LudeoSelected        += HandleLudeoSelected;
 session.RoomReady            += HandleRoomReady;
 session.PlayerConsentUpdated += HandleConsentUpdated;
-session.PauseGameRequested   += () => Time.timeScale = 0f;
-session.ResumeGameRequested  += () => Time.timeScale = 1f;
+// CR-011 needs BOTH halves in these handlers: freeze the sim AND emit PauseLudeo/ResumeLudeo —
+// the freeze alone doesn't stop the Ludeo objective timer. See unity/CONSENT-AND-OVERLAY.md §3.
+session.PauseGameRequested   += HandlePauseRequested;    // freeze + SendAction(PauseLudeo)
+session.ResumeGameRequested  += HandleResumeRequested;   // unfreeze + SendAction(ResumeLudeo)
 session.GameBackToMenuRequested += HandleReturnToMainMenu;
 session.MuteGameRequested    += d => SetMuted(d.isMuted);
 session.LocalizationUpdated  += d => SetLanguage(d.language);

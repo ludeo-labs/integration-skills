@@ -166,7 +166,7 @@ Before writing any state tracking or Player Flow code, confirm:
 - [ ] **Every phase enum from `intake.dynamicPhaseMetadata.phaseEnums` where `changesDuringSlice: true` is written per-tick to GameMetadata.** Every one where `mustRestore: true` has a Player Flow read-and-apply path. (Example: ActionGame MissionState/CombatPhase/IntensityScale — captures in Combat playing back as Stealth broke the demo.)
 - [ ] **Every gate in `intake.playbackUXBar.gatesToSuppressInPlayerFlow` has a suppression hook planned.** For each (briefing VO, intro cinematic, warmup phase, ability-activate montage), the agent has identified where to gate it behind the Player Flow path. Not diagnosed at debug time.
 - [ ] **Room open/close logic gates on `intake.captureTimingRules.roomOpenTrigger` / `roomCloseTrigger`.** Minimum-interesting-state threshold from `minimumInterestingStateThreshold` is documented in the TDD so empty/early captures aren't debugged as bugs.
-- [ ] **Pause detection is planned.** Component sets `bTickEvenWhenPaused = true`. `TickComponent` polls `GetWorld()->IsPaused()` and sends `PauseLudeo` / `StartNoneLudeable` on transitions. `WriteTrackedState()` is guarded with `if (bWasPaused) return;`. See §5.8.
+- [ ] **Pause detection is planned — both directions.** Component sets `bTickEvenWhenPaused = true`. `TickComponent` polls the game's pause signal (not only `GetWorld()->IsPaused()`) and sends `PauseLudeo`/`ResumeLudeo` — either flow, **every** pause origin including the SDK-requested overlay pause — paired via `bTriggerSpanOpen` so each pause reports once. The SDK's `OnPauseGameRequested`/`OnResumeGameRequested` freeze handlers are wired separately (phase 03 §5.9.4), and their pause must reach this emit: a plan with only one of the two is incomplete — missing the freeze, the game simulates under the overlay; missing the action, the **objective timer keeps counting through every pause on every environment**. If the game's pause doesn't flip the polled signal, the detector never fires — send from the handler instead. `WriteTrackedState()` is guarded with `if (bWasPaused) return;`. See §5.8.
 - [ ] **Every `trail + loadBearing` subsystem has a capture AND replay path planned.** From `intake.eventDrivenScriptedSystems` (Group 5) and/or Phase 02's `stateClassification.trail`. For each entry: the capture hook is identified (usually a delegate like `OnMilestonePassed`), the replay hook is identified (usually the game's own notifier like `NotifyClientPassedMilestone`), and both are in the Phase 05 implementation plan. Trail replay runs BEFORE snapshot state application during Player Flow. See §5.9. **Trails are Phase 05 work — not Phase 07 enrichment.** If a load-bearing trail subsystem is missing from this plan, Phase 05 is not ready.
 
 If any item is unchecked — including missing intake fields — go back and complete it before writing code. If an intake answer is `"unknown"`, resolve it with the human now (this is the phase that gates on it).
@@ -617,51 +617,67 @@ is **detection and action reporting** — the component must notice the pause an
 1. **Component constructor:** set `PrimaryComponentTick.bTickEvenWhenPaused = true` so tick
    keeps running while paused.
 
-2. **Track pause state in `TickComponent`.** How to detect pause depends on the game's pause
-   mechanism (discovered in Phase 02, recorded in `integration.json → pauseMechanism`):
-```cpp
-// Standard UE pause (most games):
-bool bCurrentlyPaused = GetWorld()->IsPaused();
+2. **Track pause state in `TickComponent`.** Detection depends on the game's pause mechanism (discovered in
+   Phase 02, recorded in `integration.json → pauseMechanism`). **OR the game's own signal with engine pause**
+   so a custom pauser and the SDK's own pause are both caught (phase 03 §5.9.2):
 
-// Time-dilation-based pause (multiplayer games like Lyra):
-// bool bCurrentlyPaused = GetWorld()->GetWorldSettings()->TimeDilation < 0.01f;
+   ```cpp
+   // OR the game's own pause signal with engine pause — see integration.json → pauseMechanism.type.
+   // bGamePausedSignal is e.g. a GameState bool, or GetWorldSettings()->TimeDilation < 0.01f (Lyra-style).
+   const bool bCurrentlyPaused = GetWorld()->IsPaused() || bGamePausedSignal;
 
-// Check integration.json → pauseMechanism.type to pick the right detection.
+   if (bCurrentlyPaused != bWasPaused)
+   {
+       if (bCurrentlyPaused) HandleGamePaused();
+       else                  HandleGameResumed();
+       bWasPaused = bCurrentlyPaused;
+   }
+   ```
 
-if (bCurrentlyPaused != bWasPaused)
-{
-    if (bCurrentlyPaused)
-        HandleGamePaused();
-    else
-        HandleGameResumed();
-    bWasPaused = bCurrentlyPaused;
-}
-```
+   An `IsPaused()`-only detector silently never fires on games that pause by other means — and then **no**
+   pause is ever reported, the SDK's overlay pause included.
 
-3. **Send pause/resume actions** — different actions per flow:
-```cpp
-void HandleGamePaused()
-{
-    if (bIsPlayerFlow)
-        SendAction("PauseLudeo");   // pauses Player Flow timers
-    else
-        SendAction("StartNoneLudeable");  // marks non-ludeoable segment in Creator Flow
-}
+3. **Send pause/resume actions for every pause.** `PauseLudeo` is the **only** thing that stops the
+   **Ludeo objective timer** — freezing the simulation tells the backend nothing, and the platform does not
+   infer the pause from having requested it. So this fires for the SDK's overlay pause as much as for the
+   game's own ESC menu; the detector is origin-blind by design, and `bTriggerSpanOpen` (a Component member,
+   alongside `bWasPaused`) keeps it to one report per pause. A pause takes the **Pause/Resume** trigger in
+   **either flow** — do not branch to `StartNoneLudeable` for Creator Flow, which keeps the timer *running*
+   (phase 03 §5.9.1). Non-ludeoable areas are a separate call site, not a flow branch of this one.
 
-void HandleGameResumed()
-{
-    if (bIsPlayerFlow)
-        SendAction("ResumeLudeo");
-    else
-        SendAction("StopNoneLudeable");
-}
-```
+   ```cpp
+   void HandleGamePaused()
+   {
+       if (bTriggerSpanOpen) return;    // idempotent: one report per pause, whatever observed it
+       bTriggerSpanOpen = true;
+       SendAction("PauseLudeo");        // stops the Ludeo objective timer + event tracking, either flow
+   }
+
+   void HandleGameResumed()
+   {
+       if (!bTriggerSpanOpen) return;   // never emit a lone end action
+       bTriggerSpanOpen = false;
+       SendAction("ResumeLudeo");
+   }
+   ```
+
+   The action has no effect until the integrator maps it as a **Pause/Resume Global Trigger** in Studio Lab —
+   an unmapped string is silently ignored, so seeing `PauseLudeo` in the log is not proof the timer stopped.
+
+   Emit only while a gameplay session is active — the `!bGameplayActive` bail is deliberate. Pauses outside a
+   session (waiting to pick a Ludeo, menus between matches) use the game's own pause and send nothing.
+
+   The **other** half — the SDK's `OnPauseGameRequested`/`OnResumeGameRequested` requests, which freeze the
+   game when the Ludeo overlay appears — is wired in phase 03 §5.9.4, and its pause must reach this emit too.
+   **Both are required**; see phase 03 §5.9.1 for the two directions, §8.30 for freezing without reporting,
+   §8.31 for reporting twice. Note those requests fire on the **cloud only**, so this emit path is the part
+   you can actually test locally.
 
 4. **Guard state writing:** add `if (bWasPaused) return;` at the top of `WriteTrackedState()`.
    Don't write state while the game is paused — it's meaningless data (nothing is moving).
 
 **Advanced pause detection** (menu overlays, map transitions, non-ludeoable area patterns) is
-deferred to Phase 06. This section covers only the basic SDK-overlay-triggered pause path.
+deferred to Phase 06. This section covers only the basic pause path.
 
 ### 5.9 Progression Trail Capture (Not Just Snapshots)
 
