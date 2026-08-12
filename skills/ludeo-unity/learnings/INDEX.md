@@ -8,5 +8,6 @@ Regenerate with `node scripts/generate-learnings-index.mjs` after adding a learn
 If you add a learning where you cannot run node (e.g. an installed skill copy),
 append the line by hand in the same format.
 
-Total: 0
+Total: 1
 
+- common-mistakes/write-for-the-integrator-not-for-the-skill.md | universal | p1,2,3,4,5,6,7,8 | Write for the integrator, not for the skill — they never agreed to learn our vocabulary
