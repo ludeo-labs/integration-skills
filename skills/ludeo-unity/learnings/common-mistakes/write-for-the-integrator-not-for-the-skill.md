@@ -64,6 +64,32 @@ Everything below is the third category: **ours, not theirs.**
 | "phase 5 will handle it" | "the step where we make a saved moment replay" |
 | "SHIP-2 is still open" | "the SDK package still lives outside the repo, so a fresh clone won't build" |
 
+## The trap: a paraphrase that dissolves the distinction
+
+Simplifying is lossy, and the loss is invisible from inside the sentence you just
+wrote. **The terms most worth simplifying are often the ones that exist precisely
+because two things are easy to confuse** — so a careless plain rendering re-creates
+the confusion the vocabulary was built to prevent.
+
+**This happened while following this very learning.** An agent rendered `Room` as
+"recording" in a progress summary. Two distinctions died at once:
+
+- **"recording" implies video.** The SDK captures game *state* — positions, health,
+  inventory, the generation seed — which is what makes a Ludeo *playable* rather than
+  watchable. Exactly backwards.
+- **It collapsed `Room` into `Ludeo`.** A Room brackets one captured gameplay segment;
+  the platform *derives* Ludeos from that segment. `references/state-file-schema.md`
+  warns that conflating them mis-scopes phase 3 — and the agent had read that warning
+  twice in the same session, including once in the target repo's own state file.
+
+The skill was not unclear. The paraphrase step is where it was lost.
+
+**Guard:** before you replace a term, name the distinction it carries, then check your
+replacement still carries it. If the term exists because of a documented confusion,
+your plain version must keep the two things apart — or keep the term and define it.
+**A simplification that makes a warned-against confusion easier is not a
+simplification.**
+
 ## Test before sending
 
 > Would a competent Unity developer who has **never heard of this SDK** understand

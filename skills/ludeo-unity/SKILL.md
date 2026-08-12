@@ -125,6 +125,15 @@ file — so the user experiences each as a single phase.
      objects back" rather than "CR-006 two-pass". Where an ID earns its place (artifacts are keyed by
      them), it goes **in parentheses after** the plain version, never instead of it.
 
+  **Plain language must PRESERVE the distinction, not dissolve it.** Paraphrase is lossy. Before
+  replacing a term, ask *what distinction it was carrying* and check the replacement still carries it —
+  especially where the vocabulary exists precisely because two things are easy to confuse. **Observed
+  failure:** an agent rendered `Room` as "recording" while following this very rule. That implied video
+  (it is captured *state*, not footage) and collapsed `Room` into `Ludeo` — the exact conflation
+  `references/state-file-schema.md` warns mis-scopes phase 3, which the agent had read twice that
+  session. Correct: a Room brackets one captured gameplay segment; the platform *derives* Ludeos from
+  it. **A simplification that makes a warned-against confusion easier is not a simplification.**
+
   **The test:** could a competent Unity developer who has never heard of this SDK follow every
   sentence — and *disagree* with it? Their disagreement is the main error-correction available during
   an engagement; vocabulary they cannot parse silences the review you most need. If challenged on one
