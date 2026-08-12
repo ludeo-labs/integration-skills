@@ -51,6 +51,61 @@ integrations. **Load the relevant learnings at the start of every phase, and cap
 moment you discover them.** See **[Learnings](#learnings)** below for the load/capture discipline; it
 is not optional.
 
+## Per-Session Flow
+
+**Run this before anything else, every session — including the first.** The workflow tells you to
+start fresh sessions between phases; this is what makes that safe. Without it a fresh session has no
+way to know what was decided, deferred, or blocked, and will re-ask or re-derive it.
+
+### Step 1: Detect State
+
+Read **`ludeo-integration-plan/integration.json`** from the target game repo
+(schema: [`references/state-file-schema.md`](references/state-file-schema.md)).
+
+**File exists:**
+
+1. Parse `currentPhase` and that phase's `status` — `in_progress` → resume it; `completed` → advance
+   to the next phase.
+2. **Reconcile before trusting it.** For every phase marked `completed`, check that its
+   `phases.<n>.artifact` actually exists on disk. **A `status` is something an agent typed; a file on
+   disk is a fact.** On any mismatch, **say so explicitly and stop** — do not silently pick a side:
+   - marked `completed`, artifact missing → the phase did not finish, or the artifact was deleted
+   - marked `not_started`, artifact present → prior work is not recorded; find out what happened
+3. Read `knownIssues` and surface any whose `resolveByPhase` is at or before the phase you're about to
+   run — they are due now, not later.
+4. Read `preferences` — they record **who runs which gate** (see below). Honour them instead of
+   renegotiating. Re-ask only if `lastAsked` is stale or the environment changed.
+5. Read `decisions` before proposing anything: a decision already made with a rationale is not
+   reopened without saying why.
+6. Load the reference file for the current phase.
+
+**File does not exist → this is a first run.** Start at phase 1; phase 1 creates the file as part of
+its output contract.
+
+### Who runs the gates
+
+Every code-writing phase ends in a **recompile + run** gate. Split it — do not hand the whole thing over:
+
+| Half | Default owner | How |
+|---|---|---|
+| Compile (`error CS`, asset import, `-executeMethod` results) | **agent** | `-batchmode -quit … -logFile`, then grep the log |
+| Does it run without throwing | **agent**, where a harness exists | Unity Test Framework (`-runTests`) |
+| Does it look/feel right; capture & replay a Ludeo | **human** | judgement on a live game |
+
+The agent has **no interactive Console — but `Debug.Log` output is in the editor log**, so the output
+is readable either way (`unity/READING-UNITY-LOGS.md`). Treating "no Console" as "cannot verify" hands
+away work the agent can do. Record the split in `preferences` so it is settled once, not per session.
+
+> ⚠️ **Exit code 0 is not a pass signal.** A batchmode run whose `-executeMethod` threw can still exit
+> `0` and print "Exiting batchmode successfully". Always grep for `error CS` and `threw exception`.
+
+### Step 2: Update state as you go
+
+Write to `integration.json` **when things happen, not at phase end**: a decision the moment it's made,
+a finding the moment it's found, a `knownIssue` the moment you defer something. Set a phase's `status`
+only once its artifact exists. Preserve fields you don't recognise — never rewrite the file from the
+template.
+
 ## Workflow
 
 The integration is a sequential workflow, now sequenced by the **8-phase guideline order** (the table's
@@ -269,6 +324,11 @@ machine. Set it up once, before doing any SDK work.
 
 ## Start here
 
-Read `references/1-build-game-with-sdk.md` and follow it. (Phase 2 establishes the full Unity
+**Run [Per-Session Flow → Step 1: Detect State](#step-1-detect-state) first** — read
+`ludeo-integration-plan/integration.json` and reconcile it against the artifacts on disk. It tells you
+which phase to run and what was already decided, deferred, or blocked.
+
+No state file → first run: read `references/1-build-game-with-sdk.md` and follow it (it creates the
+file). Otherwise load the reference file for `currentPhase`. (Phase 2 establishes the full Unity
 structural model and search patterns once you reach codebase mapping.)
 
