@@ -1,0 +1,13 @@
+{
+  "name": "verify-lifecycle",
+  "version": "0.1.0",
+  "description": "Verify a Ludeo SDK integration by checking a real game-run log against the SDK lifecycle contract.",
+  "license": "Apache-2.0",
+  "keywords": ["ludeo", "ludeo-skill", "agent-skill"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ludeo-labs/integration-skills.git",
+    "directory": "skills/verify-lifecycle"
+  },
+  "files": ["SKILL.md", "references", "tools"]
+}
