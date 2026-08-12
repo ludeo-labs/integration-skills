@@ -38,16 +38,31 @@ not the fix.** The whole register was wrong.
 An internal ID may appear in a JSON artifact for traceability, but it must always
 carry its meaning inline, and it should almost never appear in chat.
 
+### First, separate product vocabulary from our shorthand
+
+**`Ludeo` and `Studio Lab` are product words — teach them, don't dodge them.** The
+integrator is shipping a Ludeo integration; the word appears in the docs, the
+dashboard, their backlog, and eventually in front of their players. **Define it once
+on first use** — *"a Ludeo — a short playable clip someone can drop straight into"* —
+then use it like any other term. Writing around the product name to sound friendly
+just leaves them unable to read anything official.
+
+SDK API names (`LudeoRoom`, `WriteData`, `SendAction`) are likewise legitimate when
+the subject is code they will read or write. What they must not do is *replace* the
+explanation: "`OpenRoom` starts the recording when a run begins" — not a bare
+`OpenRoom`.
+
+Everything below is the third category: **ours, not theirs.**
+
 | Don't write | Write |
 |---|---|
-| "a Ludeo" | "a short playable clip someone can drop into" |
-| "OpenRoom / CloseRoom" | "start recording when the run begins, stop when it ends" |
 | "CR-006 two-pass restore" | "rebuild the level first, then put the objects back into it" |
 | "Wave 1" | "the first slice we get working end-to-end" |
 | "capture as attributes" | "record each enemy's position and health" |
 | "non-ludeoable segment" | "a stretch we don't want recorded, like the shop" |
 | "the readiness gate" | "waiting until the SDK is ready before the game starts" |
 | "phase 5 will handle it" | "the step where we make a saved moment replay" |
+| "SHIP-2 is still open" | "the SDK package still lives outside the repo, so a fresh clone won't build" |
 
 ## Test before sending
 

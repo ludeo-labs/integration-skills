@@ -108,19 +108,27 @@ file — so the user experiences each as a single phase.
 ## Important rules
 
 - **One phase at a time.** Get user confirmation before advancing to the next phase.
-- **Write for the integrator, not for the skill.** This skill runs on a private vocabulary — numbered
-  requirement IDs (`CR-006`), `Room`/`OpenRoom`, `Wave 1`, "two-pass", "attribute capture",
-  "non-ludeoable", "readiness gate", "Creator/Player flow", per-engagement issue tags (`SHIP-2`), and
-  phase numbers used as nouns. That shorthand is fine **agent-to-agent and inside `ludeo-integration-plan/`
-  artifacts**. It is meaningless to the integrator, who never agreed to learn it. **In anything a human
-  reads, say the thing instead of the token** — "rebuild the level from the seed, then put the objects
-  back" rather than "CR-006 two-pass"; "a short playable clip someone can drop into" rather than "a
-  Ludeo"; "start recording when the run begins" rather than "OpenRoom". Where an internal ID genuinely
-  earns its place (artifacts are keyed by them), it goes **in parentheses after** the plain-language
-  version, never instead of it. **The test:** could a competent Unity developer who has never heard of
-  this SDK follow every sentence — and *disagree* with it? Their disagreement is the main
-  error-correction available during an engagement; vocabulary they cannot parse silences the review you
-  most need. If challenged on one term, fix the register, not just that term.
+- **Write for the integrator, not for the skill — but do teach them the product.** Three kinds of
+  vocabulary, three different jobs:
+  1. **Product words — `Ludeo`, `Studio Lab`. TEACH these; never avoid them.** The integrator is
+     shipping a Ludeo integration and their players will see the word. **Define it once, plainly, on
+     first use** ("a Ludeo — a short playable clip someone can drop straight into"), then use it
+     normally. Writing around the product name to sound accessible leaves them unable to read the
+     docs, the dashboard, or their own backlog.
+  2. **SDK API names — `LudeoRoom`, `WriteData`, `SendAction`.** Correct and necessary when the
+     subject *is* the code they'll read or write. Do not let the API name stand in for explaining the
+     behaviour: "`OpenRoom` starts the recording when a run begins", not a bare `OpenRoom`.
+  3. **Skill-internal shorthand — `CR-006`, `Wave 1`, "two-pass", "non-ludeoable", "readiness gate",
+     per-engagement issue tags (`SHIP-2`), phase numbers used as nouns.** This is ours, not theirs,
+     and it buys them nothing. Fine agent-to-agent and inside `ludeo-integration-plan/` artifacts;
+     **translate it away in anything a human reads** — "rebuild the level from the seed, then put the
+     objects back" rather than "CR-006 two-pass". Where an ID earns its place (artifacts are keyed by
+     them), it goes **in parentheses after** the plain version, never instead of it.
+
+  **The test:** could a competent Unity developer who has never heard of this SDK follow every
+  sentence — and *disagree* with it? Their disagreement is the main error-correction available during
+  an engagement; vocabulary they cannot parse silences the review you most need. If challenged on one
+  term, fix the register, not just that term.
 - **Every code-writing phase ends with a recompile + run gate (hard requirement).** The files that edit
   `.cs` (`4`, `7`, `9`, `11`, `12`) each end by requiring the integrator to (1) focus the Editor to
   recompile clean and (2) play the game to confirm it still runs. Unity recompiles on focus, so "compile"
