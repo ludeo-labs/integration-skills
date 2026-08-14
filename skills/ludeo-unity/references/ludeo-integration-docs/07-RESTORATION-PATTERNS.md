@@ -163,6 +163,51 @@ LudeoSelected event (player picked a Ludeo in the gallery)          [SDK]
 > `RESTORATION_PLAN.md`. The invariant is *scene-loaded → **apply (protected)** → unfreeze → Begin (on
 > RoomReady)* — **apply is never preceded by an unfreeze** (§10.1 fixes the order for sync vs async).
 
+### 2.1.1 When to FREEZE — the half this document used to leave unsaid
+
+§2.1 fixes the order of *apply*, *unfreeze* and *Begin*. It says nothing about when the freeze goes **on**,
+and that silence has produced at least one integration that froze the game **before the gameplay level
+loaded**. Two rules, both learned the hard way:
+
+- **Do not freeze before the level is up.** Freeze *after* the scene has loaded and settled, and *before*
+  the room is opened. Freezing during load starves the loading path itself; the symptom is a replay that
+  applies into a half-built or entirely wrong world, with no error. (The Unreal skill states this as a
+  `universal` learning — *"Do NOT pause in `BeginPlay` — this blocks experience loading and creates a
+  deadlock"* — and adds a short delay so the loading screen dismisses before the freeze lands.)
+- **Do not leave the freeze on with no path to remove it.** Every freeze reason needs an owner that clears
+  it on both the success and failure paths, including the bounded-timeout path.
+
+So the full sequence, freeze included:
+
+```
+level loaded + settled  →  FREEZE  →  open room → AddPlayer → RoomReady
+                        →  [begin gate: room ready + player added + scene ready]
+                        →  apply / unfreeze (order per §2.1 + §10.1)  →  BeginGameplay
+```
+
+> **⚠️ Cross-engine contradiction — read this before choosing your apply/unfreeze order.**
+> This document's invariant is **apply while frozen, then unfreeze** ("apply is never preceded by an
+> unfreeze", §2.1). The **Unreal** skill's reference integration states the *opposite* as a `universal`
+> learning: **unpause BEFORE applying**, because *"movement component needs the game running to handle
+> teleport."* Both are describing a real failure, and neither is wrong:
+>
+> | Order | Guards against | Fails when |
+> |---|---|---|
+> | apply while frozen → unfreeze | a live `Update`/`FixedUpdate` overwriting restored state before `Begin` (the BL-4 trap) | the freeze is *total* — a character controller that needs ticks to accept a teleport silently drops it, and the player restores to the wrong place or falls through the world |
+> | unfreeze → apply | teleports and physics-dependent writes not taking | the sim runs live during apply, so gameplay can overwrite what was just written |
+>
+> **The resolution is not to pick a side — it is to make the freeze selective.** Freeze *gameplay*: AI,
+> input, timers, spawners. Do **not** freeze the engine so hard that a teleport cannot be processed. If the
+> game's only freeze lever is a global time scale (common), then either apply position **after** the
+> unfreeze and re-assert it on the following frame, or verify by test that a teleport lands while frozen —
+> **and record which, and the evidence, in `RESTORATION_PLAN.md`.**
+>
+> Do **not** resolve this by "reconciling against the installed package": the SDK is a thin wrapper over
+> native notifications and encodes **no** apply/freeze ordering at all. `RoomReady` and the `AddPlayer`
+> callback are independent async notifications with no ordering guarantee — which is *why* the begin gate
+> has multiple legs — but the freeze question is an **engine** question, answerable only by the game's own
+> movement/physics code or by test.
+
 ### 2.2 Play-flow re-entry (tear-down) — capture→play **and replay→replay**
 
 `LudeoSelected` can fire while a run is **already live**, by two routes that hit the same code:
