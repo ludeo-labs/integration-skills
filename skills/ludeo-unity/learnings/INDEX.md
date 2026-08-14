@@ -8,7 +8,7 @@ Regenerate with `node scripts/generate-learnings-index.mjs` after adding a learn
 If you add a learning where you cannot run node (e.g. an installed skill copy),
 append the line by hand in the same format.
 
-Total: 30
+Total: 34
 
 - architecture/a-world-ready-flag-may-still-answer-for-the-world-you-are-leaving.md | generalizable | p5 | Does your restore flow poll a game-owned 'world/level is ready' flag to know when to restore? Find out what CLEARS it. If it is cleared by the loader or generator rather than by the load REQUEST, it still answers for th…
 - architecture/boot-the-replay-through-the-games-own-entry-flow.md | generalizable | p5 | Does the game initialize the player through an entry flow (hub/lobby scene, spawn handshake, countdown) before gameplay levels? If the replay boot loads the level any other way, every skipped step of that flow is a late…
@@ -39,4 +39,8 @@ Total: 30
 - engine-quirks/headless-player-build-needs-a-scene-open.md | generalizable | p3,7 | Does the game implement BuildPlayerProcessor / IPreprocessBuildWithReport? If so, check whether it reads or restores the currently-open scene — that assumption breaks under -batchmode.
 - engine-quirks/layer-namespace-can-silently-inherit-the-games-base-types.md | generalizable | p3 | Is the Ludeo layer being placed in a namespace nested under the game's root namespace? If so, grep that root for types shadowing common framework names (`MonoBehaviour`, `Environment`, `Object`, `Random`, `Time`, `Debug…
 - engine-quirks/non-positive-physics-simulate-spams-negative-time.md | generalizable | p5 | Does the game step physics from script (SimulationMode.Script + Physics.Simulate(dt)) with a dt derived from a game-owned time scale? If the restore freeze zeroes that scale, every FixedUpdate calls Simulate with a non-…
+- common-mistakes/agent-can-run-unity-compile-gates-headlessly.md | generalizable | p1,3,5,6 | Is a matching Unity Editor installed on this machine, with shell access, and the project NOT currently open in the Editor (no Temp/UnityLockfile)? (Applies to EVERY compile gate, not just phase 1.)
+- common-mistakes/headless-smoke-test-instead-of-editor-init.md | generalizable | p1 | Can the agent launch Unity itself (Editor installed locally, project not locked), so the phase-1 Initialize() smoke test can run headlessly instead of as a hand-clicked Editor action?
+- common-mistakes/investigate-before-asking.md | universal | p1,2,3,4,5,6,7,8 | Do the work before you speak — never ask what the repo answers, never assert what you haven't checked
+- engine-quirks/headless-editor-setup-needs-executemethod.md | generalizable | p1 | Is the Ludeo package being installed or configured headlessly (-batchmode, CI, or an agent driving Unity), rather than by a human in an interactive Editor session?
 - engine-quirks/sdk-setup-needs-two-headless-runs.md | generalizable | p1 | Is LudeoUnityEditorHelpers.SetupLudeoAssets being run headlessly for the FIRST time, i.e. before LudeoSettings.asset exists on disk?

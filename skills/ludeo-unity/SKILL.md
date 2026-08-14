@@ -75,9 +75,11 @@ file — so the user experiences each as a single phase.
   a time** — per wave: deep-scope (task 0) → capture (task 1) → restore-plan (task 2) → reconstruction (task
   4), with the restore-**flow** (task 3) built **once in Wave 1**. **Wave 1** proves the full capture→replay
   round-trip on the *restorable spine + must-have set*; each later wave widens the tracked set. **Every**
-  sub-task ends in a human gate the orchestrator runs (the agent can't see the Console, and the
-  capture/replay gates require the human to capture/play a Ludeo); on a failed gate it re-dispatches a fix
-  subagent with the logs — re-opening an **earlier wave** if the failure traces to its state.
+  sub-task ends in a gate the orchestrator runs. **Split each gate:** the agent verifies the *compile* half
+  itself (headless `-batchmode`, then read the log — it has no interactive Console, but the Console's
+  **output** is in the log); the *human* half is only what needs a person — the capture/replay gates require
+  the human to capture/play a Ludeo and judge fidelity. On a failed gate it re-dispatches a fix subagent
+  with the logs — re-opening an **earlier wave** if the failure traces to its state.
 - **Phase 6** ("actions") follows `references/6-actions-orchestrator.md`: map → implement, then one human
   compile+log gate (each action must emit in **both** the Creator and Player flow).
 
@@ -108,6 +110,38 @@ file — so the user experiences each as a single phase.
 ## Important rules
 
 - **One phase at a time.** Get user confirmation before advancing to the next phase.
+- **Write for the integrator, not for the skill — but do teach them the product.** Three kinds of
+  vocabulary, three different jobs:
+  1. **Product words — `Ludeo`, `Studio Lab`. TEACH these; never avoid them.** The integrator is
+     shipping a Ludeo integration and their players will see the word. **Define it once, plainly, on
+     first use** ("a Ludeo — a short playable clip someone can drop straight into"), then use it
+     normally. Writing around the product name to sound accessible leaves them unable to read the
+     docs, the dashboard, or their own backlog.
+  2. **SDK API names — `LudeoRoom`, `WriteData`, `SendAction`.** Correct and necessary when the
+     subject *is* the code they'll read or write. Do not let the API name stand in for explaining the
+     behaviour: "`OpenRoom` starts capturing the run, `CloseRoom` ends it", not a bare `OpenRoom`
+     — and note what that gloss avoids saying: "recording". See the paraphrase trap below.
+  3. **Skill-internal shorthand — `CR-006`, `Wave 1`, "two-pass", "non-ludeoable", "readiness gate",
+     per-engagement issue tags (`SHIP-2`), phase numbers used as nouns.** This is ours, not theirs,
+     and it buys them nothing. Fine agent-to-agent and inside `ludeo-integration-plan/` artifacts;
+     **translate it away in anything a human reads** — "rebuild the level from the seed, then put the
+     objects back" rather than "CR-006 two-pass". Where an ID earns its place (artifacts are keyed by
+     them), it goes **in parentheses after** the plain version, never instead of it.
+
+  **Plain language must PRESERVE the distinction, not dissolve it.** Paraphrase is lossy. Before
+  replacing a term, ask *what distinction it was carrying* and check the replacement still carries it —
+  especially where the vocabulary exists precisely because two things are easy to confuse. **Observed
+  failure:** an agent rendered `Room` as "recording" while following this very rule. That implied video
+  (it is captured *state*, not footage) and collapsed `Room` into `Ludeo` — a conflation that
+  mis-scopes phase 3, and which the agent had been warned about twice in the same session. **Correct
+  (per the live SDK docs, `GameplaySessions`): a Room brackets one captured gameplay segment; the
+  platform *derives* Ludeos from that segment — the game does not decide how many a segment yields.**
+  A simplification that makes a warned-against confusion easier is not a simplification.
+
+  **The test:** could a competent Unity developer who has never heard of this SDK follow every
+  sentence — and *disagree* with it? Their disagreement is the main error-correction available during
+  an engagement; vocabulary they cannot parse silences the review you most need. If challenged on one
+  term, fix the register, not just that term.
 - **Every code-writing phase ends with a recompile + run gate (hard requirement).** The files that edit
   `.cs` (`4`, `7`, `9`, `11`, `12`) each end by requiring the integrator to (1) focus the Editor to
   recompile clean and (2) play the game to confirm it still runs. Unity recompiles on focus, so "compile"
