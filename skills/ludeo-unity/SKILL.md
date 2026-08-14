@@ -75,9 +75,11 @@ file — so the user experiences each as a single phase.
   a time** — per wave: deep-scope (task 0) → capture (task 1) → restore-plan (task 2) → reconstruction (task
   4), with the restore-**flow** (task 3) built **once in Wave 1**. **Wave 1** proves the full capture→replay
   round-trip on the *restorable spine + must-have set*; each later wave widens the tracked set. **Every**
-  sub-task ends in a human gate the orchestrator runs (the agent can't see the Console, and the
-  capture/replay gates require the human to capture/play a Ludeo); on a failed gate it re-dispatches a fix
-  subagent with the logs — re-opening an **earlier wave** if the failure traces to its state.
+  sub-task ends in a gate the orchestrator runs. **Split each gate:** the agent verifies the *compile* half
+  itself (headless `-batchmode`, then read the log — it has no interactive Console, but the Console's
+  **output** is in the log); the *human* half is only what needs a person — the capture/replay gates require
+  the human to capture/play a Ludeo and judge fidelity. On a failed gate it re-dispatches a fix subagent
+  with the logs — re-opening an **earlier wave** if the failure traces to its state.
 - **Phase 6** ("actions") follows `references/6-actions-orchestrator.md`: map → implement, then one human
   compile+log gate (each action must emit in **both** the Creator and Player flow).
 
