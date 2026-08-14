@@ -127,8 +127,12 @@ LudeoSelected event (player picked a Ludeo in the gallery)          [SDK]
   → GetLudeo(ludeoId)                                                [SDK]  →  LudeoDataReader
       → new LudeoRestoredData(ludeoId, reader, out ok)               [Layer] groups buckets + restores world config (§8)
       → SwitchToPlay()  (consent-gated, CR-012)                      [Layer] IsInLudeoFlow becomes true
-      → InitRoom → OpenRoom(forLudeo) → AddPlayer                [SDK]   (CR-009 chain; LudeoPlayFlow)
       → onInitDone(isStartingInLudeoFlow: true)                      [Layer] → game loads the gameplay scene
+      → scene loaded AND settled                                     [Layer] the game's own "world ready" signal
+          → FREEZE (§2.1.1)                                          [Layer] only now - earlier starves the load
+          → InitRoom → OpenRoom(forLudeo) → AddPlayer                [SDK]   (CR-009 chain; LudeoPlayFlow)
+  → RoomReady event                                                  [SDK]
+      → [begin gate: room ready + player added + scene ready]
           → APPLY: spawn-from-bucket + restore attributes (§4)        ← your code, after scene/objects exist
   → RoomReady event                                                  [SDK]
       → (sync apply) Begin → unfreeze  ·  (async apply) unfreeze → Begin  [Layer]+[Unity] CR-010 §10.1
@@ -162,6 +166,22 @@ LudeoSelected event (player picked a Ludeo in the gallery)          [SDK]
 > Both honor §2.1 — pick whichever fits where the game loads its scene, and record the choice in
 > `RESTORATION_PLAN.md`. The invariant is *scene-loaded → **apply (protected)** → unfreeze → Begin (on
 > RoomReady)* — **apply is never preceded by an unfreeze** (§10.1 fixes the order for sync vs async).
+
+### 2.1.0 Load the level BEFORE opening the room — not after
+
+The flow above used to show `InitRoom → OpenRoom → AddPlayer` **before** the game loaded the gameplay
+scene. That is backwards, and it is the single most damaging error in this document, because opening the
+room is what raises the **overlay** — so the viewer gets the overlay over a game that has loaded nothing,
+and the room's readiness clock starts ticking against a scene load it then has to wait for anyway.
+
+**Load the level first, let it settle, and only then open the room.** This matches the Unreal skill's
+reference integration (`map loads → detect Player Flow → pause → open room`), and it is what the begin
+gate's third leg already implies: if the scene has to be ready before you can `Begin`, there is nothing
+to gain by opening the room before the scene exists.
+
+Observed consequence of the old order in a live integration: the overlay came up immediately on clip
+selection, the dungeon never finished coming up behind it, and the restore then applied into a world that
+was not there — reporting success the whole way.
 
 ### 2.1.1 When to FREEZE — the half this document used to leave unsaid
 
