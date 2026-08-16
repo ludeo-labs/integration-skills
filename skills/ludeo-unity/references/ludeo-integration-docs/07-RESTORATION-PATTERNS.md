@@ -127,8 +127,12 @@ LudeoSelected event (player picked a Ludeo in the gallery)          [SDK]
   → GetLudeo(ludeoId)                                                [SDK]  →  LudeoDataReader
       → new LudeoRestoredData(ludeoId, reader, out ok)               [Layer] groups buckets + restores world config (§8)
       → SwitchToPlay()  (consent-gated, CR-012)                      [Layer] IsInLudeoFlow becomes true
-      → InitRoom → OpenRoom(forLudeo) → AddPlayer                [SDK]   (CR-009 chain; LudeoPlayFlow)
       → onInitDone(isStartingInLudeoFlow: true)                      [Layer] → game loads the gameplay scene
+      → scene loaded AND settled                                     [Layer] the game's own "world ready" signal
+          → FREEZE (§2.1.1)                                          [Layer] only now - earlier starves the load
+          → InitRoom → OpenRoom(forLudeo) → AddPlayer                [SDK]   (CR-009 chain; LudeoPlayFlow)
+  → RoomReady event                                                  [SDK]
+      → [begin gate: room ready + player added + scene ready]
           → APPLY: spawn-from-bucket + restore attributes (§4)        ← your code, after scene/objects exist
   → RoomReady event                                                  [SDK]
       → (sync apply) Begin → unfreeze  ·  (async apply) unfreeze → Begin  [Layer]+[Unity] CR-010 §10.1
@@ -162,6 +166,67 @@ LudeoSelected event (player picked a Ludeo in the gallery)          [SDK]
 > Both honor §2.1 — pick whichever fits where the game loads its scene, and record the choice in
 > `RESTORATION_PLAN.md`. The invariant is *scene-loaded → **apply (protected)** → unfreeze → Begin (on
 > RoomReady)* — **apply is never preceded by an unfreeze** (§10.1 fixes the order for sync vs async).
+
+### 2.1.0 Load the level BEFORE opening the room — not after
+
+The flow above used to show `InitRoom → OpenRoom → AddPlayer` **before** the game loaded the gameplay
+scene. That is backwards, and it is the single most damaging error in this document, because opening the
+room is what raises the **overlay** — so the viewer gets the overlay over a game that has loaded nothing,
+and the room's readiness clock starts ticking against a scene load it then has to wait for anyway.
+
+**Load the level first, let it settle, and only then open the room.** This matches the Unreal skill's
+reference integration (`map loads → detect Player Flow → pause → open room`), and it is what the begin
+gate's third leg already implies: if the scene has to be ready before you can `Begin`, there is nothing
+to gain by opening the room before the scene exists.
+
+Observed consequence of the old order in a live integration: the overlay came up immediately on clip
+selection, the dungeon never finished coming up behind it, and the restore then applied into a world that
+was not there — reporting success the whole way.
+
+### 2.1.1 When to FREEZE — the half this document used to leave unsaid
+
+§2.1 fixes the order of *apply*, *unfreeze* and *Begin*. It says nothing about when the freeze goes **on**,
+and that silence has produced at least one integration that froze the game **before the gameplay level
+loaded**. Two rules, both learned the hard way:
+
+- **Do not freeze before the level is up.** Freeze *after* the scene has loaded and settled, and *before*
+  the room is opened. Freezing during load starves the loading path itself; the symptom is a replay that
+  applies into a half-built or entirely wrong world, with no error. (The Unreal skill states this as a
+  `universal` learning — *"Do NOT pause in `BeginPlay` — this blocks experience loading and creates a
+  deadlock"* — and adds a short delay so the loading screen dismisses before the freeze lands.)
+- **Do not leave the freeze on with no path to remove it.** Every freeze reason needs an owner that clears
+  it on both the success and failure paths, including the bounded-timeout path.
+
+So the full sequence, freeze included:
+
+```
+level loaded + settled  →  FREEZE  →  open room → AddPlayer → RoomReady
+                        →  [begin gate: room ready + player added + scene ready]
+                        →  apply / unfreeze (order per §2.1 + §10.1)  →  BeginGameplay
+```
+
+> **⚠️ Cross-engine contradiction — read this before choosing your apply/unfreeze order.**
+> This document's invariant is **apply while frozen, then unfreeze** ("apply is never preceded by an
+> unfreeze", §2.1). The **Unreal** skill's reference integration states the *opposite* as a `universal`
+> learning: **unpause BEFORE applying**, because *"movement component needs the game running to handle
+> teleport."* Both are describing a real failure, and neither is wrong:
+>
+> | Order | Guards against | Fails when |
+> |---|---|---|
+> | apply while frozen → unfreeze | a live `Update`/`FixedUpdate` overwriting restored state before `Begin` (the BL-4 trap) | the freeze is *total* — a character controller that needs ticks to accept a teleport silently drops it, and the player restores to the wrong place or falls through the world |
+> | unfreeze → apply | teleports and physics-dependent writes not taking | the sim runs live during apply, so gameplay can overwrite what was just written |
+>
+> **The resolution is not to pick a side — it is to make the freeze selective.** Freeze *gameplay*: AI,
+> input, timers, spawners. Do **not** freeze the engine so hard that a teleport cannot be processed. If the
+> game's only freeze lever is a global time scale (common), then either apply position **after** the
+> unfreeze and re-assert it on the following frame, or verify by test that a teleport lands while frozen —
+> **and record which, and the evidence, in `RESTORATION_PLAN.md`.**
+>
+> Do **not** resolve this by "reconciling against the installed package": the SDK is a thin wrapper over
+> native notifications and encodes **no** apply/freeze ordering at all. `RoomReady` and the `AddPlayer`
+> callback are independent async notifications with no ordering guarantee — which is *why* the begin gate
+> has multiple legs — but the freeze question is an **engine** question, answerable only by the game's own
+> movement/physics code or by test.
 
 ### 2.2 Play-flow re-entry (tear-down) — capture→play **and replay→replay**
 
