@@ -24,6 +24,7 @@ Detect the engine from the project, in this priority order, then install + run t
 | --- | --- | --- |
 | `*.uproject`, `Source/`, `*.Build.cs` | **Unreal Engine** | `ludeo-unreal-integration` |
 | `Assets/`, `ProjectSettings/`, `Packages/manifest.json`, `*.unity`/`*.asmdef` | **Unity** | `ludeo-unity-integration` |
+| An already-integrated game and the task is to verify/test the integration or check a run log | any | `ludeo-verify-lifecycle` |
 | Neither, but you're packaging a finished build to ship | — | `cloud-upload` |
 
 If both Unreal and Unity markers somehow appear, ask the user which engine is authoritative — do not
