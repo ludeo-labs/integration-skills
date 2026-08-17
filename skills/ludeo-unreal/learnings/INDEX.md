@@ -8,7 +8,7 @@ Regenerate with `node scripts/generate-learnings-index.mjs` after adding a learn
 If you add a learning where you cannot run node (e.g. an installed skill copy),
 append the line by hand in the same format.
 
-Total: 297
+Total: 298
 
 - architecture/additive-action-emission-for-composable-goals.md | universal | p6 | Emit actions on multiple orthogonal axes — additive, not else-if
 - architecture/bind-session-notifications-once-at-subsystem-not-per-room.md | generalizable | p5 | Are the session-level notification delegates (OnRoomReady, OnLudeoSelected, pause/resume, back-to-menu) bound ONCE at session setup on a persistent owner, or rebound per-room on a transient component?
@@ -293,6 +293,7 @@ Total: 297
 - engine-quirks/uobject-staticclass-is-abstract-in-non-editor.md | universal | p5 | `UObject::StaticClass()` is abstract outside editor builds
 - engine-quirks/uplugin-must-declare-plugin-deps.md | universal | p8 | Plugin dependencies must be in .uplugin, not just .Build.cs
 - engine-quirks/use-filter-not-iterate-and-break-for-tags.md | universal | p8 | Use FGameplayTagContainer::Filter() — not iterate-and-break
+- engine-quirks/zm-flag-in-nested-rsp-d8000-ue58.md | generalizable | p3 | Does the machine's %APPDATA%/Unreal Engine/UnrealBuildTool/BuildConfiguration.xml set PCHMemoryAllocationFactor (which emits /Zm<N>)? If yes and the engine is UE 5.8+, remove that element before building — /Zm inside UB…
 - save-systems/captured-dead-entities-restore-as-corpses-via-death-path.md | generalizable | p5 | Does the Creator keep writing tracked AI entities after they die (ragdoll/death-anim actors linger in the world)? If so, the snapshot contains Health<=0 entities — decide explicitly how restore handles them (corpse via …
 - save-systems/firearm-magazine-separate-from-reserve-ammo.md | generalizable | p5 | Does the game store a firearm's loaded magazine separately from the reserve ammo held in inventory? If so, restoring reserve ammo alone leaves the gun empty — call the weapon's reload-from-reserve function after restori…
 - save-systems/reconstruct-inventory-via-game-additem.md | generalizable | p5 | Does the curated slice pre-populate the player's inventory at spawn, or only a basic loadout? If items picked up during play are gone on a fresh Player Flow spawn, restore must ADD them via the game's own AddItem functi…
