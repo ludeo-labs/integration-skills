@@ -246,34 +246,56 @@ release; GC handles it. No `ObjectsInfo_Release` equivalent.
 Some operations are triggered by SDK callbacks/notifications, not by your game events.
 
 **🎮 Game code calls these:** `Initialize` + `CreateSession` (startup), `Activate` (after
-session created + events subscribed), `OpenRoom` (gameplay start), `EndGameplay`/`AbortGameplay`
-(all exit paths), session `Dispose` (shutdown).
+session created + events subscribed), `OpenRoom` (gameplay start), `NotifySceneLoadStarted` /
+`NotifySceneReady` (the scene-load edges), `EndGameplay`/`AbortGameplay` (all exit paths), session
+`Dispose` (shutdown).
 
 **📞 Driven by callbacks/notifications (do NOT call from game event handlers):**
 
 | Operation | Called from |
 | --- | --- |
 | `LudeoRoom.AddPlayer` | the `OpenRoom` callback (`HandleRoomOpened`) |
-| `LudeoPlayer.BeginGameplay` | after the room is ready **and** the player added — **both** of the `RoomReady` event and the `AddPlayer` callback, which **race** |
+| `LudeoPlayer.BeginGameplay` | the **three-leg begin gate** — the `RoomReady` event ∧ the `AddPlayer` callback ∧ scene-loaded; whichever leg is last fires it |
 | `LudeoRoom.CloseRoom` | after `EndGameplay`/`AbortGameplay` completes, or on `GameBackToMenuRequested` |
 
 **Forbidden:** calling `OpenRoom` then immediately `AddPlayer`/`BeginGameplay` from the same
 level-load handler — the room/player aren't ready yet. Chain them through the callbacks.
 
-> **⚠️ The `RoomReady` event and the `AddPlayer` callback race — `BeginGameplay` requires BOTH.** They
+### The begin gate has THREE legs, in BOTH flows
+
+`BeginGameplay` starts SDK recording **including the video encoder**, so it must fire at the first real
+gameplay frame — never before. Three independent, racing signals; whichever is last fires it:
+
+| Leg | Meaning | Source |
+| --- | --- | --- |
+| 1 | The `RoomReady` event arrived | `[SDK]` |
+| 2 | The `AddPlayer` callback stored the `LudeoPlayer` | `[SDK]` |
+| 3 | **The gameplay scene finished loading and the loading screen is down** | `[Layer]` — *your* loader calls `NotifySceneLoadStarted()` / `NotifySceneReady()` |
+
+Leg 3 applies to the **capture (creator) flow as well as restore** — it is not restore-only. Skipping it
+starts the encoder mid-load (the Ludeo opens on a loading screen) and, in restore, applies state into an
+empty scene. Latch it at *level loaded + loading screen down*; intros/fade-ins/countdowns are inside the
+recording by design. **No timeout fallthrough** — a "begin anyway after N seconds" re-creates the defect.
+Clear leg 3 at the load **request**, not from inside the loader
+([[a-world-ready-flag-may-still-answer-for-the-world-you-are-leaving]]).
+
+→ Full rules and how to find the signal:
+[`05-LIFECYCLE-MANAGEMENT.md` → *The `BeginGameplay` gate*](./05-LIFECYCLE-MANAGEMENT.md). Code:
+`unity/REFERENCE-ARCHITECTURE.md`.
+
+> **⚠️ Legs 1 and 2 race — `BeginGameplay` requires BOTH.** They
 > are independent async events with no ordering guarantee. Calling `BeginGameplay` from `RoomReady`
 > alone fails whenever `RoomReady` wins (the `LudeoPlayer` is still null → the run records nothing) —
 > and it's intermittent, so it survives a first smoke test. Gate `BeginGameplay` so it fires only once
 > both have completed (whichever is last), or fetch the player in the `RoomReady` handler via
 > `LudeoRoom.GetPlayer(playerId, out LudeoPlayer)`. See `unity/REFERENCE-ARCHITECTURE.md`.
 
-> **⚠️ For *restore*, the gate is a THIRD leg: the gameplay scene must be loaded too.** RoomReady is
+> **⚠️ For *restore*, leg 3 also carries the reveal.** RoomReady is
 > independent of `SceneManager` — applying restored state on RoomReady while the scene is still loading
-> writes into an empty scene. The game must signal scene-load completion (`NotifySceneReadyForRestore()`),
-> which usually means adding an awaitable/event to an `async void` scene loader. Gate = `RoomReady ∧
-> AddPlayer ∧ sceneLoaded`. **`sceneLoaded` means the scene is *fully assembled* — apply done, async
-> spawns settled, sim frozen-ready — not merely scene-activated; fire `NotifySceneReadyForRestore()` only
-> then, and keep the scene covered until it, so the player never resumes onto a level still assembling
+> writes into an empty scene. Gate = `RoomReady ∧
+> AddPlayer ∧ sceneLoaded`. **Fire `NotifySceneReady()` only once the scene the player will see is
+> finished** — async spawns settled, sim frozen-ready — not merely scene-activated,
+> and keep the scene covered until it, so the player never resumes onto a level still assembling
 > (07 §2.1 invariant 5 / §10.1).** See CR-010 and `unity/REFERENCE-ARCHITECTURE.md`.
 
 → See [`05-LIFECYCLE-MANAGEMENT.md`](./05-LIFECYCLE-MANAGEMENT.md) for the callback flow.

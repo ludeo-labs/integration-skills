@@ -72,14 +72,27 @@ points, trading latency-hiding for proximity to actual gameplay:
 **Default to the canonical event.** Bind the subsystem creator-flow room-open to it. Use the
 earliest bind point only if the canonical event fires too late to hide visible startup time.
 
-## 4. The Existing `RoomReady + AddGamePlayer` Gate Is Sufficient
+## 4. ⚠️ `RoomReady + AddPlayer` Is NOT Sufficient — You Need the Level-Loaded Leg
 
-You may worry: "if `OpenRoom` fires at loading start but the state machine doesn't reach active
-gameplay for several seconds, won't `BeginGameplay` fire before the world is live?"
+> **CORRECTION — read first.** An earlier version of this section said "no third gate is needed" and
+> that the gap before the world is live is *"dead time on the SDK side — invisible in the captured
+> Ludeo."* **That was wrong.** `FLudeoPlayer::BeginGameplay` also starts the **video encoder**: every frame between it and
+> `EndGameplay` lands in the Ludeo's video. The gap is not invisible — it *is* the opening seconds of the
+> highlight. Fire it mid-load and the Ludeo opens on a loading screen, terrain popping in, or a black
+> frame.
 
-**No third gate is needed.** The subsystem flow already gates `BeginGameplay` on **`AddPlayer`
-success + the `RoomReady` notification** — both SDK-side signals (see
-`references/phase-03-lifecycle.md` → N-Way Gate). Why this is safe even before the world is live:
+You were right to worry: "if `OpenRoom` fires at loading start but the state machine doesn't reach
+active gameplay for several seconds, won't `BeginGameplay` fire before the world is live?"
+**Yes — and in a streaming world that window is at its widest.** You bind `OpenRoom` early (§3) on
+purpose so SDK latency hides under the load, which guarantees the room chain finishes first; and the
+component attaches to the **persistent/root** world, so its `BeginPlay` runs before the streamed
+gameplay level, its actors, and often the real player pawn exist.
+
+So the N-way gate needs a **level-loaded** leg (`bLevelLoaded`) alongside the SDK legs and the
+game-phase leg — `references/phase-03-lifecycle.md` §3.2.2 (mandatory) and §8.2c.
+
+The old rationale still holds for *attribute sampling* — and that's the point: it was only ever an
+argument about **state**, never about **video**.
 
 - **Sampling is gated by your own in-gameplay flag.** `UpdateWritableObjects` only runs while
   the component's "in gameplay" state is true (the `bGameplayActive` / `bGameplayStarted` guard
@@ -88,11 +101,25 @@ success + the `RoomReady` notification** — both SDK-side signals (see
 - **Actions only fire on real gameplay events.** `SendAction` is hooked to kills / pickups /
   quest completions and is itself gated on `bGameplayStarted`. The loading sequence generates no
   action calls.
-- **The first captured frame is the real first gameplay frame.** The gap between `BeginGameplay`
-  and "world live" is dead time on the SDK side — invisible in the captured Ludeo.
+- **But the encoder is not gated on any of that.** It runs from `BeginGameplay`. Clean state plus a
+  video that opens on a loading screen is still a broken Ludeo.
 
-So: keep the two-signal gate (`AddPlayer` done **and** `RoomReady`). Do **not** add a third
-condition. The safety net is the sampler gate inside `TickComponent`, not a third callback.
+**So: keep the sampler gate inside `TickComponent` *and* add the level-loaded leg.** They are not
+alternatives — the sampler gate protects the state; `bLevelLoaded` protects the video.
+
+### 4.1 `bLevelLoaded` in a streaming world — two deltas
+
+§3.2.2 has the general rules; two things are specific to a streaming world:
+
+- **Travel/`BeginPlay` completion is not enough.** World Partition cells, streamed sublevels,
+  `FStreamableManager` loads, save reconstruction and NPC population all continue after the map
+  "loads." Latch on the game's own "world ready / loading screen down" signal.
+- **Mid-run level loads must NOT drop the leg.** Interiors and fast travel sit *inside* one gameplay
+  session — they're non-ludeoable spans (`StartNoneLudeable`), not a new `BeginGameplay`.
+
+> Verify on a **cold** load and in **Player Flow** — a warm load can finish before `OnRoomReady`, and
+> Creator Flow's session-activation wait masks a missing leg further.
+> See [[gate-player-flow-on-streamed-level-not-pawn]].
 
 ## 5. Pause Coverage
 
