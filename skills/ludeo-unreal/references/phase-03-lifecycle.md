@@ -97,7 +97,7 @@ Map each SDK lifecycle point to the game's actual code. Use CODE_MAP fields from
 |---|---|---|---|
 | Room Open (`FLudeoSession::OpenRoom`) | Start of playable unit | `lifecycle_hooks.roomOpen` | Trace from the hook to confirm it fires once per playable unit |
 | AddPlayer (`FLudeoRoom::AddPlayer`) | Player spawn/join event | `core_classes` (GameState, PlayerState) | `Grep("OnPlayerState\|OnNewPlayer\|OnPlayerJoined\|PlayerAdded\|OnPlayerStatePawnSet\|SpawnDefaultPawnForPlayer", glob: "*.h")` |
-| BeginGameplay gate conditions | Async signals that ALL must be true | `lifecycle_hooks.gameplayStart` + `event_systems` | List each condition and its callback source. **For gameplay tags:** verify exact tag strings — see 3.2.1 below |
+| BeginGameplay gate conditions | Async signals that ALL must be true — **always including "the level is loaded and the loading screen is down"** (§3.2.2) | `lifecycle_hooks.gameplayStart` + `event_systems` | List each condition and its callback source. **For gameplay tags:** verify exact tag strings — see 3.2.1 below |
 | EndGameplay (`FLudeoPlayer::EndGameplay`) | Gameplay end signal | `lifecycle_hooks.gameplayEnd` | Confirm this fires once (not per-player in single-player) |
 | RemovePlayer / CloseRoom | End of playable unit | `lifecycle_hooks.roomClose` | Confirm ordering: EndGameplay before RemovePlayer before CloseRoom |
 
@@ -136,6 +136,73 @@ FGameplayTag GetGamePhasePlayingTag()
 }
 // Or: use UE_DEFINE_GAMEPLAY_TAG_STATIC in the .cpp file (not the header)
 ```
+
+#### 3.2.2 The Level-Loaded Gate Leg (MANDATORY)
+
+> ### ⚠️ HARD RULE — `BeginGameplay` never fires before the level is up
+>
+> `FLudeoPlayer::BeginGameplay` doesn't just arm state tracking — **it starts the video encoder**, so
+> every frame until `EndGameplay` is in the Ludeo's video. Add `bLevelLoaded` to the N-way gate, in
+> **both Creator and Player Flow**, or the highlight opens on a loading screen, a black frame, terrain
+> popping in, or the map you traveled *from*.
+>
+> **Latching early is the normal case, not an edge case.** The room is opened at level load precisely so
+> SDK latency hides under the load (§3.2), so `OnRoomOpened`/`OnPlayerAdded`/`OnRoomReady` routinely
+> complete **while the world is still streaming**. `GameState->BeginPlay` runs in the **persistent/root**
+> world — before streamed sublevels, World Partition cells, or a loading-screen system's real gameplay
+> map exist — and `GetPawn() != nullptr` is **false ready** there (a placeholder loading pawn can be
+> possessed first).
+>
+> **Fix the gate, never the room open** — deferring `OpenRoom` is the separate mistake in §8.2b.
+
+**What it must mean:** the level is loaded *and* the loading screen is down — the first frame the player
+sees the game. Intro cinematics, fade-ins, countdowns and spawn animations follow it and are **recorded
+on purpose** in Creator Flow; do not defer past them. It is a **floor, not a ceiling**: `BeginGameplay`
+may never precede it. (In **Player Flow** those same mechanisms are separately **suppressed** — they
+would clobber restored state, which is post-warmup already. That is suppression of the mechanism, not a
+later `bLevelLoaded`.) **No timeout and no force-begin** — if it never latches the run is simply
+uncaptured, a loud failure you catch in verification, whereas a "begin anyway after N seconds" fallback
+silently re-creates the defect (force-begin is separately forbidden:
+`learnings/common-mistakes/never-force-begin-without-onroomready.md`).
+
+**Finding the signal**, best first:
+
+1. **The game's loading-screen / level-ready system** — whatever dismisses the cover already knows. Bind
+   its hide delegate or poll its `IsLoading()` accessor; this is the game's own definition of ready.
+2. **Streaming level loaded + visible** — `World->GetStreamingLevels()`, match the gameplay sublevel by
+   package name, require `IsLevelLoaded() && IsLevelVisible()`. (Or World Partition's streaming-complete
+   signal for the player's cell, or a `TActorIterator` for an actor that exists only in that sublevel.)
+3. **Flat `ServerTravel`'d map, no streaming, no loading screen** — `BeginPlay` already runs in the loaded
+   world, so the leg latches immediately there. **Still add the flag**: it documents the contract and
+   survives the game later adding streaming.
+
+Where a loading-screen system is involved, also confirm the possessed pawn is the **game** pawn class and
+its mesh `GetAnimInstance()` is valid — `learnings/architecture/gate-player-flow-on-streamed-level-not-pawn.md`.
+
+**Three implementation constraints:**
+
+- **Poll it UNPAUSED.** `SetGamePaused(true)` stops the tick that drives streaming, so a paused wait can
+  hang the load forever. Lock input instead and pause only *after* the leg latches
+  ([[dont-pause-during-async-load-waits]], [[use-ignore-input-during-player-flow-wait]]).
+- **Derive it from a predicate** (`IsGameplayLevelLoaded()`) rather than latching a fire-once event — a
+  predicate can be re-evaluated, a missed event cannot. Bind a level-ready delegate too if one exists.
+  A flag cleared by loader/generator code rather than by the load *request* still answers for the level
+  you are leaving, and passes on frame one whenever a level was already loaded.
+- **Re-arm per gameplay session.** Hard travel recreates the component so the flag is naturally fresh, but
+  `SeamlessTravel` preserves the GameState and carries a stale `true` into the next map (clear it on
+  travel — §8.27). A second run on the *still-loaded* map legitimately keeps it `true`; don't clear there.
+
+**`bLevelLoaded` vs `bGamePhaseActive`** — both required, answering different questions: "is there a world
+to record?" vs "is this period *reproducible gameplay*?". Choose the phase signal so it latches at the
+start of the loaded, visible gameplay experience, not at "combat begins". If the game's only phase signal
+fires *after* an intro or countdown you want in the video, keep `BeginGameplay` early and mark the
+irreproducible stretch **non-ludeoable** (`StartNoneLudeable`) rather than deferring — and never defer
+`BeginGameplay` behind a ticker ([[dont-defer-player-begingameplay-past-its-window]]).
+
+**Verify:** log a timestamp per leg; `bLevelLoaded` must be at or after the loading screen came down and
+`BeginGameplay` must sit at the **last** leg. Check a **cold** load, **Player Flow** specifically (it
+re-uses an activated session and passes the gate in ~170 ms, losing a race Creator Flow wins by luck), and
+a **second run in the same process** (where a stale leg shows up).
 
 ### 3.3 Player Flow Entry (Restoration Entry Point)
 
@@ -734,6 +801,8 @@ private:
     void OnRoomReady();
     void AddPlayerToRoom();
     void OnPlayerAdded(FLudeoResult Result, FLudeoPlayerHandle Handle);
+    void BindLevelLoadedSignal();          // §3.2.2 — GAME-SPECIFIC: loading-screen / streaming-level signal
+    bool IsGameplayLevelLoaded() const;    // §3.2.2 — polled UNPAUSED until true, then latches bLevelLoaded
     void TryBeginGameplay();
     void EndGameplay();
     void OnEndGameplayComplete(FLudeoResult Result);
@@ -760,6 +829,9 @@ private:
     bool bRoomRequested = false;
     bool bGameplayStarted = false;
     bool bGamePhaseActive = false;
+    // MANDATORY leg, BOTH flows (§3.2.2): level loaded AND loading screen down. BeginGameplay starts the
+    // VIDEO ENCODER, so without this the highlight opens on a loading screen. GAME-SPECIFIC — see §3.2.2.
+    bool bLevelLoaded = false;
     TOptional<FLudeoPlayerHandle> PlayerHandle;
     TOptional<FLudeoRoomHandle> RoomHandle;
     FString CurrentPlayerID;   // player id used for AddPlayer/RemovePlayer — needed by detached teardown
@@ -876,6 +948,7 @@ void ULudeoGameStateComponent::TryBeginGameplay()
     if (bGameplayStarted) return;
     if (!bRoomReady) return;
     if (!PlayerHandle.IsSet()) return;
+    if (!bLevelLoaded) return;       // MANDATORY, both flows (§3.2.2): level loaded + cover down
     if (!bGamePhaseActive) return;
     // GAME-SPECIFIC: add more conditions as discovered
 
@@ -1476,6 +1549,8 @@ void ULudeoGameStateComponent::TryBeginGameplay()
     if (bGameplayStarted) return;          // already started
     if (!bRoomReady) return;               // SDK: OnRoomReady callback
     if (!PlayerHandle.IsSet()) return;     // SDK: OnPlayerAdded callback
+    if (!bLevelLoaded) return;             // MANDATORY, both flows (§3.2.2): level loaded + cover down.
+                                           // BeginGameplay starts the VIDEO ENCODER.
     if (!bGamePhaseActive) return;         // GAME-SPECIFIC: game's phase/state system
     // ... add more conditions as discovered in analysis
 
@@ -1492,7 +1567,13 @@ Each condition setter calls `TryBeginGameplay()`. Whichever fires last triggers 
 |---|---|---|
 | `bRoomReady` | SDK | `OnRoomReady()` |
 | `PlayerHandle.IsSet()` | SDK | `OnPlayerAdded()` |
+| `bLevelLoaded` | Game (§3.2.2) | Loading-screen/level-ready delegate, or the unpaused `TickComponent` poll |
 | `bGamePhaseActive` | Game-specific | `// GAME-SPECIFIC: phase/state callback` |
+
+> **`bLevelLoaded` is not a nice-to-have.** The room opens at level load (§3.2) so SDK latency hides under
+> it — meaning the SDK legs normally latch **while the world is still streaming**. `BeginGameplay` starts
+> the video encoder, so a gate without it produces highlights that open on a loading screen, and a warm
+> local load can win the race and pass a smoke test. Rules: **§3.2.2**. Failure mode: **§8.2c**.
 
 ### 5.6 Teardown Chain
 
@@ -2276,7 +2357,8 @@ public:
 |---|---|---|---|
 | `bRoomReady` | SDK | `OnRoomReady()` | Room data structures ready |
 | `PlayerHandle.IsSet()` | SDK | `OnPlayerAdded()` | Player registered with room |
-| `bGamePhaseActive` | Game | `// GAME-SPECIFIC: phase/state callback` | Actual interactive gameplay started |
+| `bLevelLoaded` | Game | `// GAME-SPECIFIC: loading-screen/level-ready signal` | **MANDATORY, both flows** — level loaded + loading screen down. `BeginGameplay` starts the video encoder (§3.2.2). Record the exact signal used |
+| `bGamePhaseActive` | Game | `// GAME-SPECIFIC: phase/state callback` | Reproducible gameplay started. Not for skipping intros/countdowns — those are recorded on purpose in Creator Flow |
 | // GAME-SPECIFIC | // GAME-SPECIFIC | // GAME-SPECIFIC | Add conditions as discovered |
 
 ## SDK Callback Reference
@@ -2370,7 +2452,7 @@ These are errors from prior integration attempts. The skill should actively prev
 
 ### 8.2 Two-Way Gate Instead of N-Way
 
-**Mistake:** Only gating on `bRoomReady` + `PlayerHandle.IsSet()`, missing the game phase condition.
+**Mistake:** Only gating on `bRoomReady` + `PlayerHandle.IsSet()`, missing the game-side conditions — the level-loaded leg (8.2c) and the game phase condition.
 **Why it's wrong:** Without a phase gate, `BeginGameplay` can fire during loading screens, warmup phases, or countdowns. State tracking captures non-gameplay data.
 **Prevention:** Always include a game-specific phase/state condition on **`BeginGameplay`** (the N-way gate). Analyze the game's lifecycle in Section 3 to identify what signals "gameplay has started." Add as many gate conditions as needed. **But gate only `BeginGameplay` — never `OpenRoom` (see 8.2b).**
 
@@ -2379,6 +2461,12 @@ These are errors from prior integration attempts. The skill should actively prev
 **Mistake:** Deferring `Session::OpenRoom` until the gameplay/warmup/"Playing"/"combat" phase starts (e.g. `WhenPhaseStartsOrIsActive(Playing) → TryOpenRoom`), because intake said "open the room at match start." This is the N-way-gate condition applied to the wrong call.
 **Why it's wrong:** In **Creator flow the platform delivers `OnRoomReady` ~1 ms after `AddPlayer` ONLY when the room opened in the normal level-load window.** A room opened seconds late never receives `OnRoomReady`; the begin gate hangs, `BeginGameplay` is never called, and nothing records — even though `OpenRoom`/`AddPlayer` both returned success. The misleading symptoms (overlay `failed to parse gameplays.gameplay-ready`, no overlay UI) send agents chasing SDK versions and backend config; none of those are the cause.
 **Prevention:** Open the room in the component's `BeginPlay` (skip only frontend maps), decoupled from any phase; gate only `BeginGameplay` on the phase. Drive `AddPlayer` off a player-added delegate + pending-players queue (the player may not exist when the room opens). See the **HARD RULE** in §3.2 and `learnings/common-mistakes/open-creator-room-at-level-load-not-on-phase.md`.
+
+### 8.2c Beginning Gameplay Before the Level Is Loaded (the highlight records the loading screen)
+
+**Mistake:** Gating `BeginGameplay` only on SDK signals (`OnRoomReady` + `OnPlayerAdded`) and, where present, a game phase — with **no condition for "the level is actually loaded"** — often on the belief that the gap before the world is live is harmless dead time.
+**Why it's wrong:** `BeginGameplay` starts the **video encoder**, and the gate *routinely* latches mid-load (the room is opened at level load on purpose, and `GameState->BeginPlay` runs in the persistent world before streamed sublevels exist). Highlights then open on a loading screen or black frame; in Player Flow the restore also lands in an empty world. Two things make it nasty: it is **load-speed dependent** (a warm load passes a smoke test), and **flow-asymmetric** — Creator Flow's session-activation wait can mask it entirely, so it surfaces only in Player Flow. Never conclude "the gate is fine" from Creator Flow alone.
+**Prevention:** Add `bLevelLoaded` to the N-way gate in **both** flows, per **§3.2.2**. Do not "fix" it by deferring `OpenRoom` (that is 8.2b), a timeout, force-begin, or deferring `BeginGameplay` behind a ticker.
 
 ### 8.3 Not Handling Deferred Session Activation
 

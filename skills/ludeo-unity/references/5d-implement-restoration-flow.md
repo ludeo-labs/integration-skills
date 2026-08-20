@@ -56,7 +56,7 @@ It is the part integrations most often get wrong, so it gets its own task and it
   - `ludeo-integration-docs/unity/REFERENCE-ARCHITECTURE.md` — the `[Layer]` skeleton you extend
     (`LudeoController`, `LudeoFlowSwitch`/`LudeoPlayFlow`, `LudeoIntegrationData.ludeoRestoredData`, the
     `onRoomReady`/`onBeginRestore` hooks). **The `Begin`-gate (`m_roomReady` + `NotifyPlayerAdded` +
-    `m_sceneReadyForRestore`) lives here.**
+    `m_sceneReady`) lives here.**
   - `ludeo-integration-docs/00-CRITICAL-REQUIREMENTS.md` — **CR-009** (callback-driven; `Begin` waits on
     `RoomReady` **and** `AddPlayer` **and** scene-loaded), **CR-010** (freeze the sim), **CR-011**
     (overlay pause, separate flag), **CR-007** (every exit routes through `End`/`Abort`).
@@ -118,7 +118,7 @@ unfreeze → `Begin`** on `RoomReady`* — apply is never preceded by an unfreez
 
 Pick whichever matches where this game loads its gameplay scene. **Also wire the `onBeginRestore`
 selection-time hook** (kicks the scene load before the room opens) and its scene-load completion signal
-(`NotifySceneReadyForRestore()`) — `phase 3` scaffolds them; fill them in. **`ApplyRestoredState()` is a
+(`NotifySceneReady()`) — `phase 3` scaffolds them; fill them in. **`ApplyRestoredState()` is a
 stub at this point (the Seam)** — you are wiring *where* it runs, not *what* it does.
 
 ### Step 2: Add the restore-flow `[Layer]` — `LudeoRestoredData` + the apply stub (07 §3.1)
@@ -144,7 +144,7 @@ Implement the notification-driven entry (`07 §3.3`) — **never call these from
   replay** the player is leaving by picking another Ludeo from the overlay — tear it down **completely**
   first via `AbortGameplay` `[Layer]` (abort the **session** + `StopTrackingAllLudeoStates()` + `CloseRoom`
   `[SDK]` + reset `isGameplayActive`/`m_gameplayStarted`), then `ResetBeginGate` `[Layer]` (`m_roomReady` /
-  `m_sceneReadyForRestore` / `ludeoGameplaySession`), and **start the new play only in the teardown's async
+  `m_sceneReady` / `ludeoGameplaySession`), and **start the new play only in the teardown's async
   callback** (issuing `Abort`/`CloseRoom` then opening a room synchronously stacks a second room). Then
   build `LudeoRestoredData` (Step 2), `SwitchToPlay()` `[Layer]` (consent gate, CR-012 → `IsInLudeoFlow`
   becomes `true`), **invoke `m_onBeginRestore` (start the async scene load + suppress intros + reset both
@@ -169,7 +169,7 @@ Implement the notification-driven entry (`07 §3.3`) — **never call these from
 
 The `onBeginRestore` hook fires before the room opens (the world id is already in the buckets here; the
 room chain would surface it too late to start an async load). Its scene loader must call
-`NotifySceneReadyForRestore()` `[Layer]` on completion — the begin-gate's third leg. **Read the entry
+`NotifySceneReady()` `[Layer]` on completion — the begin-gate's third leg. **Read the entry
 identity** (which scene to load) from the world/definitions bucket here, with a direct `ReadData` inside
 `using (obj.EnterObjectScope())` (CR-002) — this is flow-owned and does not need task 4's per-entity apply.
 
@@ -210,7 +210,7 @@ Map `m_onStopGame` onto this game's "freeze the active run" hook. The gallery en
   Step 1.5) → unfreeze → `BeginGameplay()`** `[Layer]` — **never unfreeze before the apply runs**. **Not**
   `ResumeGame`, **not** `PlayerReady` (does not exist in this SDK), **not** a self-built prompt. `Begin` is
   gated on **`RoomReady` ∧ `AddPlayer` ∧ `sceneLoaded`** (CR-009 + the restore scene-load leg,
-  `NotifySceneReadyForRestore()`) — don't re-trigger `Begin` from a game event, and ensure the scene loader
+  `NotifySceneReady()`) — don't re-trigger `Begin` from a game event, and ensure the scene loader
   actually signals completion (an `async void` loader won't).
 - **Mid-play overlay (CR-011):** wire `PauseGameRequested`/`ResumeGameRequested` `[SDK]` → freeze/resume
   **and the `PauseLudeo`/`ResumeLudeo` emit** (the freeze alone leaves the objective timer draining under the
@@ -290,7 +290,7 @@ task 4 verifies state).**
 
 Surface to the orchestrator; don't guess:
 - A **flow hook the plan names that doesn't exist** (e.g., no scene-loader completion callback) — propose
-  adding it (`NotifySceneReadyForRestore()` awaitable) as a separate named change.
+  adding it (`NotifySceneReady()` awaitable) as a separate named change.
 - **Apply placement ambiguity** the plan didn't resolve (scene-load vs `onRoomReady`).
 - A **freeze-vs-suppress** decision the plan left open for the apply's sync/async shape.
 
@@ -340,7 +340,7 @@ Surface to the orchestrator; don't guess:
 - [ ] Entry chain is notification-driven (`HandleLudeoSelected`/`HandleGetLudeoDone`), never from a game
       event (CR-009); `HandleGetLudeoDone` is re-entrant and starts the new play in the teardown callback.
 - [ ] `onBeginRestore` fires **before** `InitRoom`, starts the async scene load, and resets both pause
-      flags; the loader calls `NotifySceneReadyForRestore()` (begin-gate leg 3).
+      flags; the loader calls `NotifySceneReady()` (begin-gate leg 3).
 - [ ] `Begin` gated on `RoomReady ∧ AddPlayer ∧ sceneLoaded`; not re-triggered from a game event.
 - [ ] CR-010 freeze and CR-011 overlay on **two separate flags**, reset at lifecycle start **and** every
       restore (persistent layer); freeze-vs-suppress matches the apply shape (async ⇒ suppress, not freeze).

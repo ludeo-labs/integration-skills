@@ -97,15 +97,27 @@ time.
 >   `OpenRoom` from the `ConsentUpdated` callback when `canCreateLudeo` first becomes true
 >   ([`../unity/CONSENT-AND-OVERLAY.md`](../unity/CONSENT-AND-OVERLAY.md) §1).
 
-## 4. The Existing `RoomReady + AddPlayer` Gate Is Sufficient
+## 4. ⚠️ `RoomReady + AddPlayer` Is NOT Sufficient — You Need the Scene-Loaded Leg
 
-You may worry: "if `OpenRoom` fires at loading start but the state machine doesn't reach `Game` for
-several seconds, won't `Begin` fire before the world is live?"
+> **CORRECTION — read first.** An earlier version of this section said "no third gate is needed" and
+> that the gap before the world is live is *"dead time on the SDK side — invisible in the captured
+> Ludeo."* **That was wrong.** `BeginGameplay` `[SDK]` also starts the **video encoder**: every frame between it and
+> `EndGameplay` lands in the Ludeo's video. The gap is not invisible — it *is* the opening seconds of the
+> highlight. Fire it mid-load and the Ludeo opens on a loading screen, terrain popping in, or a black
+> frame.
 
-**No third gate is needed.** The `[Layer]` flow already gates `Begin` `[SDK]` on **`AddPlayer`
-success + the `RoomReady` notification** — both SDK-side signals (see
-[`05-LIFECYCLE-MANAGEMENT.md`](../05-LIFECYCLE-MANAGEMENT.md) and `unity/REFERENCE-ARCHITECTURE.md`:
-`HandleRoomReady` → `onRoomReady` → `BeginGameplay`). Why this is safe even before the world is live:
+You were right to worry: "if `OpenRoom` fires at loading start but the state machine doesn't reach
+`Game` for several seconds, won't `BeginGameplay` fire before the world is live?" **Yes — and for a
+streaming world that window is at its widest.** You deliberately bind `OpenRoom` early (§3) so SDK
+latency hides under the load, which guarantees the room chain finishes first.
+
+So the gate is **three** legs — `AddPlayer` ∧ `RoomReady` ∧ **world loaded + loading screen down**
+(`NotifySceneReady()` `[Layer]`). Rules in
+[`05-LIFECYCLE-MANAGEMENT.md`](../05-LIFECYCLE-MANAGEMENT.md) → *The `BeginGameplay` gate* and
+[CR-009](../00-CRITICAL-REQUIREMENTS.md).
+
+The old rationale still holds for *attribute sampling* — and that's the point: it was only ever an
+argument about **state**, never about **video**.
 
 - **Sampling is gated by your own in-gameplay flag.** Per [CR-005](../00-CRITICAL-REQUIREMENTS.md),
   `UpdateStateObjects()` `[Layer]` only runs while `m_gameplayActive` / your "in gameplay" state is
@@ -113,11 +125,23 @@ success + the `RoomReady` notification** — both SDK-side signals (see
 - **Actions only fire on real gameplay events.** `SendAction` `[SDK]` is hooked to kills / pickups /
   quest completions and is itself gated on `isGameplayActive` (`LudeoController.SendAction`). The
   loading sequence generates no action calls.
-- **The first captured frame is the real first gameplay frame.** The gap between `Begin` and "world
-  live" is dead time on the SDK side — invisible in the captured Ludeo.
+- **But the encoder is not gated on any of that.** It runs from `BeginGameplay`. Clean state plus a
+  video that opens on a loading screen is still a broken Ludeo.
 
-So: keep the two-signal gate (`AddPlayer` done **and** `RoomReady`). Do **not** add a third
-condition. The safety net is the sampler gate inside `Update` `[Unity]`, not a third callback.
+**So: keep the sampler gate inside `Update` `[Unity]` *and* add leg 3.** They are not alternatives —
+the sampler gate protects the state; leg 3 protects the video.
+
+### 4.1 Leg 3 in a streaming world — two deltas
+
+- **`SceneManager` completion is not enough.** A streaming world finishes `LoadSceneAsync` and keeps
+  hydrating: terrain chunks, additive cells, save reconstruction, NPC population. Latch on the game's
+  own "world ready / loading screen down" signal (best: the loading-screen controller's hide call).
+- **Mid-run loads must NOT drop leg 3.** Interior transitions and fast travel sit *inside* one gameplay
+  session — they're non-ludeoable spans (`StartNoneLudeable`), not a new `BeginGameplay`. So call
+  `NotifySceneLoadStarted()` only for loads that precede a new gameplay session; otherwise leg 3 drops
+  with nothing left to re-begin and consume it.
+
+> Verify in a **cold** load — a warm one can finish before `RoomReady` and mask a missing leg entirely.
 
 ## 5. Pause Coverage
 
