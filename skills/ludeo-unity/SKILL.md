@@ -110,9 +110,11 @@ file — so the user experiences each as a single phase.
 ## Important rules
 
 - **One phase at a time.** Get user confirmation before advancing to the next phase.
-- **Check for a newer plugin at each phase advance** (no `gh`: skip, don't block the advance):
+- **Check for a newer plugin at each phase advance** (if both of these fail: skip, don't block the
+  advance):
   ```bash
   gh release view --repo ludeo-labs/unity-plugin-releases --json tagName --jq .tagName
+  curl -s https://api.github.com/repos/ludeo-labs/unity-plugin-releases/releases/latest  # no gh: read .tag_name (public repo, no auth)
   ```
   The tag has a `v` and a build component the installed `com.ludeo.sdk@<version>` lacks (`v4.3.2.0` vs
   `4.3.2`) — compare leading numbers, and stay silent unless genuinely newer. **Before phase 3** offer

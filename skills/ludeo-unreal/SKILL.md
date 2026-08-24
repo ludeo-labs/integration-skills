@@ -421,9 +421,10 @@ After the review is merged/submitted (or human says phase is done):
    - Set current phase status to `completed` with `completedAt` date
    - Advance `currentPhase` to next phase
    - Set next phase status to `in_progress`
-3. **Check for a newer plugin release** (no `gh` or it fails: skip, never block the advance):
-   `gh release view -R ludeo-labs/unreal-plugin-releases --json tagName --jq .tagName`. Silent if it
-   matches `sdkSetup.tag`. A newer tag **before phase 3** — offer it, re-run the Phase 1 acquire step
+3. **Check for a newer plugin release** — `gh release view -R ludeo-labs/unreal-plugin-releases --json
+   tagName --jq .tagName`, or without `gh` read `.tag_name` from `curl -s
+   https://api.github.com/repos/ludeo-labs/unreal-plugin-releases/releases/latest` (public repo, no
+   auth). If both fail, skip — never block the advance. Silent if it matches `sdkSetup.tag`. A newer tag **before phase 3** — offer it, re-run the Phase 1 acquire step
    if they take it. **Phase 3 or later** — report it but **don't upgrade**: every gate that passed was
    verified against the installed tag, and the swap costs a ~4 GB re-extract plus a VCS commit/submit.
    Upgrade after phase 7 verifies, or sooner only for a bug this integration is hitting. Never swap
