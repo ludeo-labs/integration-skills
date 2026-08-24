@@ -141,6 +141,10 @@ The agent MUST satisfy **all** of these before marking phase 7 complete:
 - [ ] Ludeo run in cloud
 - [ ] Access token never printed, logged, or committed
 - [ ] `.ludeo/integration.json` updated — `currentPhase: 6` (slice cloud-validated; integration NOT yet complete — Expansion/Polish follow)
+- [ ] **Deferred plugin upgrade raised** — re-run the Step 9 freshness check. If the latest tag is newer
+      than `sdkSetup.tag`, put the upgrade to the human now as a decision, not a notice: the slice is
+      cloud-validated, so there is a known-good baseline to compare against, and Expansion/Polish are
+      the cheapest place to absorb a new plugin and shake it out.
 
 ## 8. Common Mistakes
 
