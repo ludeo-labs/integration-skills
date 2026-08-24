@@ -142,7 +142,8 @@ The agent MUST satisfy **all** of these before marking phase 7 complete:
 - [ ] Access token never printed, logged, or committed
 - [ ] `.ludeo/integration.json` updated — `currentPhase: 6` (slice cloud-validated; integration NOT yet complete — Expansion/Polish follow)
 - [ ] **Deferred plugin upgrade raised** — re-run the Step 9 freshness check. If the latest tag is newer
-      than `sdkSetup.tag`, put the upgrade to the human now as a decision, not a notice: the slice is
+      than `sdkSetup.uePlugin.tag`, put the upgrade to the human now as a decision, not a notice — even
+      if `lastSurfacedTag` already records it, since the raise-once rule does not apply here. The slice is
       cloud-validated, so there is a known-good baseline to compare against, and Expansion/Polish are
       the cheapest place to absorb a new plugin and shake it out.
 

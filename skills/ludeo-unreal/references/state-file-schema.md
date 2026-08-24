@@ -57,6 +57,7 @@ Full reference for the state file the skill creates in the target game repo. SKI
     "uePlugin": {
       "method": "zip|submodule|existing",
       "tag": "4.2.0",
+      "lastSurfacedTag": null,
       "path": "Plugins/LudeoUESDK",
       "branch": null
     },

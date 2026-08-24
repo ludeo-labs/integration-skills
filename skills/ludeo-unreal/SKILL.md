@@ -148,6 +148,19 @@ Read `.ludeo/integration.json` from the target game repo.
 > **Schema check / migration.** If `.ludeo/integration.json` is missing `schemaVersion` or it is below the current baseline (`3`), or shows fallback signs — a `currentStage` key, any `stage`-named field, or a **0-indexed `currentPhase`** (the phases were renumbered to 1-indexed, so `currentPhase: 0` / a `phases` block keyed from `0` means a pre-`3` file) — load `references/migration.md` and run it before proceeding — do not parse the old schema directly.
 
 - Parse `currentPhase` to determine where the integration left off.
+- **Check for a newer plugin release** before starting the phase's work, so taking one costs the least
+  rework: `gh release view -R ludeo-labs/unreal-plugin-releases --json tagName --jq .tagName`, or without
+  `gh` read `.tag_name` from `curl -s https://api.github.com/repos/ludeo-labs/unreal-plugin-releases/releases/latest`
+  (public repo, no auth). If both fail, skip — never block the phase.
+  - **Raise a version once, not once per phase.** Silent unless the tag is newer than
+    `sdkSetup.uePlugin.tag` **and** differs from `sdkSetup.uePlugin.lastSurfacedTag`; write every tag you
+    surface to that field.
+  - **A different major** (`4.x` → `5.x`) is a breaking rewrite, not a bump — say so once and stop. Never
+    push it; migrating is its own project.
+  - Same major: **before phase 3** offer it and re-run the Phase 1 acquire step if taken; **phase 3 or
+    later** report it but **don't upgrade** — every gate that passed was verified against the installed
+    tag, and the swap costs a ~4 GB re-extract plus a VCS commit/submit. Upgrade after phase 7 verifies,
+    or sooner only for a bug this integration is hitting. Never swap without asking.
 - Check the current phase's status:
   - `status: "in_progress"` → resume work for this phase
   - `status: "completed"` → advance to next phase
@@ -165,7 +178,7 @@ Read `.ludeo/integration.json` from the target game repo.
      > "How will this integration eventually run? Three options: **editor-only** — everything stays in the UE editor for now; **packaged** — we also produce a standalone Windows build of the game (UE's normal 'package project' output) and verify it boots, since that's how the integration will really be tested; **cloud-ready** — same packaged build, but prepared for Ludeo's cloud: Ludeo replays highlights by running your game on Ludeo's cloud machines, so the packaged build eventually gets uploaded there. Which fits this project?"
      Accept one of: `editor-only`, `packaged`, `cloud-build`. Record in `integration.json → packagingTarget`. (Agent-side: this gates Phase 3's Tier 2 smoke test — full package + boot; Tier 1 fast build runs regardless. Never put tier/phase jargon in the question itself.) If the answer is `packaged` or `cloud-build` AND the project has no `Source/` directory, flag it immediately so Phase 3 can plan for a minimal game module or a target-generating plugin (e.g., CommonUI) upfront. If CommonUI (or another auto-trigger plugin) IS enabled, this is the UBT auto-generated-targets case — do NOT create a manual `Source/` (it causes CS0101 conflicts). If no auto-trigger plugin is enabled, a minimal `Source/` game module IS required. See `learnings/engine-quirks/bp-only-needs-target-cs-for-packaging.md` and `learnings/engine-quirks/bp-only-packaging-needs-source-module.md`.
 2. **Detect the VCS and create an isolation context.** Run `detect_vcs` (`references/vcs/README.md`) to decide **git** vs **svn** vs **p4** — keyed off where the code lives — record `integration.json → vcs`, and load the matching `references/vcs/<type>.md`. Then perform `create_isolation` per that file, confirming the name with the human: a dedicated **branch** for git (`ludeo-integration/<game>`, or the repo's convention); a **long-lived branch** for svn (creation is a server-side commit — human-gated and deferrable, work proceeds in the current working copy and carries over via `svn switch`; the integration branch is permanent, never reintegrated to trunk); or a **task/dev stream** (or pending changelist) for p4. For p4, first verify the workspace is synced and logged in (`p4 info` / `p4 login -s`) — the skill verifies but does not create the client. All integration work (SDK setup, TDD, code) goes in this context.
-3. **Acquire the SDK** via `acquire_component` from the loaded `vcs/<type>.md`. Use the Read tool on `<skill-base-dir>/config/sdk-sources.json` for sources. **Resolve the latest release tag from the repo FIRST — never download a version hardcoded in this config or recalled from memory** (a stale/wrong version is a known failure). Unless the human pinned a version, take the latest: with `gh`, confirm via `gh release list -R ludeo-labs/unreal-plugin-releases -L 1` then `gh release download -R ludeo-labs/unreal-plugin-releases -p '*.zip'` (no tag = latest); without `gh`, read `.tag_name` from the `releases/latest` API. See the config's `release.acquireLatest`. Record the resolved tag in `integration.json → sdkSetup.tag`.
+3. **Acquire the SDK** via `acquire_component` from the loaded `vcs/<type>.md`. Use the Read tool on `<skill-base-dir>/config/sdk-sources.json` for sources. **Resolve the latest release tag from the repo FIRST — never download a version hardcoded in this config or recalled from memory** (a stale/wrong version is a known failure). Unless the human pinned a version, take the latest: with `gh`, confirm via `gh release list -R ludeo-labs/unreal-plugin-releases -L 1` then `gh release download -R ludeo-labs/unreal-plugin-releases -p '*.zip'` (no tag = latest); without `gh`, read `.tag_name` from the `releases/latest` API. See the config's `release.acquireLatest`. Record the resolved tag in `integration.json → sdkSetup.uePlugin.tag`.
 
    **Preferred path (all VCS):** download the self-contained plugin **release zip** (`ludeoUESDKPlugin.release` — `LudeoUESDK-<tag>.zip`, ~816 MB / ~4 GB extracted) and extract into `Plugins/LudeoUESDK`. It **bundles the C SDK** already populated at `Source/LudeoSDK/SDK/`, so this single download satisfies both components — no separate C SDK step, no submodule, no LFS. For p4, `p4 add` the extracted tree (via the Perforce MCP or CLI). For git, commit it (or use submodules instead — see `vcs/git.md`).
 
@@ -421,14 +434,6 @@ After the review is merged/submitted (or human says phase is done):
    - Set current phase status to `completed` with `completedAt` date
    - Advance `currentPhase` to next phase
    - Set next phase status to `in_progress`
-3. **Check for a newer plugin release** — `gh release view -R ludeo-labs/unreal-plugin-releases --json
-   tagName --jq .tagName`, or without `gh` read `.tag_name` from `curl -s
-   https://api.github.com/repos/ludeo-labs/unreal-plugin-releases/releases/latest` (public repo, no
-   auth). If both fail, skip — never block the advance. Silent if it matches `sdkSetup.tag`. A newer tag **before phase 3** — offer it, re-run the Phase 1 acquire step
-   if they take it. **Phase 3 or later** — report it but **don't upgrade**: every gate that passed was
-   verified against the installed tag, and the swap costs a ~4 GB re-extract plus a VCS commit/submit.
-   Upgrade after phase 7 verifies, or sooner only for a bug this integration is hitting. Never swap
-   without asking.
 
 ---
 

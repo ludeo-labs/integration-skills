@@ -269,6 +269,7 @@ Context files (read first; relative to this workflow file):
 - Single-player / multiplayer:
 - Core loop (1–2 sentences):
 - Unity version / render pipeline / scripting backend (Mono | IL2CPP):
+- Ludeo plugin: installed <version> · newest tag surfaced <tag | —>
 - Target platform (Ludeo capture = Windows desktop):
 - Auth: apiKey set? · gameName/gameVersion · Steam appId? · runWithoutLauncher: false=implicit/Steam (prod) | true+launcherUserId=explicit (testing/CI)
 - Ludeo concept:

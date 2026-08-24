@@ -110,17 +110,22 @@ file — so the user experiences each as a single phase.
 ## Important rules
 
 - **One phase at a time.** Get user confirmation before advancing to the next phase.
-- **Check for a newer plugin at each phase advance** (if both of these fail: skip, don't block the
-  advance):
+- **Check for a newer plugin at the start of each phase** — before the phase's work, so taking one costs
+  the least rework (if both calls fail: skip, never block the phase):
   ```bash
   gh release view --repo ludeo-labs/unity-plugin-releases --json tagName --jq .tagName
   curl -s https://api.github.com/repos/ludeo-labs/unity-plugin-releases/releases/latest  # no gh: read .tag_name (public repo, no auth)
   ```
-  The tag has a `v` and a build component the installed `com.ludeo.sdk@<version>` lacks (`v4.3.2.0` vs
-  `4.3.2`) — compare leading numbers, and stay silent unless genuinely newer. **Before phase 3** offer
-  it and re-run phase 1 Step 0b if taken; **phase 3 or later** report it but **don't upgrade** — every
-  passed gate was verified against the installed version. Upgrade after phase 7 verifies, or sooner
-  only for a bug this integration is hitting. Never swap the package without asking.
+  - **Compare leading numbers** — the tag carries a `v` and a build component the installed
+    `com.ludeo.sdk@<version>` lacks (`v4.3.2.0` vs `4.3.2`).
+  - **Raise a version once, not once per phase.** Stay silent unless it is newer *and* differs from the
+    tag `KYG.md` records as already surfaced; record every tag you surface there.
+  - **A different major** (`4.x` → `5.x`) is a breaking rewrite, not a bump — say so once and stop. Never
+    push it; migrating is its own project.
+  - Same major: **before phase 3** offer it and re-run phase 1 Step 0b if taken; **phase 3 or later**
+    report it but **don't upgrade** — every passed gate was verified against the installed version.
+    Upgrade after phase 7 verifies, or sooner only for a bug this integration is hitting. Never swap the
+    package without asking.
 - **Write for the integrator, not for the skill — but do teach them the product.** Three kinds of
   vocabulary, three different jobs:
   1. **Product words — `Ludeo`, `Studio Lab`. TEACH these; never avoid them.** The integrator is

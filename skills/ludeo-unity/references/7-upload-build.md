@@ -447,7 +447,8 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
 - Self-contained build prep + the **`validate-build`** skill (Step 3/Step 4); phase 1 installed the package.
 - Phase 6 (`6-actions-orchestrator.md`) — the last integration content before verification.
 - **The deferred plugin upgrade.** Re-run the freshness check (SKILL.md, "Important rules"). If the
-  latest release is newer than the installed one, raise it now as a decision rather than a notice — this
+  latest release is newer than the installed one, raise it now as a decision rather than a notice — even
+  if `KYG.md` already records that tag as surfaced, since the raise-once rule does not apply here. This
   is the moment every earlier "upgrade after phase 7 verifies" pointed at. A verified, uploaded build is
   the known-good baseline that makes the bump bounded work, and phase 8 is the cheapest place to absorb
   it and shake it out.
