@@ -158,9 +158,14 @@ Read `.ludeo/integration.json` from the target game repo.
   - **A different major** (`4.x` → `5.x`) is a breaking rewrite, not a bump — say so once and stop. Never
     push it; migrating is its own project.
   - Same major: **before phase 3** offer it and re-run the Phase 1 acquire step if taken; **phase 3 or
-    later** report it but **don't upgrade** — every gate that passed was verified against the installed
-    tag, and the swap costs a ~4 GB re-extract plus a VCS commit/submit. Upgrade after phase 7 verifies,
-    or sooner only for a bug this integration is hitting. Never swap without asking.
+    later** report it but **don't upgrade** — everything already built and confirmed was confirmed
+    against the installed version, and swapping means re-extracting ~4 GB and committing it again.
+    Upgrade after phase 7 verifies, or sooner only for a bug this integration is hitting. Never swap
+    without asking.
+  - **Say it in their words.** "You're on 4.3.1 and 4.3.4 came out — worth taking now, while there's
+    nothing to redo" / "…staying on 4.3.1, since everything we've checked so far was checked against it"
+    / "4.x → 5.x is a rewrite, not an update — that's its own piece of work." Never `tag`, `bump`,
+    `gate`, `acquire`, or a phase number used as a noun.
 - Check the current phase's status:
   - `status: "in_progress"` → resume work for this phase
   - `status: "completed"` → advance to next phase

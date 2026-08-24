@@ -123,9 +123,13 @@ file — so the user experiences each as a single phase.
   - **A different major** (`4.x` → `5.x`) is a breaking rewrite, not a bump — say so once and stop. Never
     push it; migrating is its own project.
   - Same major: **before phase 3** offer it and re-run phase 1 Step 0b if taken; **phase 3 or later**
-    report it but **don't upgrade** — every passed gate was verified against the installed version.
-    Upgrade after phase 7 verifies, or sooner only for a bug this integration is hitting. Never swap the
-    package without asking.
+    report it but **don't upgrade** — everything already built and confirmed was confirmed against the
+    installed version. Upgrade after phase 7 verifies, or sooner only for a bug this integration is
+    hitting. Never swap the package without asking.
+  - **Say it in their words**, per "Write for the integrator" below. "You're on 4.3.0 and 4.3.2 came out
+    — worth taking now, while there's nothing to redo" / "…staying on 4.3.0, since everything we've
+    checked so far was checked against it" / "4.x → 5.x is a rewrite, not an update — that's its own
+    piece of work." Never `tag`, `bump`, `gate`, `Step 0b`, or a phase number used as a noun.
 - **Write for the integrator, not for the skill — but do teach them the product.** Three kinds of
   vocabulary, three different jobs:
   1. **Product words — `Ludeo`, `Studio Lab`. TEACH these; never avoid them.** The integrator is
