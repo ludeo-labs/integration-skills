@@ -54,8 +54,14 @@ The asset is `Release_LudeoSDK_Unity_Plugin_v<version>.zip` (~250 MB). **Extract
 `Release/com.ludeo.sdk@4.3.0/`), and **that folder is the UPM package** — its `package.json` has
 `name: com.ludeosdk.unity`. The release ships **one** UPM package (no `.unitypackage` asset, no git-URL
 install); its `package.json` requires **Unity 2021.2+** and this skill is validated for **2021.3 LTS+**.
-This skill is pinned to the **v4.3.0** API (see `ludeo-integration-docs/12-SDK-API-REFERENCE.md`); if
-the latest release is a newer major with further API changes, re-verify against the installed package.
+**Record the installed version** — the extracted folder name carries it (`com.ludeo.sdk@<version>`);
+confirm it against the package's `package.json` (`Grep('"version"', path=<package>/package.json)`). That
+version is the ground truth for every later phase; state it to the user.
+
+This skill is pinned to the **v4.3.0** API (see `ludeo-integration-docs/12-SDK-API-REFERENCE.md`). **If the
+installed version is anything else, treat that reference doc as off-pin:** grep the installed package for
+each SDK symbol before you use it (`Grep("SendAction|WriteData|CreateSession", path=<package>/Runtime)`)
+rather than trusting the doc, and say which version you're integrating against.
 - `Glob("**/ProjectSettings/ProjectVersion.txt")` to record the project's Unity version; report it and
   confirm with the user. If Ludeo handed you a `.unitypackage` instead, use the *Import Package* path in Step 1.
 

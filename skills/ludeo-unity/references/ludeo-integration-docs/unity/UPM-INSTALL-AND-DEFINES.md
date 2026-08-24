@@ -23,6 +23,10 @@ The asset is `Release_LudeoSDK_Unity_Plugin_v<version>.zip` (~250 MB). **Extract
 `unity: 2019.4`. The release ships **one** UPM package supporting **Unity 2019.4+** (this skill is validated
 for **2021.3 LTS+**); there is no `.unitypackage` asset and no git-URL install in the release.
 
+**The installed version is the ground truth** for the whole integration — read it from `package.json`
+(the folder name carries it too) and state it. This skill's API reference (`../12-SDK-API-REFERENCE.md`) is
+pinned to one specific version; on any other version grep the installed package for each symbol first.
+
 ### Choose the install method
 Install the extracted package one of these ways:
 

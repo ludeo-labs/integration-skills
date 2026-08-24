@@ -110,6 +110,15 @@ file — so the user experiences each as a single phase.
 ## Important rules
 
 - **One phase at a time.** Get user confirmation before advancing to the next phase.
+- **Check for a newer plugin at each phase advance** (no `gh`: skip, don't block the advance):
+  ```bash
+  gh release view --repo ludeo-labs/unity-plugin-releases --json tagName --jq .tagName
+  ```
+  The tag has a `v` and a build component the installed `com.ludeo.sdk@<version>` lacks (`v4.3.2.0` vs
+  `4.3.2`) — compare leading numbers, and stay silent unless genuinely newer. **Before phase 3** offer
+  it and re-run phase 1 Step 0b if taken; **phase 3 or later** report it but **don't upgrade** — every
+  passed gate was verified against the installed version. Upgrade after phase 7 verifies, or sooner
+  only for a bug this integration is hitting. Never swap the package without asking.
 - **Write for the integrator, not for the skill — but do teach them the product.** Three kinds of
   vocabulary, three different jobs:
   1. **Product words — `Ludeo`, `Studio Lab`. TEACH these; never avoid them.** The integrator is
