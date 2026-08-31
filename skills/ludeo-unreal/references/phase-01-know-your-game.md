@@ -225,7 +225,7 @@ The skill previously deferred these systems to Phase 8 (enrichment) — which is
 
 #### Group 6 — Launch Model & SDK-Readiness
 
-**Why this matters:** A classic frontend menu silently does three jobs for the SDK — it absorbs `Init`→`Activate` latency, it absorbs **async consent** latency (the flow flips from disabled to enabled before the first Creator `OpenRoom`), and it is where the create-vs-play branch is consumed. A game that **boots straight into a gameplay level** — no menu — has none of that cover, so it needs an explicit **SDK-readiness idle gate**: hold the first interactive/recorded frame until `Activate` + consent resolve, **bounded** with a fallthrough so an offline / no-Steam machine still launches (uncaptured) instead of hanging. This is a lifecycle-*shape* decision that can't be read from code alone, and if missed it surfaces late as "the first room never records."
+**Why this matters:** A classic frontend menu silently does three jobs for the SDK — it absorbs `Init`→`Activate` latency, it absorbs **async consent** latency (the flow flips from disabled to enabled before the first Creator `OpenRoom`), and it is where the create-vs-play branch is consumed. A game that **boots straight into a gameplay level** — no menu — has none of that cover, so it needs an explicit **SDK-readiness idle gate**: hold the first interactive/recorded frame until `Activate` + consent resolve, **bounded** with a fallthrough so an offline / no-Steam machine still launches (uncaptured) instead of hanging. This is a lifecycle-*shape* decision that can't be read from code alone, and if missed it surfaces late as "the first room never records." The **play** path needs the same readiness cover **always**, whatever the creator launch looks like: `OnLudeoSelected` can arrive at any time once the session is activated — at boot, from the frontend, or mid-run — so the game must be able to enter playback from any state.
 
 **Questions:**
 
@@ -233,19 +233,19 @@ The skill previously deferred these systems to Phase 8 (enrichment) — which is
 |----|----------|
 | `LM-1` | On launch, does the game drop the player straight into a playable level, or through a frontend menu (main menu / lobby / press-start) first? If there's a menu, is it a deliberate click-through, or does "Play" immediately load-and-start? |
 | `LM-2` | Does the game ever auto-continue, skip the intro, or boot directly into a session (a "continue" path, a debug auto-enter)? These blow past the menu's implicit wait the same way a menu-less boot does. |
-| `LM-3` | For playing back a Ludeo: does the player pick one from a gallery/menu, or can the game be launched with a specific moment **pre-selected** (boot straight into the restored moment)? |
+| `LM-3` | For playing back a Ludeo: can the game drop into a restored moment **from any state** — at boot, from the frontend, and mid-run — or does it assume playback only ever starts at launch? |
 
 **Record as:**
 ```json
 "launchModel": {
   "creatorLaunch": "menu-gated | boot-straight | fast-menu-autostart",
   "menuDwell": "clickthrough | immediate-load-start",
-  "playerLaunch": "gallery | preselected",
+  "playbackEntry": "any-state | launch-only",
   "readinessGateRequired": true
 }
 ```
 
-**→ Wired to:** Phase 3 lifecycle. When `creatorLaunch` is `boot-straight` / `fast-menu-autostart` (or a menu whose "Play" is `immediate-load-start`), Phase 3 MUST add the SDK-readiness idle gate — the game's own pause / in-game surface realized as the "ready & waiting" state, opening no Creator room until an explicit start trigger, **bounded** with a fallthrough that starts uncaptured on consent-denied / init-failure / timeout. Phase 2 cross-checks this answer against the default-map / boot-flow code and flags a mismatch. See `learnings/architecture/cloud-needs-idle-ready-state-before-room-open.md` and `learnings/architecture/sdk-activation-competes-with-game-boot.md`.
+**→ Wired to:** Phase 3 lifecycle. Phase 3 MUST always be able to enter the Player Flow from any state (`LM-3`). When `creatorLaunch` is `boot-straight` / `fast-menu-autostart` (or a menu whose "Play" is `immediate-load-start`), Phase 3 MUST also add the SDK-readiness idle gate — the game's own pause / in-game surface realized as the "ready & waiting" state, opening no Creator room until an explicit start trigger, **bounded** with a fallthrough that starts uncaptured on consent-denied / init-failure / timeout. Phase 2 cross-checks this answer against the default-map / boot-flow code and flags a mismatch. See `learnings/architecture/cloud-needs-idle-ready-state-before-room-open.md` and `learnings/architecture/sdk-activation-competes-with-game-boot.md`.
 
 **Evidence:** A menu-less game has nothing to absorb `Activate` / consent latency; a Creator `OpenRoom` fired synchronously at level `BeginPlay` races ahead of consent and silently no-ops (no room, no `OnRoomReady`, no error). Surfaced on cloud-build integrations of boot-straight games — the same failure the classic menu hides by accident.
 

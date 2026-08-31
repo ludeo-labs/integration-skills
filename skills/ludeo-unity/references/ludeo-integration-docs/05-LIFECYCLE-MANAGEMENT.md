@@ -73,8 +73,8 @@ LudeoManager.SessionManager.CreateSession(out session)   [SDK]  ← synchronous,
         ▼
   PlayerConsentUpdated fires → canCreateLudeo/canPlayLudeo → flowSwitch.SetFlags(...)  [Layer] (CR-012)
         ▼
-  if isLudeoSelected == true → a LudeoSelected event follows → PLAY flow
-  else → normal game start (CREATE flow available when consent allows)
+  if isLudeoSelected == true → a LudeoSelected event follows shortly → PLAY flow
+  else → normal game start (CREATE flow when consent allows) — LudeoSelected may still arrive later
 ```
 
 1. **`LudeoManager.Initialize()`** `[SDK]` — call once, synchronously; check the returned
@@ -88,8 +88,9 @@ LudeoManager.SessionManager.CreateSession(out session)   [SDK]  ← synchronous,
    registers them natively; late subscribers miss early notifications.
 4. **`LudeoSession.Activate`** `[SDK]` — connects to backend **and authenticates**. In its callback,
    check `data.resultCode` (treat failure as non-fatal — continue the game *without* Ludeo, never
-   block the player), then `isLudeoSelected == true` ⇒ launched to play a Ludeo; a `LudeoSelected`
-   event follows → branch to the play flow.
+   block the player), then `isLudeoSelected == true` ⇒ a Ludeo is **already** selected and a
+   `LudeoSelected` event follows shortly → branch to the play flow. `false` does **not** rule a Ludeo
+   out for this run — `LudeoSelected` can arrive at any later point.
    > **Auth happens here, and with implicit (Steam) auth — `runWithoutLauncher = false`, the
    > production default — Steam must already be initialized before this call.** The SDK auto-detects
    > Steam but does **not** initialize it; if Steam isn't running, `Activate` returns
@@ -117,7 +118,7 @@ methods). Subscribe with `+=`, unsubscribe with `-=`.
 | --- | --- | --- |
 | `LudeoSelected` | `LudeoSelectedCallbackData` | Enter **play** flow (carries `ludeoId`) |
 | `RoomReady` | `LudeoSessionRoomReadyCallbackData` | Room ready → restore (play) / begin |
-| `PlayerConsentUpdated` | `LudeoSessionConsentUpdatedCallbackData` | Gate create/play + gallery (CR-012) |
+| `PlayerConsentUpdated` | `LudeoSessionConsentUpdatedCallbackData` | Gate create/play (CR-012) |
 | `PauseGameRequested` | *(none — plain `Action`)* | Overlay pause (CR-011) |
 | `ResumeGameRequested` | *(none — plain `Action`)* | Overlay resume (CR-011) |
 | `GameBackToMenuRequested` | *(none — plain `Action`)* | Exit-to-menu (a CR-007 exit) |
@@ -149,8 +150,8 @@ session.Dispose (shutdown)     [SDK]
 ```
 
 The `[Layer]` façade (`LudeoController`) wires these callbacks for you; the game calls the façade's
-`[Layer]` methods (`OpenLudeoGallery`, `BeginGameplay`, `EndGameplay`, …), which call the `[SDK]`
-methods above in the right order.
+`[Layer]` methods (`BeginGameplay`, `EndGameplay`, …), which call the `[SDK]` methods above in the
+right order.
 
 > **⚠️ The `onAddPlayer` callback and the `RoomReady` event RACE — `BeginGameplay` needs both.**
 > They are **independent** async events: the `AddPlayer` callback delivers the `LudeoPlayer`, while
@@ -299,9 +300,9 @@ Types: `LudeoSessionOpenRoomParameters`, `LudeoRoomAddPlayerParameters`, `LudeoD
 `LudeoReadableObject`, the `*CallbackData` structs.
 
 **`[Layer]` (from [`unity/REFERENCE-ARCHITECTURE.md`](./unity/REFERENCE-ARCHITECTURE.md) — rename
-freely):** `LudeoController.{BeginGameplay, EndGameplay, AbortGameplay, UpdateStateObjects,
-OpenLudeoGallery}` · `LudeoFlowSwitch.{SetFlags, SwitchToCreate, SwitchToPlay}` ·
-`ILudeoFlow.InitRoom` · `LudeoIntegrationData.{CreateOpenRoomDataForCreator, CreateOpenRoomDataForLudeo}`
+freely):** `LudeoController.{BeginGameplay, EndGameplay, AbortGameplay, UpdateStateObjects}` ·
+`LudeoFlowSwitch.{SetFlags, SwitchToCreate, SwitchToPlay}` · `ILudeoFlow.InitRoom` ·
+`LudeoIntegrationData.{CreateOpenRoomDataForCreator, CreateOpenRoomDataForLudeo}`
 · `LudeoRestoredData`.
 
 **`[Unity]`:** `Time.timeScale` · `SceneManager.LoadScene` · MonoBehaviour `Awake`/`Start`/`Update`/

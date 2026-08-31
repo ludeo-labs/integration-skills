@@ -81,7 +81,7 @@ The orchestrator relays whatever a subagent surfaces — it does not invent its 
 
 Three distinct mechanisms; don't conflate them (the third is itself two opposite-direction wirings):
 
-1. **Whole non-gameplay screens OUTSIDE any Gameplay Session** (main menu, lobby, the Ludeo gallery, a
+1. **Whole non-gameplay screens OUTSIDE any Gameplay Session** (main menu, lobby, a
    between-runs loading screen) — nothing tracks them; **no action needed**, and none is even valid: actions
    belong to a live gameplay session. Handled purely by session bracketing (`Begin` only when gameplay
    starts; `End`/`Abort` on every exit — CR-007). Pause these with the game's own in-game functions.

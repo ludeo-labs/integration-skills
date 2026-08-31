@@ -110,9 +110,9 @@ on the `LudeoSession`. If the plan omitted any, **add it anyway** — hard requi
 
 | Notification `[SDK]` | If missing, the symptom is… |
 | --- | --- |
-| `LudeoSelected` | Player picks a Ludeo and nothing happens — no restoration entry. |
+| `LudeoSelected` | A Ludeo is selected and nothing happens — no restoration entry. |
 | `RoomReady` | `Begin` never fires; tracking never starts; post-load playback never resumes (CR-010). |
-| `PlayerConsentUpdated` | Flow switch never enables; create/play stay disabled; gallery button wrong (CR-012). |
+| `PlayerConsentUpdated` | Flow switch never enables; create/play stay disabled (CR-012). |
 | `PauseGameRequested` | **Game keeps running while the overlay covers it — the #1 mid-play failure (CR-011).** |
 | `ResumeGameRequested` | Overlay closes but the game stays paused (or never paused). |
 | *(handler freezes but sends no action)* | Game freezes correctly, but the **Ludeo objective timer keeps draining** under the overlay — CR-011's second half. |

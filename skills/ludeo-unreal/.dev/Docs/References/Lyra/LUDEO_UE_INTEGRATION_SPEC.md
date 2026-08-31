@@ -350,7 +350,7 @@ You **MUST** register all of these before calling `Session->Activate()`:
 
 | Callback | Purpose | Implementation |
 |----------|---------|----------------|
-| `OnLudeoSelected` | Player clicked a Ludeo to play | Retrieve Ludeo data, load level, restore state |
+| `OnLudeoSelected` | A Ludeo was selected for playback (any time after activation) | Retrieve Ludeo data, load level, restore state |
 | `OnPauseGameRequested` | Platform requests game pause | `UGameplayStatics::SetGamePaused(World, true)` |
 | `OnResumeGameRequested` | Platform requests game resume | `UGameplayStatics::SetGamePaused(World, false)` |
 | `OnGameBackToMenuRequested` | Platform requests return to menu | Navigate to main menu |
@@ -918,17 +918,6 @@ APIKeyUE5="your-api-key-here"
 
 ## 14. Additional Features
 
-### Ludeo Gallery
-
-Open the playable moments gallery overlay:
-
-```cpp
-if (FLudeoSession* Session = FLudeoSession::GetSessionBySessionHandle(Handle))
-{
-    Session->OpenGallery();
-}
-```
-
 ### Ludeo Command (Debug)
 
 Execute SDK debug commands:
@@ -954,32 +943,15 @@ Ludeo provides its own overlay system -- the game does **not** need to build cus
 - Playback controls
 - Consent forms
 - Highlight notifications
-- Gallery browsing (if enabled)
 
 The only requirement is providing the `GameWindowHandle` during session activation so the overlay can attach to the game window.
-
-### Gallery Button (Optional)
-
-If the game wants to provide in-game access to the Playable Moments gallery, add a button that calls:
-
-```cpp
-// C++
-if (FLudeoSession* Session = FLudeoSession::GetSessionBySessionHandle(Handle))
-{
-    Session->OpenGallery();
-}
-```
-
-Or use the Blueprint node `OpenGallery` from `ULudeoSessionBlueprintFunctionLibrary`.
-
-This is an **additional feature**, not required for core SDK integration. If implemented, hide the button when both `bCanCreateLudeo` and `bCanPlayLudeo` are false (from `OnPlayerConsentUpdated`).
 
 ### Player Flow Visual Feedback
 
 When a Ludeo is selected for playback, the game should:
 
 1. **Show loading state** while retrieving Ludeo data after `OnLudeoSelected`
-2. **Skip splash screens/cutscenes** when `bIsLudeoSelected` is true in the activation callback
+2. **Skip splash screens/cutscenes** when `bIsLudeoSelected` is true in the activation callback (it only hints a Ludeo is already selected; `OnLudeoSelected` can also arrive later)
 3. **Pause visually** after state reconstruction, then resume on `OnRoomReady`
 
 ### Required Callback Handlers (UI Impact)
@@ -1005,7 +977,7 @@ The LudeoUESDK plugin exposes a full Blueprint API -- no C++ wrappers needed for
 | Library | Key Functions |
 |---------|---------------|
 | `ULudeoManagerBlueprintFunctionLibrary` | `InitializeLudeoSDK`, `FinalizeLudeoSDK`, `TickLudeoSDK` |
-| `ULudeoSessionBlueprintFunctionLibrary` | `CreateLudeoSession`, `OpenGallery`, `ReleaseLudeo`, `SetLocalization` |
+| `ULudeoSessionBlueprintFunctionLibrary` | `CreateLudeoSession`, `ReleaseLudeo`, `SetLocalization` |
 | `ULudeoRoomBlueprintFunctionLibrary` | `IsValidLudeoRoomHandle` |
 | `ULudeoPlayerBlueprintFunctionLibrary` | `IsValidLudeoPlayerHandle` |
 | `ULudeoObjectBlueprintFunctionLibrary` | `LudeoSaveGameToSlot`, `LudeoLoadGameFromSlot` |
@@ -1051,7 +1023,7 @@ Pattern from the FPS sample project:
 1. Create **C++ base classes** with Ludeo integration logic (GameInstance, GameState, PlayerController)
 2. Create **Blueprint subclasses** in `Content/Ludeo/` for per-project configuration
 3. Use `UPROPERTY(EditDefaultsOnly)` for Blueprint-configurable settings (e.g., `SaveGameSpecification`)
-4. Use `UFUNCTION(BlueprintCallable)` for actions called from Blueprint (e.g., `ReportPlayerAction`, `OpenLudeoGallery`)
+4. Use `UFUNCTION(BlueprintCallable)` for actions called from Blueprint (e.g., `ReportPlayerAction`, `ReportGameplayEvent`)
 5. Use `UFUNCTION(BlueprintImplementableEvent)` for events handled in Blueprint (e.g., `OnMuteGameRequested`)
 
 ### Blueprint-Only Integration Path
@@ -1165,10 +1137,9 @@ Content/Ludeo/
 - [ ] Mute/unmute handler implemented for `OnMuteGameRequested`
 - [ ] Consent state stored from `OnPlayerConsentUpdated`
 - [ ] Loading feedback shown during Ludeo restoration (Player Flow)
-- [ ] Splash screens/cutscenes skipped when `bIsLudeoSelected` is true
+- [ ] Splash screens/cutscenes skipped when `bIsLudeoSelected` is true (and on any later `OnLudeoSelected`)
 - [ ] Blueprint subclasses created in `Content/Ludeo/` directory
 - [ ] SaveGame properties marked on tracked Blueprint variables
-- [ ] (Optional) Gallery button added to main menu calling `OpenGallery()`
 
 ---
 
@@ -1188,7 +1159,7 @@ When integrating into a new UE game like Lyra, map SDK concepts to existing game
 | Player Actions | Gameplay events | `ULyraAbilitySystemComponent` events, damage events |
 | Multiplayer | Replication | Lyra's existing replication system |
 | Non-Ludeoable | Menu/loading states | Lyra frontend experiences, loading phases |
-| Overlay / Gallery (Optional) | Main menu widget | Lyra's CommonUI frontend widget |
+| Overlay | Main menu widget | Lyra's CommonUI frontend widget |
 | Blueprint Subclasses | `Content/Ludeo/` | `Content/Ludeo/` mirroring Lyra class hierarchy |
 
 ### Key Lyra Considerations

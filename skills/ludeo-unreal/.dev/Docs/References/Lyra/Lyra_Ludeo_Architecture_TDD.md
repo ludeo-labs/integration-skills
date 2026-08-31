@@ -314,7 +314,7 @@ Applied after unpause in `TryBeginGameplay()`, before `BeginGameplay()`:
 
 | Entry Point | Handler | When |
 | --- | --- | --- |
-| SDK `OnLudeoSelected` callback | `ULudeoSessionSubsystem::OnLudeoSelected` → `PlayLudeo()` | User selects a Ludeo in the SDK overlay |
+| SDK `OnLudeoSelected` callback | `ULudeoSessionSubsystem::OnLudeoSelected` → `PlayLudeo()` | A Ludeo is selected — any time after activation |
 | Console command `Ludeo.Play <ID>` | `ULudeoSessionSubsystem::PlayLudeo()` | Developer testing during PIE |
 | Launch argument `-LudeoID=<ID>` | `ULudeoSessionSubsystem::CheckCommandLineLudeo()` → `PlayLudeo()` | Cloud Player Flow or automated testing |
 

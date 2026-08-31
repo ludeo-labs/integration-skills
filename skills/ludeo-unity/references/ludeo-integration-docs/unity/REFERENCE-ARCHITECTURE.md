@@ -118,7 +118,7 @@ public class LudeoFlowSwitch
 ```csharp
 public class LudeoIntegrationData
 {
-    public bool isGameplayActive, isInLudeo, isDisplayPlayableMoment;
+    public bool isGameplayActive, isInLudeo;
     public LudeoSession ludeoSession;
     public LudeoRoom ludeoRoom;
     public LudeoPlayer ludeoPlayer;                           // v4.3.0: was LudeoGameplaySession
@@ -170,7 +170,6 @@ public class LudeoController
 {
     public static LudeoController Instance { get; private set; }
     public bool IsInLudeoFlow => m_data.isInLudeo;
-    public bool IsEnablePlayableMoments => m_data.isDisplayPlayableMoment;
 
     private readonly LudeoIntegrationData m_data = new LudeoIntegrationData();
     private readonly LudeoFlowSwitch m_switch;
@@ -199,7 +198,6 @@ public class LudeoController
 
     // ── game-facing API ──────────────────────────────────────────────
     public void SetGameplayerId(string id) => m_data.gamePlayerId = id;
-    public void OpenLudeoGallery() => m_data.ludeoSession?.OpenGallery();
 
     public ILudeoStateHandler StartTrackingLudeoState<T>(string objectType, Action<LudeoWritableObject> onUpdate)
         where T : ILudeoStateHandler, new()
@@ -308,7 +306,6 @@ public class LudeoController
     private void HandleConsentUpdated(LudeoSessionConsentUpdatedCallbackData data)   // CR-012
     {
         m_switch.SetFlags(data.canCreateLudeo, data.canPlayLudeo);
-        m_data.isDisplayPlayableMoment = data.canCreateLudeo || data.canPlayLudeo;   // gate gallery button
     }
 
     // RoomReady (an event) and the AddPlayer callback are INDEPENDENT async events with NO ordering
@@ -444,7 +441,6 @@ private void HandleActivateDone(LudeoSessionActivateCallbackData data)
 private void HandleConsentUpdated(LudeoSessionConsentUpdatedCallbackData data)   // CR-012
 {
     m_switch.SetFlags(data.canCreateLudeo, data.canPlayLudeo);
-    m_data.isDisplayPlayableMoment = data.canCreateLudeo || data.canPlayLudeo;
     if (!m_data.isInLudeo) TryReleaseCreatorGate();   // consent is the second half of the create-path gate
 }
 
@@ -785,7 +781,7 @@ drop the interface seam, CR-001 and CR-007 become very hard to satisfy — don't
 
 **`[SDK]`** (verbatim — authority: [`../12-SDK-API-REFERENCE.md`](../12-SDK-API-REFERENCE.md)),
 wrapped by the `[Layer]` classes above: `LudeoManager.{Initialize, SessionManager}` ·
-`LudeoSessionManager.CreateSession` · `LudeoSession.{Activate, OpenRoom, GetLudeo, OpenGallery, Dispose}` ·
+`LudeoSessionManager.CreateSession` · `LudeoSession.{Activate, OpenRoom, GetLudeo, Dispose}` ·
 `LudeoSession` events `{LudeoSelected, RoomReady, PlayerConsentUpdated, PauseGameRequested,
 ResumeGameRequested, GameBackToMenuRequested, MuteGameRequested, LocalizationUpdated}` ·
 `LudeoRoom.{AddPlayer, GetPlayer, CloseRoom, Writer}` · `LudeoRoomWriter.{CreateObject, SendAction}` ·

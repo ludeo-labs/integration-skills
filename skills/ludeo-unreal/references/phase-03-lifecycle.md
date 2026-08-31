@@ -1563,9 +1563,14 @@ Three entry points, all converge on `PlayLudeo()`:
 
 | Entry Point | Trigger | When |
 |---|---|---|
-| SDK callback | `OnLudeoSelected` delegate | User picks a Ludeo in the SDK overlay |
+| SDK callback | `OnLudeoSelected` delegate | Any time after activation — boot, frontend, or mid-run |
 | Console command | `Ludeo.Play <LudeoID>` | Dev testing in PIE |
 | Launch argument | `-LudeoID=<id>` | Cloud Player Flow / automated testing |
+
+**`OnLudeoSelected` can arrive at any time once the session is activated**, so `PlayLudeo()` must be
+callable **from any state** — including while a capture run is live. `bIsLudeoSelected` at activation is
+only an early hint for the boot case (§8.9); `false` does not rule a later selection out. An arrival
+mid-run goes through the same validate-then-teardown path below.
 
 **Validate first, disturb second.** `GetLudeo` is read-only — call it BEFORE tearing down the live room. A failed/incompatible selection must be a no-op that leaves the running session exactly as it was. Only a validated selection proceeds to teardown → travel. See `learnings/architecture/validate-ludeo-selection-before-disturbing-session.md`.
 
@@ -2306,7 +2311,7 @@ public:
 
 | Entry Point | Implementation | When Used |
 |---|---|---|
-| SDK callback | `OnLudeoSelected` → `PlayLudeo(LudeoID)` | Production: user picks a Ludeo |
+| SDK callback | `OnLudeoSelected` → `PlayLudeo(LudeoID)` | Production: any time after activation |
 | Console command | `Ludeo.Play <LudeoID>` registered in `Initialize()` | Development: PIE testing |
 | Launch argument | `-LudeoID=<id>` checked in `CheckCommandLineLudeo()` | Cloud Player Flow / automation |
 
@@ -2365,7 +2370,7 @@ These are errors from prior integration attempts. The skill should actively prev
 ### 8.1 Registering Callbacks After ActivateSession
 
 **Mistake:** Calling `Session->Activate()` before registering notification delegates.
-**Why it's wrong:** If activation succeeds immediately (window exists), the `OnLudeoSelected` callback may fire before the handler is bound. The startup Player Flow is silently lost.
+**Why it's wrong:** If activation succeeds immediately (window exists), the `OnLudeoSelected` callback may fire before the handler is bound. That Player Flow entry is silently lost — and since `OnLudeoSelected` can arrive at any later point too, an unbound handler loses those as well.
 **Prevention:** Always register ALL callbacks in Step 4, before `ActivateSession()` in Step 6. The startup sequence order is non-negotiable.
 
 ### 8.2 Two-Way Gate Instead of N-Way
@@ -2418,8 +2423,8 @@ These are errors from prior integration attempts. The skill should actively prev
 
 ### 8.9 Missing Startup Player Flow Check
 
-**Mistake:** Not checking `bIsLudeoSelected` after session activation succeeds.
-**Why it's wrong:** If the app was launched with `-LudeoID=`, the session may already have a Ludeo selected at activation time. Without the check, the launch-arg Player Flow is silently ignored.
+**Mistake:** Not checking `bIsLudeoSelected` after session activation succeeds — or treating `false` as "no Ludeo this run".
+**Why it's wrong:** If the app was launched with `-LudeoID=`, the session may already have a Ludeo selected at activation time. Without the check, the launch-arg Player Flow is silently ignored. `bIsLudeoSelected` is only an early hint: `false` does not rule a Ludeo out, because `OnLudeoSelected` can arrive at any later point once the session is activated.
 **Prevention:** `CheckCommandLineLudeo()` runs immediately after successful activation (Step 7). It parses `-LudeoID=` from the command line and calls `PlayLudeo()`.
 
 ### 8.10 Missing ReleaseLudeo After Reading

@@ -61,7 +61,7 @@ It is the part integrations most often get wrong, so it gets its own task and it
     `RoomReady` **and** `AddPlayer` **and** scene-loaded), **CR-010** (freeze the sim), **CR-011**
     (overlay pause, separate flag), **CR-007** (every exit routes through `End`/`Abort`).
   - `ludeo-integration-docs/unity/CONSENT-AND-OVERLAY.md` — the overlay pause/resume + `ReturnToMainMenu`
-    exit notifications, and the gallery entry (`OpenLudeoGallery`), all consent-gated (CR-012).
+    exit notifications, all consent-gated (CR-012).
   - `ludeo-integration-docs/12-SDK-API-REFERENCE.md` — exact `[SDK]` signatures (reproduce verbatim).
 
 > **Skip flow rows with unresolved Open Questions** in `RESTORATION_PLAN.md` — surface them to the
@@ -193,8 +193,7 @@ or world — you *boot* one here**, not restore into the menu (it silently no-op
 > play-path auto-start is suppressed under `IsInLudeoFlow` (Step 5). See
 > `unity/LAUNCH-AND-READINESS.md` §3.2.
 
-Map `m_onStopGame` onto this game's "freeze the active run" hook. The gallery entry point
-(`OpenLudeoGallery` `[Layer]`, consent-gated) comes from CONSENT-AND-OVERLAY — confirm it's wired.
+Map `m_onStopGame` onto this game's "freeze the active run" hook.
 
 ### Step 4: Freeze, resume, and overlay (CR-010/011, `07 §10`)
 - **Protect restored state during restore (CR-010)** — *not just input* — by the mechanism the plan chose
