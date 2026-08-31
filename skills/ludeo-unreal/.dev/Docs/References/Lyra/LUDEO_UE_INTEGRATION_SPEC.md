@@ -350,7 +350,7 @@ You **MUST** register all of these before calling `Session->Activate()`:
 
 | Callback | Purpose | Implementation |
 |----------|---------|----------------|
-| `OnLudeoSelected` | A Ludeo was selected for playback (any time after activation) | Retrieve Ludeo data, load level, restore state |
+| `OnLudeoSelected` | A Ludeo was selected for playback | Retrieve Ludeo data, load level, restore state |
 | `OnPauseGameRequested` | Platform requests game pause | `UGameplayStatics::SetGamePaused(World, true)` |
 | `OnResumeGameRequested` | Platform requests game resume | `UGameplayStatics::SetGamePaused(World, false)` |
 | `OnGameBackToMenuRequested` | Platform requests return to menu | Navigate to main menu |
@@ -951,7 +951,7 @@ The only requirement is providing the `GameWindowHandle` during session activati
 When a Ludeo is selected for playback, the game should:
 
 1. **Show loading state** while retrieving Ludeo data after `OnLudeoSelected`
-2. **Skip splash screens/cutscenes** when `bIsLudeoSelected` is true in the activation callback (it only hints a Ludeo is already selected; `OnLudeoSelected` can also arrive later)
+2. **Skip splash screens/cutscenes** when `bIsLudeoSelected` is true in the activation callback
 3. **Pause visually** after state reconstruction, then resume on `OnRoomReady`
 
 ### Required Callback Handlers (UI Impact)
@@ -1137,7 +1137,7 @@ Content/Ludeo/
 - [ ] Mute/unmute handler implemented for `OnMuteGameRequested`
 - [ ] Consent state stored from `OnPlayerConsentUpdated`
 - [ ] Loading feedback shown during Ludeo restoration (Player Flow)
-- [ ] Splash screens/cutscenes skipped when `bIsLudeoSelected` is true (and on any later `OnLudeoSelected`)
+- [ ] Splash screens/cutscenes skipped when `bIsLudeoSelected` is true
 - [ ] Blueprint subclasses created in `Content/Ludeo/` directory
 - [ ] SaveGame properties marked on tracked Blueprint variables
 
