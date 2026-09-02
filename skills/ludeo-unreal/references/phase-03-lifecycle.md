@@ -996,6 +996,8 @@ Add to the **project's** `DefaultGame.ini` (NOT a plugin-specific ini file):
 
 **Auth type detection is presence-based** — do NOT gate Steam auth on a config flag like `AuthenticationType=Steam`. The presence of a `SteamAuthID` value (from any source) IS the signal to use Steam auth.
 
+**Which mode to run in:** implicit (no `SteamAuthID`, live Steam client) is what production and creators run on, and an integration can run on it **start to finish** — tell the human that, so they know explicit is optional. Explicit (`SteamAuthID` set) authenticates as a supplied id with no Steam client: a debugging convenience that **must be replaced before shipping**, gated in phase 07 before the upload.
+
 **Config section naming convention:** Always use `[Ludeo]` as the section name (not `[Ludeo.SessionActivate]` or other sub-sections). All integration config goes under a single flat `[Ludeo]` section. This matches the `GConfig->GetString(TEXT("Ludeo"), ...)` calls in the ActivateSession code.
 
 ```ini
@@ -1004,7 +1006,8 @@ Add to the **project's** `DefaultGame.ini` (NOT a plugin-specific ini file):
 ; Resolution order: command-line → env var → this config file.
 ; Each parameter checks all three sources independently.
 
-; API key (required) — also: -LudeoApiKey= or LUDEO_API_KEY
+; API key (required) — ask the human for it; it is in Studio Labs under Developer Tools -> Keys.
+; Also settable via -LudeoApiKey= or LUDEO_API_KEY
 ApiKey=
 
 ; Game version (optional — defaults to FApp::GetBuildVersion())
@@ -1021,11 +1024,24 @@ ApiKey=
 ; BetaBranchName=
 ```
 
+**Ask the human for their Steam id and the beta version name they want**, and set both here: `SteamAuthID` and
+`BetaBranchName` (via the ini keys above or their `-SteamAuthID=` / `-LudeoBetaBranch=` equivalents).
+`BetaBranchName` is optional for activation — it defaults to production — so unlike Unity's required
+`launcherUserId`/`betaVersion` pair, a missing value here fails *later*, on the platform, rather than at
+`ActivateSession`. Ask for it anyway.
+
+**Then set the same name on the Ludeo environment.** Despite the name, `BetaBranchName` is what **binds the
+build to a Ludeo environment** — the value here and the environment's have to match or the session routes
+somewhere else, silently. Use the environment resolved at session-init Step 10; with the `ludeo-mcp` server
+connected do it with `set_beta_version_name` — a **write**: show `environment · old → new` and wait for a go-ahead.
+Otherwise ask the human to set it in Studio Labs. Re-assert whenever the value changes. See
+[`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
+
 #### Configuration Reference
 
 | Parameter | CLI Flag | Env Var | Config Key | Fallback |
 |-----------|----------|---------|------------|----------|
-| ApiKey | `-LudeoApiKey=` | `LUDEO_API_KEY` | `[Ludeo] ApiKey` | — (required) |
+| ApiKey | `-LudeoApiKey=` | `LUDEO_API_KEY` | `[Ludeo] ApiKey` | — (required; Studio Labs → **Developer Tools → Keys**) |
 | GameVersion | — | — | `[Ludeo] GameVersion` | `FApp::GetBuildVersion()` |
 | PlatformUrl | `-LudeoPlatformUrl=` | `LUDEO_PLATFORM_URL` | `[Ludeo] PlatformUrl` | production default |
 | SteamAuthID | `-SteamAuthID=` | `STEAM_AUTH_ID` | `[Ludeo] SteamAuthID` | implicit auth |
@@ -1180,6 +1196,8 @@ Present this checklist to the human:
 ## 4. Questions to Ask the Human
 
 Ask these after completing the analysis checklist. Skip questions where code analysis already provides a clear answer.
+
+**Ask short, in the human's words.** For the §3.16 config values, open by saying they go into the Ludeo config for their project, then one line per item: the value you need and where to find it — **API Key** (Studio Labs → Developer Tools → Keys), **Steam ID** and **Beta Version Name** (ask for both together), **Game ID** (Studio Labs → Game Options). Use those names, not `ApiKey`/`SteamAuthID`/`BetaBranchName`; mapping them onto ini keys is your job, not theirs. No rationale unless the item is a genuine decision — then one sentence and a default. A consequence belongs at the gate that catches it, not in the question.
 
 ### Required Questions
 
@@ -1636,6 +1654,8 @@ The trigger side has **two types**, configured in Studio Lab (**Global Triggers*
 | Pause/Resume | `PauseLudeo` | `ResumeLudeo` | Player Flow (the objective timer must stop) |
 
 > **These names are a convention, not SDK constants.** `SendAction` takes an arbitrary string; the strings only acquire meaning once a matching trigger **exists** in **Studio Lab → the environment → Global Triggers** (which tracked events start and end each segment). You can't see or create them, so **tell the user to create both — Pause/Resume on `PauseLudeo`/`ResumeLudeo`, Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`.** A missing or misnamed trigger drops the action silently: no error, the action still logs, the objective timer keeps counting.
+>
+> If a global-trigger tool has reached [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)'s table by the time you read this, use it (a **write** — confirm first) instead of handing the step over.
 
 > **Time-dilation pausing: the component keeps ticking, but `DeltaTime` is scaled.** `bTickEvenWhenPaused` covers *engine* pause; a game that "pauses" by driving `TimeDilation` toward zero leaves the component ticking with `DeltaTime` scaled by the same factor. The transition detector is unaffected (it reads a boolean, not elapsed time), but any `DeltaTime` accumulator in the same component — a write-throttle, a debounce, a deferred-unpause timer — effectively stalls. Use unscaled time (`FApp::GetDeltaTime()` / real-time seconds) for anything that must advance while the game is "paused."
 
