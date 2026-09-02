@@ -160,6 +160,8 @@ Trigger exists** on the platform. A missing or misnamed trigger drops the action
 action still shows in the log, the timer keeps counting. So don't just note it. Hand it to the orchestrator as a
 required platform step with **two ways to do it**:
 
+> **A third way, when it exists:** if a tool for global triggers has reached [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)’s table by the time you read this, prefer it over both — a **write**, so confirm first. None is deployed today, so expect to use one of the two below.
+
 1. **Recommended — the agent does it with browser control.** If the session has a browser tool, the orchestrator
    offers, once a build has sent these actions (Studio Lab lists an event only after that):
    > *"The actions reach the backend now. Want me to set up Studio Lab for you with browser control? I'd create the

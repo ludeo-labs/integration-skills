@@ -41,7 +41,7 @@ final phase — when it passes, the build is live on the platform.
 - [ ] The **`validate-build`** user-level skill (the self-contained gate; also writes `run.bat`).
 - [ ] The **`ludeo` CLI** reachable — verify with `ludeo --help`. If not installed/located, **ask the user**
       to install it or for the path to the binary; do **not** invent a download source.
-- [ ] A Ludeo **access token** and the game's **Game Version ID** (from the Ludeo studio/platform). Ask if
+- [ ] A Ludeo **access token** and the game's **Game ID** (Studio Lab → **Game Options → Info**). Ask if
       not provided.
 - [ ] **Global Triggers created** in Studio Lab → the environment: Pause/Resume on `PauseLudeo`/`ResumeLudeo`,
       Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. **Ask the user to confirm** — the cloud run
@@ -49,6 +49,13 @@ final phase — when it passes, the build is live on the platform.
       The failure is silent (phase 6 · task 2 Step 6). If they aren't there yet, or new actions arrived since,
       **offer to create them (and the goals and scores) with browser control — recommended**
       (`learnings/architecture/offer-to-set-up-studio-lab-with-browser-control.md`).
+- [ ] **The environment this build is being shipped to is named, and its Beta Version Name matches the beta branch the build will run on** — confirm *which* environment with the user if more than one is in play — that
+      pairing is what binds the build to a Ludeo environment, and a mismatch routes the cloud session
+      elsewhere with nothing in any log. **On a shipped build (`runWithoutLauncher = false`) the local
+      `LudeoSettings.betaVersion` is not the source of truth** — the SDK takes the branch from the live Steam
+      client, so compare against the branch the build actually ships on, not the settings field. If it changed
+      since phase 1, re-assert it (`ludeo-mcp` server → [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md), or ask
+      the user). Not `--game-version`.
 - [ ] [`ludeo-integration-docs/unity/READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md)
       — the agent can't see the Console; the release-build gate (Step 2) reads `Editor.log`.
 
@@ -57,7 +64,7 @@ final phase — when it passes, the build is live on the platform.
 | Input | Used for | Notes |
 | --- | --- | --- |
 | **Build folder path** | `validate-build` + `--local-directory` | Absolute path to the release build folder. |
-| **Game Version ID** | `--game-id` | The API path ID from Ludeo studio — **not** a build "id". |
+| **Game ID** | `--game-id` | The game **version** uuid (Studio Lab → Game Options → Info). **Not** a build id, and not the backend `gameId` — the platform keeps those separate. Studio Lab's Environments page still shows it too, but that copy is being retired. |
 | **Game version** | `--game-version` | e.g. `1.2.3`. Default to `LudeoSettings.gameVersion` if set. |
 | **SDK version** | `--sdk-version` | **Confirm with the user — do NOT trust the package manifest.** Builds often use a swapped/overridden SDK, so the manifest can lie. Not needed for `sdkFree` builds. |
 | **Access token** | `auth set-token` / `--access-token` | Only if not already authenticated. |
@@ -243,7 +250,7 @@ crash), and **ensures a `run.bat` exists** (creating one when you approve).
 A **major** build stands alone; a **minor** build is a variant attached to an existing major
 (`--major-build-id`).
 ```bash
-ludeo builds list --game-id <GAME_VERSION_ID> --sort-by createdAt --sort-order desc
+ludeo builds list --game-id <GAME_ID> --sort-by createdAt --sort-order desc
 ```
 - **No builds returned ⇒ first build ⇒ `--build-type major`** (no `--major-build-id`).
 - **Builds already exist ⇒ default to `--build-type minor`**, with `--major-build-id <id>` = the major it
@@ -264,7 +271,7 @@ it in **both** the dry-run and the real command.
 ```bash
 # First build (major):
 ludeo builds upload --dry-run \
-  --game-id <GAME_VERSION_ID> \
+  --game-id <GAME_ID> \
   --game-version <X.Y.Z> \
   --sdk-version <SDK_X.Y.Z> \
   --build-type major \
@@ -275,7 +282,7 @@ ludeo builds upload --dry-run \
 
 # Subsequent build (minor) — add the major it attaches to:
 ludeo builds upload --dry-run \
-  --game-id <GAME_VERSION_ID> \
+  --game-id <GAME_ID> \
   --game-version <X.Y.Z> \
   --sdk-version <SDK_X.Y.Z> \
   --build-type minor --major-build-id <MAJOR_BUILD_ID> \
@@ -305,7 +312,7 @@ success on the upload alone.**
 ```powershell
 # Windows / PowerShell — one self-contained command (polls internally; do not hand-loop with sleeps)
 $ludeo  = "ludeo"                      # or the full path to ludeo.exe if not on PATH
-$gameId = "<GAME_VERSION_ID>"; $buildId = "<NEW_BUILD_ID>"
+$gameId = "<GAME_ID>"; $buildId = "<NEW_BUILD_ID>"
 $deadline = (Get-Date).AddMinutes(7)   # platform processing cap (see "Open task" below — builds can get stuck)
 do {
     $out = & $ludeo builds get --game-id $gameId --build-id $buildId | Out-String
@@ -332,8 +339,8 @@ do {
 ### Step 10: Verify the final build metadata
 Once `success`, confirm it's the build you intended:
 ```bash
-ludeo builds list --game-id <GAME_VERSION_ID> --sort-by createdAt --sort-order desc   # new build at top
-ludeo builds get  --game-id <GAME_VERSION_ID> --build-id <NEW_BUILD_ID>                # status + metadata
+ludeo builds list --game-id <GAME_ID> --sort-by createdAt --sort-order desc   # new build at top
+ludeo builds get  --game-id <GAME_ID> --build-id <NEW_BUILD_ID>                # status + metadata
 ```
 Confirm status **`success`** and that `game-version`, `sdk-version`, build type, and `exec-path` (the
 `run.bat`) are what you intended.
@@ -346,7 +353,7 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
 
 ## 4. Questions to ask the human
 
-- **Build folder path**, **Game Version ID**, **game version**, **access token** — if not provided.
+- **Build folder path**, **Game ID**, **game version**, **access token** — if not provided.
 - **SDK version** — always **confirm with the user**; the package manifest can lie (builds use swapped SDKs).
 - **Changes description** — if it can't be inferred from context.
 - **Which major** a minor build attaches to — if ambiguous.

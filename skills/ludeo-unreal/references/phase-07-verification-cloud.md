@@ -28,10 +28,18 @@ Required artifacts from prior phases:
 - [ ] Ludeo SDK integrated. If not, stop — resume an earlier integration phase
 - [ ] `.ludeo/cloud-upload.json` initialized (by the `cloud-upload` skill)
 - [ ] Shipping build configuration and output path known (or captured in Step 1)
-- [ ] **Game ID** + **Access Token** from [Studio Labs](https://studio.ludeo.com) → Environments
+- [ ] **Game ID** + **Access Token** from [Studio Labs](https://studio.ludeo.com) → **Game Options → Info** (the game **version** uuid — not the backend `gameId`; the Environments page still shows a copy, now being retired)
 - [ ] **Global Triggers created** in Studio Labs → the environment: Pause/Resume on
       `PauseLudeo`/`ResumeLudeo`, Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. Ask the user to
       confirm — without them the pause never stops the objective timer, and the failure is silent (phase 03 §5.9.1)
+- [ ] **The environment this build is being shipped to is named, and its Beta Version Name matches the beta branch the build will run on** — confirm *which* environment with the human if more than one is in play — that
+      pairing is what binds the build to a Ludeo environment, and a mismatch routes the cloud session
+      elsewhere with nothing in any log. **`[Ludeo] BetaBranchName` is not the source of truth for a cloud
+      run** — phase 03 §3.16's own sample wraps the whole auth block in `if (!FParse::Param(…, TEXT("cloud")))`
+      and only applies the branch when `SteamAuthID` is set, so on the run this phase certifies the ini value
+      is never read. Compare against the branch the build actually ships on. If it changed since phase 03
+      §3.16, re-assert it (`set_beta_version_name` if it is in your tool list →
+      [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md), otherwise ask the human). Not the game version
 - [ ] CLI installed: `npm install -g @ludeo/cli`
 - [ ] Test account + network for verification scenarios
 - [ ] Access token via env var / `ludeo auth set-token` — **never** in git or `ludeo.json`
