@@ -123,7 +123,7 @@ The play flow is the inverse of the creator flow. The `[Layer]` already routes i
 the apply step and the game hooks. End-to-end (all `[SDK]` calls async/callback-based):
 
 ```
-LudeoSelected event (player picked a Ludeo in the gallery)          [SDK]
+LudeoSelected event (a Ludeo was selected for playback)             [SDK]
   → GetLudeo(ludeoId)                                                [SDK]  →  LudeoDataReader
       → new LudeoRestoredData(ludeoId, reader, out ok)               [Layer] groups buckets + restores world config (§8)
       → SwitchToPlay()  (consent-gated, CR-012)                      [Layer] IsInLudeoFlow becomes true
@@ -165,11 +165,12 @@ LudeoSelected event (player picked a Ludeo in the gallery)          [SDK]
 
 ### 2.2 Play-flow re-entry (tear-down) — capture→play **and replay→replay**
 
-`LudeoSelected` can fire while a run is **already live**, by two routes that hit the same code:
-1. **Mid-capture** — the player opens the gallery during a capture run.
-2. **Replay→replay** — the player finishes one replay and picks a **second** Ludeo from the overlay
-   **without quitting**. This is the easy one to miss: there's no scene reload, no app restart, so a
-   persistent-singleton layer (`07 §10.3`) carries the first play's state straight into the second.
+`LudeoSelected` arrives whenever the SDK says so — **any time after `Activate`** — so it can fire while
+a run is **already live**, by two routes that hit the same code:
+1. **Mid-capture** — a Ludeo is selected while a capture run is in progress.
+2. **Replay→replay** — the player finishes one replay and a **second** Ludeo is selected from the
+   overlay **without quitting**. This is the easy one to miss: there's no scene reload, no app restart,
+   so a persistent-singleton layer (`07 §10.3`) carries the first play's state straight into the second.
 
 `HandleGetLudeoDone` is therefore **re-entrant** and must tear the prior run down **completely** before
 starting the new one. A partial teardown (just `CloseRoom`) leaves the integration broken three ways on
@@ -885,7 +886,7 @@ ObjectType, ObjectId, CreateOrGetComponent}` · `LudeoReadableComponent.ReadData
 
 **`[Layer]`** (REFERENCE-ARCHITECTURE + the restore additions in §3):
 `LudeoController.{GetAndRestoreLudeoStateOfObject, RestoreLudeoStateOfObject, TryGetAllLudeoStateObjectByType,
-GetLudeoTrackedDefinitions, BeginGameplay, IsInLudeoFlow, OpenLudeoGallery}` · `LudeoFlowSwitch.{SwitchToPlay,
+GetLudeoTrackedDefinitions, BeginGameplay, IsInLudeoFlow}` · `LudeoFlowSwitch.{SwitchToPlay,
 SetFlags}` · `ILudeoFlow`/`LudeoPlayFlow.{RestoreLudeoStateOfObject (both overloads),
 TryGetAllLudeoStateObjectByType, StoreGameDefinitions}` · `LudeoRestoredData` (`LudeoStateObjectsLookup`,
 `TrackedDefinitionsForLudeo`) · `LudeoRestoredGameConfig.RestoreGameDefinitionsForLudeo` ·

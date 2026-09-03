@@ -233,14 +233,13 @@ The skill previously deferred these systems to Phase 8 (enrichment) — which is
 |----|----------|
 | `LM-1` | On launch, does the game drop the player straight into a playable level, or through a frontend menu (main menu / lobby / press-start) first? If there's a menu, is it a deliberate click-through, or does "Play" immediately load-and-start? |
 | `LM-2` | Does the game ever auto-continue, skip the intro, or boot directly into a session (a "continue" path, a debug auto-enter)? These blow past the menu's implicit wait the same way a menu-less boot does. |
-| `LM-3` | For playing back a Ludeo: does the player pick one from a gallery/menu, or can the game be launched with a specific moment **pre-selected** (boot straight into the restored moment)? |
+| `LM-3` | For playing back a Ludeo: can the game be launched with a specific moment **pre-selected** (boot straight into the restored moment)? |
 
 **Record as:**
 ```json
 "launchModel": {
   "creatorLaunch": "menu-gated | boot-straight | fast-menu-autostart",
   "menuDwell": "clickthrough | immediate-load-start",
-  "playerLaunch": "gallery | preselected",
   "readinessGateRequired": true
 }
 ```

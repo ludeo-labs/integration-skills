@@ -31,8 +31,9 @@ boundary actions will go.
     sub-structure** (open-world / streaming / sandbox / state-machine-driven), also read
     `ludeo-integration-docs/game-patterns/open-world.md` — doctrine for which `start_sites[]` binds
     `OpenRoom` and which `exit_sites[]` become `End`/`Abort`.
-  - **If `CODE_MAP.launch_model.readiness_gate_required` is `true`** (boot-straight / preselected /
-    fast-skippable menu), also read `ludeo-integration-docs/unity/LAUNCH-AND-READINESS.md` — the init
+  - **If `CODE_MAP.launch_model.readiness_gate_required` is `true`** (boot-straight / fast-skippable
+    menu — and always for the play path), also read
+    `ludeo-integration-docs/unity/LAUNCH-AND-READINESS.md` — the init
     site and the gameplay-start (`OpenRoom`) site **collapse onto the same scene**, and `OpenRoom`
     becomes **gate-driven**, not a synchronous game call after `Initialize`/`Activate`.
 

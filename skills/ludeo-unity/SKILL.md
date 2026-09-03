@@ -274,7 +274,7 @@ ordering requirement, or exact API signature. Deferring loses the specifics that
   - `UPM-INSTALL-AND-DEFINES.md` — install paths, scripting defines, the dummy-impl pattern.
   - `LAUNCH-AND-READINESS.md` — launch models (menu-gated vs. boot-straight-to-gameplay) + the
     SDK-readiness gate that replaces the menu's implicit Activate/consent wait.
-  - `CONSENT-AND-OVERLAY.md` — consent gating, gallery, pause/resume in **both** directions (CR-011); read §3 before wiring either.
+  - `CONSENT-AND-OVERLAY.md` — consent gating and pause/resume in **both** directions (CR-011); read §3 before wiring either.
   - `READING-UNITY-LOGS.md` — locating and reading `Editor.log` / `Player.log` for the compile/run gates.
 
 ## MCP configuration
