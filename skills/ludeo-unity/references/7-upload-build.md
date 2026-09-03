@@ -37,6 +37,10 @@ final phase — when it passes, the build is live on the platform.
       Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. **Ask the user to confirm** — the cloud run
       is the first place the overlay pause happens, and without the trigger it won't stop the objective timer.
       The failure is silent (phase 6 · task 2 Step 6).
+- [ ] **The target environment's beta version still matches the build's** (`LudeoSettings.betaVersion`) — this
+      is what binds the build to a Ludeo environment, so a mismatch routes the cloud session elsewhere with
+      nothing in any log. If it changed since phase 1, re-assert it (`ludeo-mcp` server →
+      [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md), or ask the user). Not `--game-version`.
 - [ ] [`ludeo-integration-docs/unity/READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md)
       — the agent can't see the Console; the release-build gate (Step 2) reads `Editor.log`.
 
