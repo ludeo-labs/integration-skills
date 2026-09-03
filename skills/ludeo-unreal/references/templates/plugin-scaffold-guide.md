@@ -166,7 +166,8 @@ Standard UE module boilerplate. Registers the module. No custom logic needed.
 ```
 Condition 1: bRoomReady        — SDK OnRoomReady notification
 Condition 2: PlayerHandle set  — SDK OnPlayerAdded callback
-Condition 3: bGamePhaseActive  — Game: {GameplayStartHook} signals gameplay
+Condition 3: bLevelLoaded      — Game: {LevelReadySignal} — level loaded + loading screen down (MANDATORY)
+Condition 4: bGamePhaseActive  — Game: {GameplayStartHook} signals gameplay
 [Add more from CODE_MAP analysis]
 ```
 

@@ -569,6 +569,7 @@ void TryBeginGameplay()
     if (bGameplayStarted) return;          // already started
     if (!bRoomReady) return;               // SDK: OnRoomReady
     if (!PlayerHandle.IsSet()) return;     // SDK: OnPlayerAdded
+    if (!bLevelLoaded) return;             // Game: MANDATORY — level loaded + loading screen down
     if (!bGamePhaseActive) return;         // Game: phase/state system
     // ... add more conditions as needed
 
