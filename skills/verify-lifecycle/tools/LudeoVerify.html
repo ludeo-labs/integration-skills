@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ludeo Integration Verifier</title>
+<style>
+  :root {
+    --ink: #1a1d24; --soft: #4a5060; --faint: #7b8194;
+    --paper: #f3f4f7; --card: #ffffff; --line: #dcdfe7;
+    --accent: #4653d6; --accent-soft: #eceefc;
+    --pass: #157a52; --pass-bg: #e2f3ec;
+    --warn: #8f6410; --warn-bg: #f8eed7;
+    --fail: #b23a3e; --fail-bg: #fae5e6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #e4e7ef; --soft: #a8aec0; --faint: #767d92;
+      --paper: #13151b; --card: #1b1e26; --line: #2c303c;
+      --accent: #8d99ff; --accent-soft: #23263b;
+      --pass: #4cc394; --pass-bg: #16281f;
+      --warn: #ddab3d; --warn-bg: #2b2312;
+      --fail: #e57379; --fail-bg: #301a1b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.6 "Segoe UI", system-ui, sans-serif; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 40px 20px 80px; }
+  h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -.01em; }
+  .sub { color: var(--soft); margin: 0 0 24px; }
+  code, pre { font-family: "Cascadia Code", Consolas, ui-monospace, monospace; }
+  code { background: var(--accent-soft); border-radius: 4px; padding: 1px 5px; font-size: .88em; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+  .controls label { font-weight: 600; font-size: 13px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--card); }
+  .seg button { border: 0; background: transparent; color: var(--soft); padding: 7px 14px; font: 600 13px "Segoe UI", system-ui, sans-serif; cursor: pointer; }
+  .seg button.on { background: var(--accent); color: #fff; }
+  .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  #drop {
+    border: 2px dashed var(--line); border-radius: 12px; background: var(--card);
+    padding: 34px 20px; text-align: center; color: var(--soft); cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  #drop.over { border-color: var(--accent); background: var(--accent-soft); }
+  #drop strong { color: var(--ink); }
+  #drop input { display: none; }
+
+  #summary { display: none; margin: 20px 0 6px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; }
+  #summary .banner { font-size: 20px; font-weight: 750; margin-bottom: 4px; }
+  #summary .banner.pass { color: var(--pass); }
+  #summary .banner.fail { color: var(--fail); }
+  #summary .meta { color: var(--faint); font-size: 12.5px; font-family: "Cascadia Code", Consolas, ui-monospace, monospace; }
+  #summary .actions { margin-top: 10px; }
+  #summary button { border: 1px solid var(--line); background: transparent; color: var(--soft); border-radius: 6px; padding: 5px 12px; font-size: 12.5px; cursor: pointer; }
+
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .08em; color: var(--faint); margin: 26px 0 8px; }
+  .rows { display: flex; flex-direction: column; gap: 6px; }
+  .row { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; display: flex; gap: 10px; align-items: baseline; }
+  .row .chip { flex: 0 0 52px; text-align: center; font: 700 10.5px "Cascadia Code", Consolas, ui-monospace, monospace; letter-spacing: .06em; border-radius: 4px; padding: 4px 0; }
+  .row.pass .chip { color: var(--pass); background: var(--pass-bg); }
+  .row.warn .chip { color: var(--warn); background: var(--warn-bg); }
+  .row.fail .chip { color: var(--fail); background: var(--fail-bg); }
+  .row .body { min-width: 0; }
+  .row .id { font: 600 12px "Cascadia Code", Consolas, ui-monospace, monospace; color: var(--faint); margin-right: 6px; }
+  .row .detail { font-size: 13.5px; overflow-wrap: anywhere; }
+  .row .hint { font-size: 12.5px; color: var(--soft); margin-top: 2px; }
+  .row .hint::before { content: "hint: "; color: var(--faint); font-weight: 600; }
+
+  details { background: var(--card); border: 1px solid var(--line); border-radius: 8px; margin: 8px 0; }
+  summary { padding: 10px 14px; cursor: pointer; font-weight: 600; font-size: 14px; }
+  details pre { margin: 0; padding: 4px 16px 16px; overflow-x: auto; font-size: 12.5px; line-height: 1.6; color: var(--soft); }
+
+  #err { display: none; color: var(--fail); background: var(--fail-bg); border-radius: 8px; padding: 12px 16px; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ludeo Integration Verifier</h1>
+  <p class="sub">Run your game following the instructions below, then drop the log file here.
+    The verifier checks that the Ludeo SDK lifecycle ran correctly, in order, and shut down cleanly.</p>
+
+  <div class="controls">
+    <label for="scenario-seg">Scenario:</label>
+    <div class="seg" id="scenario-seg" role="group" aria-label="Scenario">
+      <button type="button" data-s="creator" class="on">Creator</button>
+      <button type="button" data-s="player">Player</button>
+    </div>
+  </div>
+
+  <div id="drop" tabindex="0" role="button" aria-label="Choose or drop a log file">
+    <strong>Drop your log file here</strong> or click to choose one<br>
+    <span style="font-size:12.5px">Unreal <code>&lt;Project&gt;\Saved\Logs\*.log</code> ·
+      Unity <code>Player.log</code> · native <code>LudeoSDK.log</code></span>
+    <input type="file" id="file" accept=".log,.txt,text/plain">
+  </div>
+
+  <div id="err"></div>
+
+  <div id="summary">
+    <div class="banner" id="verdict"></div>
+    <div class="meta" id="meta"></div>
+    <div class="actions"><button id="copyjson" type="button">Copy JSON report</button></div>
+  </div>
+
+  <div id="report" style="display:none">
+    <h2>Checks</h2>
+    <div class="rows" id="checks"></div>
+    <h2>Scenario steps</h2>
+    <div class="rows" id="steps"></div>
+  </div>
+
+  <h2>How to produce the log</h2>
+  <div id="instructions"></div>
+</div>
+
+<script src="ludeo_verify.js"></script>
+<script>
+(function () {
+  'use strict';
+  var errBox = document.getElementById('err');
+  if (typeof window.LudeoVerify === 'undefined') {
+    errBox.style.display = 'block';
+    errBox.textContent = 'ludeo_verify.js was not found next to this page. Keep both files in the same folder.';
+    return;
+  }
+  var LV = window.LudeoVerify;
+  var scenario = 'creator';
+  var lastText = null;
+  var lastFile = null;
+  var lastResult = null;
+
+  // --- instructions ---
+  function renderInstructions() {
+    var host = document.getElementById('instructions');
+    host.innerHTML = '';
+    ['unreal', 'unity', 'native'].forEach(function (engine, i) {
+      var d = document.createElement('details');
+      if (i === 0) d.open = true;
+      var s = document.createElement('summary');
+      s.textContent = engine.charAt(0).toUpperCase() + engine.slice(1);
+      var pre = document.createElement('pre');
+      pre.textContent = LV.instructionsText(engine, scenario);
+      d.appendChild(s); d.appendChild(pre);
+      host.appendChild(d);
+    });
+  }
+
+  // --- report ---
+  function row(r) {
+    var div = document.createElement('div');
+    div.className = 'row ' + r.status;
+    var chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = r.status.toUpperCase();
+    var body = document.createElement('div');
+    body.className = 'body';
+    var detail = document.createElement('div');
+    detail.className = 'detail';
+    var id = document.createElement('span');
+    id.className = 'id';
+    id.textContent = r.id;
+    detail.appendChild(id);
+    detail.appendChild(document.createTextNode(r.detail));
+    body.appendChild(detail);
+    if (r.status !== 'pass' && r.hint) {
+      var hint = document.createElement('div');
+      hint.className = 'hint';
+      hint.textContent = r.hint;
+      body.appendChild(hint);
+    }
+    div.appendChild(chip); div.appendChild(body);
+    return div;
+  }
+
+  function render(res, fileName) {
+    lastResult = res;
+    var summary = document.getElementById('summary');
+    var report = document.getElementById('report');
+    var verdict = document.getElementById('verdict');
+    var meta = document.getElementById('meta');
+    summary.style.display = 'block';
+    errBox.style.display = 'none';
+
+    if (!res.usable) {
+      verdict.className = 'banner fail';
+      verdict.textContent = 'UNUSABLE — no Ludeo SDK log lines found';
+      meta.textContent = fileName + ' · ' + res.counts.total + ' lines scanned. Follow the instructions below and re-run.';
+      report.style.display = 'none';
+      return;
+    }
+
+    verdict.className = 'banner ' + res.result;
+    verdict.textContent = res.result === 'pass'
+      ? 'PASS — ' + res.counts.warned + ' warning(s)'
+      : 'FAIL — ' + res.counts.failed + ' failed, ' + res.counts.warned + ' warning(s)';
+    meta.textContent = fileName + ' · format: ' + res.format +
+      ' · SDK ' + (res.sdk.version ? 'v' + res.sdk.version + ' (' + res.sdk.buildType + ')' : 'unknown') +
+      ' · scenario: ' + res.scenario +
+      ' · ' + res.counts.ludeo + ' Ludeo lines / ' + res.counts.total + ' total';
+
+    var checks = document.getElementById('checks');
+    var steps = document.getElementById('steps');
+    checks.innerHTML = ''; steps.innerHTML = '';
+    res.checks.forEach(function (c) { checks.appendChild(row(c)); });
+    res.steps.forEach(function (s) { steps.appendChild(row(s)); });
+    report.style.display = 'block';
+  }
+
+  function runVerify() {
+    if (lastText === null) return;
+    render(LV.verify(lastText, scenario), lastFile);
+  }
+
+  function loadFile(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      lastText = reader.result;
+      lastFile = file.name;
+      runVerify();
+    };
+    reader.readAsText(file);
+  }
+
+  // --- wiring ---
+  document.getElementById('scenario-seg').addEventListener('click', function (ev) {
+    var btn = ev.target.closest('button');
+    if (!btn) return;
+    scenario = btn.getAttribute('data-s');
+    this.querySelectorAll('button').forEach(function (b) { b.classList.toggle('on', b === btn); });
+    renderInstructions();
+    runVerify();
+  });
+
+  var drop = document.getElementById('drop');
+  var input = document.getElementById('file');
+  drop.addEventListener('click', function () { input.click(); });
+  drop.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') input.click(); });
+  input.addEventListener('change', function () { if (input.files[0]) loadFile(input.files[0]); });
+  ['dragenter', 'dragover'].forEach(function (t) {
+    drop.addEventListener(t, function (ev) { ev.preventDefault(); drop.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (t) {
+    drop.addEventListener(t, function (ev) { ev.preventDefault(); drop.classList.remove('over'); });
+  });
+  drop.addEventListener('drop', function (ev) {
+    if (ev.dataTransfer.files && ev.dataTransfer.files[0]) loadFile(ev.dataTransfer.files[0]);
+  });
+
+  document.getElementById('copyjson').addEventListener('click', function () {
+    if (!lastResult) return;
+    var json = JSON.stringify(LV.toJson(lastResult, lastFile), null, 2);
+    var self = this;
+    function done() { self.textContent = 'Copied!'; setTimeout(function () { self.textContent = 'Copy JSON report'; }, 1500); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(json).then(done, function () { fallback(); });
+    } else { fallback(); }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = json; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+  });
+
+  renderInstructions();
+})();
+</script>
+</body>
+</html>

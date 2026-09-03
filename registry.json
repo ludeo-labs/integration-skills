@@ -18,6 +18,14 @@
       "version": "1.1.0",
       "description": "Use when integrating the Ludeo SDK into an Unreal Engine game, performing Ludeo integration analysis, designing or implementing Ludeo integration architecture in UE code, or working on any phase of a Ludeo SDK integration (lifecycle, actions, state tracking, player flow). Also trigger when the user mentions Ludeo SDK, Ludeo integration, playable highlights integration, LudeoSession, LudeoRoom, DataWriter, DataReader, or game state tracking for Ludeo - when the work is on an Unreal Engine game's code. Do NOT use for Unity or non-Unreal engines (use ludeo-unity-integration instead), pure SDK-concept/documentation questions with no code work, cloud cast session/VM log diagnosis (use ludeo-diagnose-session), repo open-sourcing, or creating decks/docs about an integration.",
       "status": "released"
+    },
+    {
+      "name": "ludeo-verify-lifecycle",
+      "path": "skills/verify-lifecycle",
+      "engine": "any",
+      "version": "0.1.0",
+      "description": "Verify a Ludeo SDK integration by running the game normally and checking its log against the SDK lifecycle contract. Use when the user asks to verify or test an integration, test the SDK lifecycle, check a run log, or asks \"did my integration work\" — for Unity, Unreal, or native C++ games alike. Produces a deterministic PASS/WARN/FAIL report with a fix hint per finding. Do NOT use for performing the integration itself (use ludeo-unreal-integration or ludeo-unity-integration), uploading builds (use cloud-upload), or diagnosing cloud cast session/VM logs (use ludeo-diagnose-session).",
+      "status": "released"
     }
   ]
 }

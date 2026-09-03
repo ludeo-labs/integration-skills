@@ -106,6 +106,10 @@ Report to the orchestrator: (1) compile status (package-on ✅/❌, define-off �
       prompting **`Shift+F4`**). This is the **primary visual confirmation a Gameplay Session opened** —
       every other signal at this stage is in the logs. Log shows no Ludeo errors.
 - [ ] No SDK tick wired; pause/notification names correct; no scattered raw `[SDK]` calls (spot-check).
+- [ ] **Lifecycle log check passes** — run the `ludeo-verify-lifecycle` skill's checker on the run log
+      (`node <verify-lifecycle skill>/tools/ludeo_verify.js check <Editor.log or Player.log>`;
+      install with `npx skills add ludeo-labs/integration-skills/skills/verify-lifecycle`). It audits
+      call order, failed/hung calls, missing handlers, and clean shutdown, with a fix hint per finding.
 
 ## 8. Common Mistakes
 

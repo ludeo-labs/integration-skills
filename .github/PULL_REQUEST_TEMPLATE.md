@@ -8,6 +8,7 @@
 
 - [ ] `ludeo-unreal`
 - [ ] `ludeo-unity`
+- [ ] `verify-lifecycle`
 - [ ] `cloud-upload`
 - [ ] shared / hub (no skill release)
 
