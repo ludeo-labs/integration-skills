@@ -11,9 +11,10 @@
     "TacticsGame",
     "StoryPuzzleGame",
     "CoopShooter",
+    "StackOBot",
     "multiple"
   ],
-  "$sourceGameAllowlist_note": "sourceGame: frontmatter MUST be one of these abstract codenames. A real studio/title name is itself a leak. Add a new codename here at the START of each new client engagement.",
+  "$sourceGameAllowlist_note": "sourceGame: frontmatter MUST be one of these abstract codenames. A real studio/title name is itself a leak. Add a new codename here at the START of each new client engagement. EXCEPTION: Epic's own freely-published samples (Lyra, StackOBot) are listed under their real names — they are public, belong to no client, and naming them carries the transfer value a codename would destroy. Same rationale as LYRAGAME_API in apiMacroAllowlist. Do not extend this exception to anything that is not publicly published by the engine vendor.",
   "apiMacroAllowlist": [
     "GAME_API",
     "GAMENAME_API",
