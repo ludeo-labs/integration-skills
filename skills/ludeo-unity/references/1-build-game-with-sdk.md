@@ -251,6 +251,7 @@ Context files (read first; relative to this workflow file):
 | `LudeoSettings.asset` with real `apiKey` | SDK config; dev flags appropriate for the build |
 | `ludeo-integration-plan/KYG.md` | Recorded KYG (below) |
 | `CODE_MAP.json → save_system` (game-level block) | Mechanism/format/group + entry points; per-entity matrix deferred to `phase 4` |
+| **`ludeo-integration-plan/integration.json`** | **Resumable state — created here, read by Step 1 of every later session.** Schema + field notes: [`state-file-schema.md`](state-file-schema.md). Seed `gameTitle`/`unityVersion`/`gameType`, `saveSystem`, `launchModel`, `buildTarget`, `auth`, `sdkSetup`, `preferences`, and mark phase 1 `completed` **only once `KYG.md` exists**. Record every deferral as a `knownIssues` entry with a `resolveByPhase` — a deferral that lives only in a commit message is one nobody finds. |
 
 `KYG.md` template:
 ```markdown
