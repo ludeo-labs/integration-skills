@@ -8,6 +8,7 @@ Each subfolder is an independently installable, independently versioned
 | --- | --- | --- |
 | `ludeo-unreal/` | `ludeo-unreal-integration` | ✅ filled (v1.0.1) from `../../unreal-integration-skill` |
 | `ludeo-unity/` | `ludeo-unity-integration` | ✅ filled (v1.1.0) from `../../unity-integration-skill` |
+| `verify-lifecycle/` | `ludeo-verify-lifecycle` | ✅ filled (v0.1.0) — SDK lifecycle verification from game run logs |
 | `cloud-upload/` | `cloud-upload` | ⏳ empty placeholder — to be authored later |
 
 The registry only lists folders that contain a `SKILL.md`. Unfilled folders are empty placeholders

@@ -14,6 +14,12 @@ Integrate the Ludeo SDK into a specific engine.
 - **`ludeo-unity-integration`** — Integrate the Ludeo SDK into a **Unity** game (C#, `LudeoSDK` API).
   → `skills/ludeo-unity/`
 
+## Verification
+
+- **`ludeo-verify-lifecycle`** — Verify an integration from a game run log: deterministic PASS/WARN/FAIL
+  report on the SDK lifecycle (any engine — native, Unreal, Unity, custom loggers).
+  → `skills/verify-lifecycle/`
+
 ## Build & Ship
 
 - **`cloud-upload`** — Validate, authenticate, upload a build to the Ludeo cloud, and poll until it is `ready`.
@@ -31,4 +37,5 @@ Integrate the Ludeo SDK into a specific engine.
 | ".uproject", "Unreal", "Blueprint", "UE5" | `ludeo-unreal-integration` |
 | "Unity", "Assets/", "MonoBehaviour", "prefab" | `ludeo-unity-integration` |
 | "upload to Ludeo", "ship the build", "publish the Ludeo" | `cloud-upload` |
+| "verify my integration", "test the SDK lifecycle", "did it work", "check this log" | `ludeo-verify-lifecycle` |
 | "LudeoSession", "Room", "DataWriter/DataReader", "Player Flow" | engine skill |

@@ -14,6 +14,7 @@ agent can install it with [`npx skills`](https://skills.sh).
 | --- | --- | --- | --- |
 | `ludeo-unreal-integration` | Unreal Engine (C++/Blueprint) | ✅ available | `npx skills add ludeo-labs/integration-skills/skills/ludeo-unreal` |
 | `ludeo-unity-integration` | Unity (C#) | ✅ available | `npx skills add ludeo-labs/integration-skills/skills/ludeo-unity` |
+| `ludeo-verify-lifecycle` | Any engine — verify an integration from a game run log | ✅ available | `npx skills add ludeo-labs/integration-skills/skills/verify-lifecycle` |
 | `cloud-upload` | Validate + upload a build to the Ludeo cloud | ⏳ planned | _coming soon_ |
 
 > See [`SKILL_TREE.md`](./SKILL_TREE.md) for the full index and a keyword quick-lookup table, and

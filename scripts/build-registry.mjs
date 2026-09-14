@@ -31,9 +31,11 @@ function parseFrontmatter(md) {
   return fm;
 }
 
-function engineOf(name, fm) {
+function engineOf(name) {
+  // Folder name only — descriptions legitimately mention other engines
+  // ("Do NOT use for…"), which would mislabel engine-agnostic skills.
   for (const [re, val] of ENGINE_HINTS) {
-    if (re.test(name) || re.test(fm.description || '')) return val;
+    if (re.test(name)) return val;
   }
   return 'any';
 }
@@ -56,7 +58,7 @@ if (existsSync(SKILLS_DIR)) {
     skills.push({
       name: fm.name || folder,
       path: `skills/${folder}`,
-      engine: engineOf(folder, fm),
+      engine: engineOf(folder),
       version,
       description: fm.description || '',
       status: version ? 'released' : 'scaffolded',

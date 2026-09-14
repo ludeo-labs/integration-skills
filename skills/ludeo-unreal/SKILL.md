@@ -369,6 +369,13 @@ Confirm all deliverables are implemented (not stubbed), code compiles, package b
 - **Must NOT be guarded:** `RegisterActionListeners()`, `OnActorSpawned()`, `DetectPollBasedActions()`, `ReportAction()` (actions and entity tracking must work in both flows)
 - **Watch for cascading guards:** A `bIsPlayerFlow` check on `CreateWritableObjects()` can indirectly block action registration if `RegisterActionListeners()` depends on the entity list that `CreateWritableObjects()` populates. Trace the call chain — don't just check direct guards.
 
+**Lifecycle log check (every phase that produced a runnable game):** After any human/AI run of the
+game, run the `ludeo-verify-lifecycle` skill's checker against the run log
+(`node <verify-lifecycle skill>/tools/ludeo_verify.js check "<Project>/Saved/Logs/<Project>.log"`;
+install with `npx skills add ludeo-labs/integration-skills/skills/verify-lifecycle` if absent).
+It deterministically audits call order, failed/hung API calls, missing notification handlers, and
+clean shutdown — findings come with fix hints.
+
 **Room-open-timing audit (every code-producing phase that touches the lifecycle):** Confirm `Session::OpenRoom` is called from the component's `BeginPlay` (at level load), **NOT** gated on a warmup / countdown / "Playing" / "combat" / interesting-state phase. Only `BeginGameplay` (the N-way gate) may wait on a game phase. Grep the component for `OpenRoom` and trace its caller: if a game-phase observer (e.g. `WhenPhaseStartsOrIsActive(Playing) → … → OpenRoom`) reaches `OpenRoom`, that is the bug — a late-opened Creator room never receives `OnRoomReady` and nothing records. Move the open to `BeginPlay`; gate only `BeginGameplay` on the phase. This holds even when no reference sample is available to diff against. See `learnings/common-mistakes/open-creator-room-at-level-load-not-on-phase.md` and the HARD RULE in `references/phase-03-lifecycle.md` §3.2.
 
 ### Phase 5 Hard Gate: Player Flow Before Phase 6

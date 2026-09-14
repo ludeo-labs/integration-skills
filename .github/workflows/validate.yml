@@ -17,3 +17,5 @@ jobs:
         run: node scripts/validate-skills.mjs
       - name: Check registry is current
         run: node scripts/build-registry.mjs --check
+      - name: Run skill tool tests
+        run: npm test

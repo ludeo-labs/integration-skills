@@ -13,6 +13,13 @@ npx skills add ludeo-labs/integration-skills/skills/ludeo-unreal
 npx skills add ludeo-labs/integration-skills/skills/ludeo-unity
 ```
 
+## Verification
+
+```bash
+# Verify an integration from a game run log (any engine)
+npx skills add ludeo-labs/integration-skills/skills/verify-lifecycle
+```
+
 ## Build & ship
 
 ```bash
