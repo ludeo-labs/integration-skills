@@ -165,6 +165,10 @@ action still shows in the log, the timer keeps counting. You have no Studio Lab 
 > match exactly — that's what the code emits. Until both exist, pauses won't stop the player's clock and
 > non-ludeoable areas won't be excluded, with nothing in any log to say so."*
 
+> **`ludeo-mcp` server:** if a tool for global triggers is in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)'s
+> table by the time you read this, use it (a **write** — confirm first) instead of handing the step over.
+> Otherwise the message above stands.
+
 > **Open cross-skill item:** whether `StartNoneLudeable`/`StopNoneLudeable`
 > is one generic start/stop pair for all non-ludeoable areas or needs per-area names is a platform
 > global-trigger semantics question for the platform owner. Use the single generic pair by default; flag it

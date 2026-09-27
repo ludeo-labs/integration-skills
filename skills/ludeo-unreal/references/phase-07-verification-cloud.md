@@ -32,6 +32,11 @@ Required artifacts from prior phases:
 - [ ] **Global Triggers created** in Studio Labs → the environment: Pause/Resume on
       `PauseLudeo`/`ResumeLudeo`, Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. Ask the user to
       confirm — without them the pause never stops the objective timer, and the failure is silent (phase 03 §5.9.1)
+- [ ] **The target environment's beta version still matches the build's** (`[Ludeo] BetaBranchName`, or
+      whatever the command line / env var resolves to) — this is what binds the build to a Ludeo environment,
+      so a mismatch routes the cloud session elsewhere with nothing in any log. If it changed since phase 03
+      §3.16, re-assert it (`ludeo-mcp` server → [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md), or ask the
+      human). Not the game version
 - [ ] CLI installed: `npm install -g @ludeo/cli`
 - [ ] Test account + network for verification scenarios
 - [ ] Access token via env var / `ludeo auth set-token` — **never** in git or `ludeo.json`

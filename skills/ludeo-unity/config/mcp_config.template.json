@@ -1,5 +1,5 @@
 {
-  "_comment": "Template for the MCP servers this skill uses. Copy the relevant entries into your agent's MCP config (Claude Code: .mcp.json at the project root, or `claude mcp add`), then fill in the redacted credentials. For sdk-docs, set X-User-Name to your Ludeo username (the local-part of your Ludeo email, e.g. jane.doe) — it identifies the caller. Both servers are optional — the skill falls back to the bundled references/ludeo-integration-docs/ when they are absent (see SKILL.md → MCP configuration). Ask the Ludeo integrations team for current URLs and credentials.",
+  "_comment": "Template for the MCP servers this skill uses. Copy the relevant entries into your agent's MCP config (Claude Code: .mcp.json at the project root, or `claude mcp add`), then fill in the redacted credentials. For sdk-docs, set X-User-Name to your Ludeo username (the local-part of your Ludeo email, e.g. jane.doe) — it identifies the caller. All three servers are optional — the skill falls back to the bundled references/ludeo-integration-docs/ when they are absent (see SKILL.md → MCP configuration). Ask the Ludeo integrations team for current URLs and credentials.",
   "mcpServers": {
     "sdk-docs": {
       "_purpose": "Search the Ludeo SDK documentation — API reference, method signatures, parameter structs, callback chains (Unity/C# included). Primary source for SDK details at any phase. Fallback: bundled references/ludeo-integration-docs/.",
@@ -13,6 +13,15 @@
       "_purpose": "Ludeo company knowledge base — integration templates, QA workflows, event lists, repo context. Most useful for phase 2 (mapping) and phases 5-6 (tracking/restore and action discovery). Fallback: proceed without; analysis quality may be reduced.",
       "type": "http",
       "url": "https://mcp-ludeo-context-internal.ludeo.com/mcp",
+      "headers": {
+        "Authorization": "Bearer <your-token>"
+      }
+    },
+    "ludeo-mcp": {
+      "_purpose": "Automates Studio Lab platform work the agent otherwise hands to the user (environments, beta version, ...). Touchpoints, cadence, and the read/write policy: references/ludeo-studio-mcp.md. Fallback: ask the user to do the step in Studio Lab.",
+      "_url_note": "URL, credentials, and the final server name are not settled — ask the Ludeo integrations team. A staging deployment appears as ludeo-mcp-staging; identify the server by its tools (list_game_environments, ping).",
+      "type": "http",
+      "url": "<studio-mcp-url>",
       "headers": {
         "Authorization": "Bearer <your-token>"
       }
