@@ -21,7 +21,10 @@ anyone sees it — and the placement checks then report drift that is nobody's b
 ## What actually blocks at a stopped clock, and what does not
 
 This is the distinction the whole design rests on, and it is easy to get backwards after being
-burned once by a freeze that deadlocked a load (see [[timescale-zero-stops-the-sdk-notification-pump]]):
+burned once by a freeze that deadlocked a load waiting on a physics step. Which Unity callbacks keep
+running at a stopped clock is also what decides whether the SDK's own notification pump survives a
+freeze — it depends on where the installed plugin ticks (see
+[[verify-the-timescale-pump-claim-against-the-installed-plugin]]):
 
 | Advances at `timeScale = 0` | Does **not** |
 |---|---|

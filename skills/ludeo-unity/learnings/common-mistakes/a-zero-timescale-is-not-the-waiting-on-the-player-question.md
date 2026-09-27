@@ -69,8 +69,10 @@ place — and say so where it used to be wired, or the next person re-adds it.
 
 Both trigger kinds block clip creation, and the docs separate them on two other axes: the
 pause/resume pair also stops the clip's countdown but the backend saves no data for the window, while
-the non-ludeoable pair keeps the countdown running and the data. For a **frozen** selection screen the
-pause pair is the better fit — otherwise the replay's time budget drains while the player reads three
-upgrade cards with the game stopped — and losing the window's data costs nothing when the state
-writer writes every tracked value every tick rather than only what changed. Check that last point
-before relying on it.
+the non-ludeoable pair keeps the countdown running and the data. A **frozen** selection screen needs
+the pause pair — otherwise the replay's time budget drains while the player reads three upgrade cards
+with the game stopped — but not the pause pair *alone*: the non-ludeoable pair is what stops a creator
+trimming a moment's start point into the screen. Emit both, nested, from the same latch — see
+[[pause-and-non-ludeoable-triggers-split-by-flow-a-real-pause-needs-both]]. Losing the pause window's
+data costs nothing when the state writer writes every tracked value every tick rather than only what
+changed; check that before relying on it.
