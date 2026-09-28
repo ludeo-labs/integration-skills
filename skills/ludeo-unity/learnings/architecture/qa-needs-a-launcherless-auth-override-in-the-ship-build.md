@@ -50,3 +50,12 @@ the flag can impersonate another user id locally.)
 
 This is the phase-1 "QA per-tester config" deferral coming due; plan it as part of phase 7
 rather than discovering it from an angry "how is QA supposed to use this?"
+
+## Note (2026-09-26, RoomActionSample): confirmed on a dev-posture QA build
+
+A second integration hit the same need from the other side: its local test build already ran with
+`runWithoutLauncher=true`, but `launcherUserId` baked into the build was the integrator's own, so every tester
+would have recorded under one account. The same in-memory override (`-ludeo-user`-style argument, applied before
+`Initialize`, validated as a 17-digit Steam64 id and logged with only its last digits) fixed it. To keep testers
+from editing every launcher, the launchers read the id from one text file next to the exe and pass it on; the
+file is never shipped in the QA zip.

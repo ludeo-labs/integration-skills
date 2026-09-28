@@ -146,10 +146,13 @@ The orchestrator confirms **all** of these before advancing to phase 7:
 - [ ] **Objective timer verified stopping** — pause from the game's own menu and confirm exactly one
       `PauseLudeo` per pause in the log, with a matching `ResumeLudeo`. The **overlay** pause path can only be
       exercised on the cloud build (`PauseGameRequested` never fires locally) — check it there, not here.
-- [ ] **The user was told to create the Global Triggers** — Pause/Resume on `PauseLudeo`/`ResumeLudeo`, and
-      Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable` (Studio Lab → environment → *Global
-      Triggers*; task 2 Step 6 has the wording). Nothing reaches the backend until they exist, and the agent
-      can't do it — so "action in the log" is not proof the timer stopped.
+- [ ] **The Global Triggers exist** — Pause/Resume on `PauseLudeo`/`ResumeLudeo`, and Non-Ludeoable Area on
+      `StartNoneLudeable`/`StopNoneLudeable` (Studio Lab → environment → *Global Triggers*). Nothing reaches the
+      backend until they do, so "action in the log" is not proof the timer stopped. Once the recording run has
+      sent the actions, **offer to create them with browser control (recommended)**, together with the goals,
+      constraints and scores for the gameplay actions; otherwise hand over the verbatim instruction (task 2
+      Step 6, `learnings/architecture/offer-to-set-up-studio-lab-with-browser-control.md`). Ask again whenever a
+      later batch adds actions.
 - [ ] Player-scoped actions guarded on the player as actor/subject; global actions fired unguarded.
 - [ ] No `#if` guard at call sites (CR-001 runtime); all calls route through the `[Layer]` façade.
 
