@@ -94,7 +94,7 @@ Surface to the orchestrator:
 | --- | --- | --- |
 | `LudeoSelected` | ✅ | Enter play flow — **stub** here (`GetLudeo` + cache reader); restore flow is phase 5 · task 3, data read-back phase 5 · task 4. |
 | `RoomReady` | ✅ | Gameplay-start gate **and** post-Ludeo-load resume: **apply → unfreeze → `Begin`** (never unfreeze first); restore `Begin` also waits on the scene-load leg (CR-010/CR-009). |
-| `PlayerConsentUpdated` | ✅ | Feed `LudeoFlowSwitch.SetFlags(canCreate, canPlay)` + gate the gallery button (CR-012). |
+| `PlayerConsentUpdated` | ✅ | Feed `LudeoFlowSwitch.SetFlags(canCreate, canPlay)` (CR-012). |
 | `PauseGameRequested` | ✅ | **Freeze the simulation** (`Time.timeScale = 0f`) — the #1 mid-play failure if missing (CR-011) — **and emit `PauseLudeo`**, or the objective timer runs on under the overlay. Don't open the game's own pause menu (stacks under the overlay). |
 | `ResumeGameRequested` | ✅ | Unfreeze the sim (`Time.timeScale = 1f`) **and emit `ResumeLudeo`** — same pairing as the row above (CR-011). |
 | `GameBackToMenuRequested` | ✅ | A CR-007 exit: stop tracking, `CloseRoom`, load the menu scene. |

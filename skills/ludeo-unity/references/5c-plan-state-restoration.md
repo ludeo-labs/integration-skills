@@ -52,7 +52,7 @@ is written here.**
   - `ludeo-integration-docs/00-CRITICAL-REQUIREMENTS.md` — **CR-006** (two-pass), **CR-010** (freeze),
     **CR-011** (overlay pause), **CR-014** (stable identity — no `GetInstanceID()`).
   - `ludeo-integration-docs/unity/CONSENT-AND-OVERLAY.md` — the overlay pause/resume notifications
-    (`PauseGameRequested`/`ResumeGame`, CR-011), `ReturnToMainMenu` exit (CR-007), and the gallery entry.
+    (`PauseGameRequested`/`ResumeGame`, CR-011) and the `ReturnToMainMenu` exit (CR-007).
 
 > **🛑 Planning scope — analysis only.** You do **not** need exact `[SDK]` signatures, the `GetLudeo`
 > callback shape, or the package source. Reference restoration at the level of *which call maps to which
