@@ -87,6 +87,9 @@ The overlay only runs in a **windowed** Editor (or player), so capture can't hap
    | Ludeo id | Captured (time, highlightId) | Wave / schema | Contains | Status |
    | --- | --- | --- | --- | --- |
 
+   Status moves `captured` → `replayed` → `confirmed` (the integrator signed off its wave), or `stale`.
+   Phase 7 replays every `confirmed` Ludeo before an upload, first in the Editor and then on the build.
+
 A capture made before the latest change to what the game writes is **stale** for the waves after it
 (phase 5 → *Re-capture every wave*). Mark it so in `LUDEOS.md` rather than replaying it as proof.
 
