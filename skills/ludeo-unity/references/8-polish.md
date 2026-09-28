@@ -133,10 +133,12 @@ This is the **run phases 4 & 5** path. It does not re-open the phase files' logi
    Step 1c instead go back into **their owning wave's** rows.
 2. **Re-enter the phase-5 wave loop for the appended wave(s).** Hand off to
    `5-tracking-restore-orchestrator.md`, running the new wave exactly like any wave **≥ 2**: `deep-scope
-   (task 0) → capture (task 1) → restore-plan (task 2) → reconstruct (task 4)`, each at its human gate.
+   (task 0) → capture (task 1) → restore-plan (task 2) → reconstruct (task 4)`, each at its gate.
    **Skip task 3** (the restore *flow* is built once in Wave 1 and reused) — only the tracked set, the
    capture writers, and the `ApplyRestoredState()` buckets grow, additively. Re-capture at each new wave's
-   task-1 gate (schema invalidation — `06 §6`).
+   task-1 gate (schema invalidation — `06 §6`). With the test harness, the agent captures and replays the
+   new waves as it did the first ones (the integrator sends Ludeo ids and signs off per wave), and every
+   earlier confirmed Ludeo is replayed again before the re-upload (phase 7 Step 0.5).
 3. **Loop back to Step 1.** A widened integration can reveal further gaps (a new family references another).
    Re-run the gap check until it comes back clean or the user stops.
 
@@ -171,7 +173,13 @@ When the user confirms nothing material remains:
    new capture schema also invalidates prior cloud captures (`06 §6`). Tell the user to re-run **phase 7**
    (`7-upload-build.md`) to publish the widened build (a **minor** attached to the existing major), and that
    test captures must be re-recorded against the new schema.
-3. Declare the integration complete **at the agreed scope**, naming what was and wasn't covered.
+3. **Ask whether the agent's Editor tooling stays** — only if phase 1 Step 0c installed it. The Pipeline
+   package (`com.unity.pipeline`) is in the game's `Packages/manifest.json` on the integration branch.
+   Ask, plainly: *"Phase 1 added a Unity package, Pipeline, so I could work in your Editor directly. It's
+   a developer tool; keep it in the project, or remove it before this branch merges?"* On *remove*,
+   follow `agent-editor-tooling.md` → *Removing it*, confirm the
+   project still compiles, and commit. On *keep*, note it in the TDD completion section.
+4. Declare the integration complete **at the agreed scope**, naming what was and wasn't covered.
 
 ## 4. Questions to ask the human
 - **Step 2 (the core one):** which recommended gaps to expand now vs. finalize at current scope — expansion
@@ -182,6 +190,8 @@ When the user confirms nothing material remains:
 - **Perf tradeoff (1b):** if a large widening pushes the write budget, whether to lower cadence / add
   skip-unchanged, or proceed at full cadence.
 - **Finalize:** confirm "complete at current scope" before writing the TDD completion section.
+- **Editor tooling (if phase 1 installed it):** keep the Pipeline package in the game's
+  project, or remove it before the branch merges (Step 5.3).
 
 ## 5. Patterns to apply
 - **Widen through the existing phases, never duplicate them** — this phase appends waves and re-enters the
@@ -250,6 +260,8 @@ TDD completion section:
       timing pushed back to its owning wave as core, not patched here.
 - [ ] **Completion recorded in the TDD** with final coverage + accepted gaps; **re-upload flagged** (phase 7)
       when the build changed, with re-recorded captures noted.
+- [ ] _(If phase 1 installed the Editor tooling)_ the integrator decided whether the Pipeline package
+      stays; if removed, the removal is committed and the project still compiles.
 - [ ] Integration declared complete **at the user-agreed scope** — nothing stopped silently.
 
 ## 8. Common Mistakes

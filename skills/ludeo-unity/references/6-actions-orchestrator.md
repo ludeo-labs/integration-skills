@@ -66,17 +66,26 @@ for approval** (the action list is a judgment call — naming, keep/drop, scope)
 approval**, then the orchestrator **runs the gate**: recompile clean + play and confirm each action
 **emits in the log in BOTH flows** (capture *and* replay).
 
-**Split this gate — only the play half needs a human.** The agent recompiles headlessly
-(`-batchmode -quit … -logFile`) and reads the result itself; emission evidence is log-only, and the log is
-readable, so the agent verifies it directly once the run has happened. What the agent cannot do is *play*
-the game to produce that run — capture and replay need the integrator. Do not hand over the compile half
-as well. See `learnings/common-mistakes/agent-can-run-unity-compile-gates-headlessly.md`.
+**Split this gate — only the play half needs a human, and with the test harness not even that.** The
+agent recompiles itself — through the open Editor when the phase-1 Editor tooling is set up
+(`agent-editor-tooling.md`), otherwise headlessly with the Editor closed (`-batchmode -quit … -logFile`) —
+and reads the result itself. Emission evidence is log-only, and the log is readable, so the agent
+verifies it directly once the run has happened. Do not hand over the compile half as well. See
+`learnings/common-mistakes/agent-can-run-unity-compile-gates-headlessly.md`.
+
+- **With the harness** (`agent-test-harness.md`): the agent produces the runs too. Add a capture-flow
+  scenario step that performs each action at least once, through the game's own code paths (a scripted
+  input, or the game's dev command that triggers it), and check each action's emission line. Then replay
+  a Ludeo from that session (the integrator sends its id) and check the Player-flow emissions in the
+  same way. The integrator is asked for the Ludeo id and nothing else at this gate.
+- **Without it:** capture and replay need the integrator to play.
 
 ### Reading the logs (the gate)
 
 The orchestrator runs the gate but **cannot see the Console** — it confirms emission by reading **Unity's
-log files** per [`unity/READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md), and
-beyond the log relies on the integrator's word. The compile-and-fix loop + `error CS` table live in
+log files** per [`unity/READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md). With
+the harness it also has each run's result file; without it, beyond the log it relies on the integrator's
+word. The compile-and-fix loop + `error CS` table live in
 [`phase 3 · task 5`](3e-compile-and-fix.md).
 
 ## 4. Questions to ask the human
@@ -86,7 +95,8 @@ The orchestrator relays whatever a subagent surfaces — it does not invent its 
   whether a player-scoped action's site can fire for non-player actors (needs a player-guard).
 - **Task 1 gate:** approve `GAME_ACTIONS_MAP.md` (kept actions, names, drops, scope).
 - **Task 2 gate:** confirm a clean recompile + each action emits in the log in **both** Creator and Player
-  flow, and that the player-scoped actions are correctly attributed.
+  flow, and that the player-scoped actions are correctly attributed. With the harness, the agent confirms
+  all of this itself and asks only for the Ludeo id of the session that fired the actions.
 - **Out-of-code:** the **platform global-trigger mapping** for `StartNoneLudeable`/`StopNoneLudeable` — a
   one-time step the integrator performs on the platform (task 2 documents it).
 

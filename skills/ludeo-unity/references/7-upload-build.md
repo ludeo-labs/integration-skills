@@ -65,11 +65,28 @@ final phase — when it passes, the build is live on the platform.
 
 ## 3. Steps
 
+### Step 0.5: Replay the confirmed Ludeos first _(only with the test harness)_
+Before building, replay every Ludeo marked confirmed in `ludeo-integration-plan/LUDEOS.md` with the
+harness (`agent-test-harness.md` → *Replaying a Ludeo*), and judge each one as its wave's gate did. A
+Ludeo that restored at its wave and fails now is a regression from a later change: fix it before
+building. Then turn `autoStartInLudeo` off, since the pre-run check turned it on and a build must not
+carry it.
+
 ### Step 1: Have the user make the release build
 **Prompt the user to make the release build themselves** in the Unity Editor (*File → Build Settings →
 Build*, or their usual pipeline) and tell them you'll take it from there. (Don't drive the Editor build
 yourself.) With the Step 2 hard-fail hook in place, even "Build And Run" aborts before producing an
 artifact when `runWithoutLauncher = true` — that's the gate firing, not a separate problem.
+
+**With the Editor tooling, the agent may start the build itself, but only through the studio's own
+build entry point.** Find how the studio builds: a build window, a menu item, or a static build method
+its CI calls. If that entry point is callable (a static method, or a menu item run with
+`EditorApplication.ExecuteMenuItem`), ask the integrator once: *"Shall I start the release build through
+your <entry point>?"* Then call it through the CLI and wait for the build to finish. Never substitute
+`unity build`, Unity's Build Settings dialog or a hand-written `BuildPipeline.BuildPlayer` call; on one
+integration a build made outside the studio's pipeline broke launch, Addressables and audio at once. If
+the entry point is only a window with buttons, ask the integrator to press it. Either way, make sure the
+log and the build you then check are **from this build**: compare timestamps.
 
 ### Step 2: Release-build gate — assert production + release settings from the build log
 **Layer the defense — no single check is sufficient.** A shipped/cloud build must (a) authenticate against

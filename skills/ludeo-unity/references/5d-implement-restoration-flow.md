@@ -278,6 +278,20 @@ don't filter the codebase scan to state-touching mechanisms and miss a blocking 
 > the game's activation entry point (`Activate`/`EnterCombat`/`Arm`) **minus** any reposition branch. If the
 > plan left this to a captured attribute, there's nothing to wire here — task 4 restores it.
 
+### Step 5.5: Extend the test harness for replay _(only if phase 3 task 6 built one)_
+Follow [`agent-test-harness.md`](agent-test-harness.md) → *The pieces* and *Replaying a Ludeo*. Add three
+things, all test-only (Editor-only or behind the layer's dev define):
+- **The stand-in Play click** — a method on the layer that re-enters the **same** `RoomReady → Begin`
+  path this task just wired, so a replay can begin with nobody connected. It calls that path; it does
+  not reimplement or bypass it. (A real Play click then travels exactly the code the harness tested.)
+- **The replay scenario** — wait for the Ludeo flow, the gameplay scene, world-ready and the restore
+  applied (the stub's log line for now), press the stand-in click, observe for N seconds sampling once a
+  second, and take start and end screenshots. Add a **replay-again** variant that re-selects through the
+  layer's real re-selection path.
+- **Replay settings in the pre-run check** — `runWithoutLauncher`, `autoStartInLudeo`, `ludeoToAutoStart`.
+
+Task 4 later adds each wave's restored-vs-recorded comparison to the scenario's samples.
+
 ### Step 6: Self-check, then hand back (no play test here)
 You do **not** play a Ludeo — the orchestrator does. Before returning, statically self-check against §7's
 pre-handoff criteria, then return a summary + the files you created/edited + any open questions. **The
@@ -322,7 +336,9 @@ Surface to the orchestrator; don't guess:
 - A report: (1) apply placement + apply shape (freeze vs suppress), (2) flow `[Layer]` added, (3) the Seam
   (`ApplyRestoredState()` STUB call site), (4) overlay hooks wired, (5) pre-match suppression gated, (6)
   files modified, (7) ready for the orchestrator's flow gate. Note (5) covers **both** categories — state-clobbering and flow-blocking UI.
-- **No compile / play performed** — that's the orchestrator's human gate.
+- _(If phase 3 built the test harness)_ the stand-in Play click, the replay and replay-again scenarios,
+  and the replay settings in the pre-run check (Step 5.5).
+- **No compile / play performed** — that's the orchestrator's gate.
 
 ## 7. ✅ Success Criteria
 

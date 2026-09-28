@@ -266,6 +266,13 @@ is `true` (set by task 3); the creator flow uses `06 §6` batch *registration* i
 > path here and surface the hook as an Open Question rather than wiring the flow. **Never leave activation to
 > the skipped trigger.**
 
+### Step 8.5: Teach the harness this wave's values _(only if phase 3 task 6 built one)_
+Extend the replay scenario so its evidence proves **this wave** restored (`agent-test-harness.md` → *What
+a pass must show*). For each of the wave's key values, sample the live value after the restore and
+compare it with the Ludeo's recorded value, read from the restored data. For each restored entity, record
+its position against the nearest ground or geometry, for the placement check. Where a value is on screen
+(a counter, a label, a health bar), have the scenario read the **rendered** value, not only the model.
+
 ### Step 9: Self-check, then hand back (no play test here)
 You do **not** play a Ludeo — the orchestrator does. Before returning, statically self-check against §7's
 pre-handoff criteria, then return a summary + the files you created/edited + any open questions. **The
@@ -321,7 +328,9 @@ Surface to the orchestrator; don't guess:
   references resolved, (3) baseline-reset list, (4) pre-existing match/spawn counts, (5) environment
   restored + excluded, (6) skipped (open questions), (7) files modified, (8) ready for the orchestrator's
   state gate.
-- **No compile / play performed** — that's the orchestrator's human gate.
+- _(If phase 3 built the test harness)_ the replay scenario's samples extended with this wave's
+  restored-vs-recorded values and placement data (Step 8.5).
+- **No compile / play performed** — that's the orchestrator's gate.
 
 ## 7. ✅ Success Criteria
 

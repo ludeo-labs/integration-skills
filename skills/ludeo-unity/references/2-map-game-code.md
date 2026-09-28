@@ -37,10 +37,19 @@ share of entity state is configured on the prefab/scene rather than in code. Pur
 (lifecycle wiring, `SendAction`, `WriteData`, restoration) is unaffected — this is a
 discovery-phase convenience, not a functional requirement.
 
+> **With the phase-1 Editor tooling, the open Editor answers these questions directly.** Ask it through
+> the CLI instead of reading files: the scenes in the build, each scene's root objects and the
+> components on them, a prefab's components and inspector values, which objects carry a given
+> component. That works whatever the serialization mode, so switching to Force Text becomes optional.
+> Offer it only if the integrator wants greppable assets for their own reasons. Read-only queries don't
+> recompile, but loading a scene to inspect it changes the open scene: save nothing, and reopen the
+> scene that was open before.
+
 1. **Detect (don't blind-prompt).** Read `ProjectSettings/EditorSettings.asset` →
    `m_SerializationMode`: `0` = Mixed, `1` = ForceBinary, `2` = ForceText.
    - **`2` (ForceText)** → already done; record it in the CODE_MAP and skip to Step 2. No prompt.
-   - **`0` or `1`** → ask the user (the decision itself is **§4**).
+   - **`0` or `1`** → ask the user (the decision itself is **§4**). With the Editor tooling, say that
+     it isn't needed for the integration (see the note above).
 2. **If they agree to switch:**
    1. **Commit a clean baseline first** — so the re-serialization is an isolated, revertible point.
    2. **Ask the user to toggle it in the Editor:** *Project Settings → Editor → Asset Serialization →
@@ -53,8 +62,8 @@ discovery-phase convenience, not a functional requirement.
    4. **Commit the re-serialization as its own isolated commit** (e.g.
       `chore: switch asset serialization to Force Text`) so later Ludeo changes diff cleanly on top.
 3. **If they decline:** record the choice in the CODE_MAP (`serialization` note) and proceed in binary
-   mode — you'll **round-trip scene/prefab inspector lookups through the user** in this and later
-   phases. **Do not re-prompt** in phases 4/5; at most a one-line reminder of the prior choice.
+   mode — without the Editor tooling you'll **round-trip scene/prefab inspector lookups through the
+   user** in this and later phases; with it, query the Editor instead. **Do not re-prompt** in phases 4/5; at most a one-line reminder of the prior choice.
 
 ### Step 2 — Run the Analysis Checklist
 
