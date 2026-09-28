@@ -23,7 +23,7 @@ multi-step setup is very easy to miss, and that each miss cost far more time tha
 | Run-without-launcher, for any run not started by the Ludeo launcher | no overlay; `userToken returned is null!`, then activate failing — while the log still reports the overlay as enabled |
 | The integration's own "start the SDK in play mode" toggle, if it added one | nothing at all: the game plays normally and the log has no SDK lines — see [[an-off-by-default-play-mode-toggle-makes-the-sdk-silently-absent]] |
 | Studio Lab configuration for the game and the environment in use | a room that never opens although the code path runs; on one practice integration this was an entitlement present in one backend environment and missing in the other |
-| The CLI's active login | uploads and build listings that belong to another game — see [[ludeo-cli-set-token-overwrites-the-global-login-and-uploads-everything]] |
+| The CLI's active login | uploads and build listings that belong to another game — see [[ludeo-cli-set-token-ignores-config]] |
 | Scripting defines left behind by a cloud-build configuration | the Editor boots as a cloud build and hangs on the loading screen — see [[the-cloud-build-is-a-second-configuration-not-a-modified-one]] |
 
 ## The habit
