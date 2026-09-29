@@ -26,6 +26,16 @@ final phase — when it passes, the build is live on the platform.
 
 - [ ] **Phase 6 complete** — the integration is done (lifecycle, tracking & restore proven, actions wired)
       and compiles.
+- [ ] **Whole-game coverage re-scan done** (before the first upload of a title, and again before an upload that
+      widens coverage). Scope it by the title's structure — every level / world / region / mode — one read-only
+      subagent per part, comparing what the scenes really contain against the **capture/restore code** (not the
+      plan), with an OK / Partial / Broken verdict per part and a list of anything no wave covers. Record the verdicts
+      in the plan and share them. Found bugs are fixed; gaps that don't affect the cloud test itself need not block
+      the upload — test on the parts rated OK. See `learnings/common-mistakes/rescan-every-level-before-the-first-cloud-upload.md`.
+- [ ] **Confirmed Ludeos replayed on this build** (from the second upload on, or whenever restore code changed):
+      a script launches each Ludeo the integrator confirmed on screen, collects the restore's post-settle checks
+      and closes it; every Ludeo shows all its checks and none is `WRONG`. See
+      `learnings/architecture/replay-every-confirmed-ludeo-as-a-regression-gate-before-upload.md`.
 - [ ] A **release player build folder** exists — **the user triggers the build in the Unity Editor**
       (current platform; Ludeo capture is Windows-desktop). The agent does **not** drive the Editor build.
 - [ ] The **`validate-build`** user-level skill (the self-contained gate; also writes `run.bat`).
@@ -36,7 +46,9 @@ final phase — when it passes, the build is live on the platform.
 - [ ] **Global Triggers created** in Studio Lab → the environment: Pause/Resume on `PauseLudeo`/`ResumeLudeo`,
       Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. **Ask the user to confirm** — the cloud run
       is the first place the overlay pause happens, and without the trigger it won't stop the objective timer.
-      The failure is silent (phase 6 · task 2 Step 6).
+      The failure is silent (phase 6 · task 2 Step 6). If they aren't there yet, or new actions arrived since,
+      **offer to create them (and the goals and scores) with browser control — recommended**
+      (`learnings/architecture/offer-to-set-up-studio-lab-with-browser-control.md`).
 - [ ] [`ludeo-integration-docs/unity/READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md)
       — the agent can't see the Console; the release-build gate (Step 2) reads `Editor.log`.
 
