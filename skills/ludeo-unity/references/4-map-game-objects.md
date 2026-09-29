@@ -528,7 +528,8 @@ criteria are verified **per wave** in phase 5 (listed here as what each Part-B i
       disposition — `capture | defer→wave N | exclude(reason)`; the `N = C + D + X` tally + the swept-from
       components are recorded; no field is left undispositioned (silent drop). Player has a stats/skill/
       inventory subsystem folded in where the game has one.
-- [ ] Per-entity property table (typed attributes) + cadence for the `capture` rows.
+- [ ] Per-entity property table (typed attributes) + cadence for the `capture` rows; opaque values
+      (enum / type code / content id) planned with their `<Attr>Name` label (`06 §1.5`).
 - [ ] Cross-entity references rowed (target's key, two-pass resolve; cross-wave refs marked deferred).
 - [ ] **Per-entity reconciliation-vs-manual matrix** built (Step B5) → entity rows + `CODE_MAP.save_system.per_entity`.
 

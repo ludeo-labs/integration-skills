@@ -173,6 +173,7 @@ obj => {
     obj.WriteData(K.OwnerId, m_owner != null ? m_owner.RunId : -1);  // reference by key (06 §4)
     obj.WriteData(K.RemainingLifetime, m_ttl);           // REMAINING, not elapsed (06 §9.4)
     obj.WriteData(K.ProjectileType, (int)m_type);
+    obj.WriteData(K.ProjectileTypeName, m_typeName);     // label, cached on Get — never read back (06 §1.5)
 };
 
 // RESTORE — Pass 1 writes the scalars + key; velocity DEFERS to §7, OwnerId resolves in Pass 2 (§6)

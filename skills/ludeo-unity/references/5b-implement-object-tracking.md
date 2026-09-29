@@ -265,6 +265,8 @@ Surface to the orchestrator; don't guess:
 - [ ] `LudeoKeys` constants exist for every tracked objectType; `objectType` strings match the plan exactly.
 - [ ] Collections write a **stable key** attribute every tick (no `GetInstanceID()`/references, CR-014);
       singletons need none.
+- [ ] Every opaque value (enum / type code / content id) writes its `<Attr>Name` label in the same lambda,
+      resolved once — no `enum.ToString()` per tick (`06 §1.5`).
 - [ ] The **world/level identity** objectType and the **time-base/continuity** singleton are captured
       per-tick (+ `RunMetadata` for procedural games).
 - [ ] Batch/stream-in pass registers pre-existing objects, skipped when `IsInLudeoFlow`; stream-out does
