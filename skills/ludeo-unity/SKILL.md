@@ -158,7 +158,10 @@ file — so the user experiences each as a single phase.
   typed attributes (`WriteData(name, int/float/double/bool/string/Vector3/Quaternion)`, inside
   `using (obj.EnterObjectScope())`) by default and do **not** ask the user which to use. Use
   blob/`byte[]` storage only when the user explicitly asks or an entity is genuinely opaque — see
-  `06-TRACKING-PATTERNS.md`.
+  `06-TRACKING-PATTERNS.md`. Opaque values (enums, type codes, content ids) additionally carry a
+  companion `<Attr>Name` `string` label so `EnemyType: 3` reads as `EnemyTypeName: "HeavyGunner"`
+  downstream — the numeric value stays the source of truth and restore never reads the label
+  (`06 §1.5`).
 - **Writes and reads are scoped (CR-002, v4.3.0).** Every `WriteData`/`ReadData` runs inside a
   `using EnterObjectScope()` (component scopes nested inside). The prescribed `ILudeoStateHandler`
   owns the write scope per tick, so gameplay code just calls `WriteData` — but restore-apply code

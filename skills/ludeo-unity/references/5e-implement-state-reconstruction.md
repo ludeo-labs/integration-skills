@@ -161,6 +161,8 @@ void RestoreLudeoState(LudeoReadableObject r) {          // inverse of the 06 §
                                     // it never recovers (the jammed-entity / inert-boss trap).
         // r.ReadData(K.Velocity, ...) → DEFER (Step 6)
         // r.ReadData(K.TargetId, ...) → resolve in Pass 2 via keyMap (Step 5)
+        // r.ReadData(K.EnemyTypeName, ...) → NEVER. Labels (06 §1.5) are write-only readability;
+        //   reconstruct from the int (K.EnemyType), which is the source of truth.
     }
 }
 ```
@@ -330,6 +332,8 @@ Surface to the orchestrator; don't guess:
       the first visible frame, non-zero two-pass counts, a cross-entity reference resolved correctly.
 - [ ] **Reader does not assert on missing attributes** — `ReadData` → `false` keeps the spawn
       default; only a missing **key** fails loud.
+- [ ] **No `ReadData` on a `<Attr>Name` label attribute** — labels are write-only readability
+      (`06 §1.5`); restore keys off the `int` / stable key.
 - [ ] **Restore verified by a human** — including the replay-twice no-leak test (second Ludeo's state shows,
       not the first's; no dropped-`Start` defaults).
 

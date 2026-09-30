@@ -95,6 +95,9 @@ complete is the **constants class(es)**: one `LudeoKeys`-style class per tracked
 (`phase 5`/task 4) read the **same** constants (`06 §10`, REFERENCE-ARCHITECTURE "Keys"). Phase 3
 scaffolded this — fill it from the plan's property names. Propose the class(es), confirm, then proceed.
 
+A labelled opaque value contributes **two** consts, not one — `EnemyType` **and** `EnemyTypeName`
+(`06 §1.5`). Both live in the keys class; only the first is read by restore.
+
 ### Step 4: Wire the register call + the `OnStateDataUpdate` writer
 For each entity, at its **register hook** (per Step 5), emit the canonical `06 §3.1` call — **guarded
 creator-only** (`06 §3` rule box):
@@ -106,12 +109,18 @@ m_handler = LudeoController.Instance.StartTrackingLudeoState<DefaultLudeoStateHa
     obj => {                                          // OnStateDataUpdate — runs each sampling tick
         obj.WriteData(<Keys>.Key, m_myStableKey);  // [SDK] identity/key — write every tick (diff-sent, free)
         obj.WriteData(<Keys>.Position, transform.position);   // [SDK] Vector3 [Unity]
+        obj.WriteData(<Keys>.EnemyType, (int)m_type);         // [SDK] opaque enum → int
+        obj.WriteData(<Keys>.EnemyTypeName, m_typeName);      // [SDK] its label, resolved once (06 §1.5)
         // … every kept property from the plan …
     });
 ```
 
 Keep the returned handler. Write **identity/key and dynamics in the same lambda** — never "register now,
 key later" (`06 §3.1`). Singletons (the player) need no key; collections write their stable key (§4).
+Every opaque value (enum / type code / content id) gets its `<Attr>Name` label written right beside it
+in the same lambda (`06 §1.5`); already-readable values get none. Resolve the label **once** (cached
+field, or a prebuilt lookup table) — an `enum.ToString()` inside the lambda allocates every tick, per
+object (`06 §11`).
 
 ### Step 5: Wire register/unregister into hook sites
 Hook sites come from the plan's pattern classification (`06 §2`/§5):
@@ -256,6 +265,8 @@ Surface to the orchestrator; don't guess:
 - [ ] `LudeoKeys` constants exist for every tracked objectType; `objectType` strings match the plan exactly.
 - [ ] Collections write a **stable key** attribute every tick (no `GetInstanceID()`/references, CR-014);
       singletons need none.
+- [ ] Every opaque value (enum / type code / content id) writes its `<Attr>Name` label in the same lambda,
+      resolved once — no `enum.ToString()` per tick (`06 §1.5`).
 - [ ] The **world/level identity** objectType and the **time-base/continuity** singleton are captured
       per-tick (+ `RunMetadata` for procedural games).
 - [ ] Batch/stream-in pass registers pre-existing objects, skipped when `IsInLudeoFlow`; stream-out does
