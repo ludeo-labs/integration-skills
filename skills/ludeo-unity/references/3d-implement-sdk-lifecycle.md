@@ -31,13 +31,13 @@ task-5 compile+run gate.
     `CODE_MAP.launch_model.readiness_gate_required`), also read
     `ludeo-integration-docs/unity/LAUNCH-AND-READINESS.md`.
 
-> **No config step here.** No `LudeoConfig.h`/`ludeo.ini`/auth questionnaire — the package reads
-> `LudeoSettings.asset` (phase 1). If the apiKey is a placeholder, point the user back to
-> **Ludeo → Setup and Show LudeoSettings**; don't add a config class.
-> **Exception (dev/QA only):** if phase 1 set up the `LUDEO_DEV`-gated dev-override shim
-> (`LudeoDevConfig.ApplyOverrides`, see `unity/UPM-INSTALL-AND-DEFINES.md` → *Dev/QA runtime overrides*),
-> call it as the **first line before `LudeoManager.Initialize()`**, inside the `#if LUDEO_DEV` guard. That is **not**
-> the config class this rule forbids — it's a build-gated test affordance that compiles out of production.
+> **No auth questionnaire here** — the package reads `LudeoSettings.asset` (phase 1). If the apiKey is a
+> placeholder, point the user back to **Ludeo → Setup and Show LudeoSettings**; don't invent another config class.
+> **Required call (every integration):** `LudeoConfigFile.Apply()` (phase 1 Step 2b, code in
+> `unity/UPM-INSTALL-AND-DEFINES.md` → *`LudeoConfig.ini`*) is the **first line before
+> `LudeoManager.Initialize()`** — no `#if`. The SDK copies `LudeoSettings` once inside `Initialize()`, so a
+> later call changes nothing. If phase 1 did not create `LudeoConfigFile.cs`, create it now. This is how the
+> dev build signs in; skipping it leaves a dev build with no identity once the asset's Steam id is removed.
 
 ## 3. Steps
 
@@ -149,6 +149,7 @@ artifacts don't resolve it. Otherwise implement the plan as written.
 
 - [ ] All `[Layer]` files created (controller, data, flow switch, flows, init-room handler, gameplay
       session manager + dummy, state handler interface + default, keys).
+- [ ] `LudeoConfigFile.Apply()` is the first boot step, before `LudeoManager.Initialize()` (no `#if`).
 - [ ] Bootstrap constructs `LudeoController` with its delegates; `onRoomReady` applies **before**
       unfreeze; begin gate includes the restore scene-load leg.
 - [ ] Every gameplay exit path routes through `EndGameplay`/`AbortGameplay` (CR-007);

@@ -259,7 +259,8 @@ public class LudeoController
     // InitLudeoSession(cb) + HandleInitSessionDone.)
     private void InitializeSdkAndSession()
     {
-        LudeoResult init = LudeoManager.Initialize();
+        LudeoConfigFile.Apply();   // dev build: LudeoConfig.ini next to the exe (UPM-INSTALL-AND-DEFINES.md); BEFORE Initialize
+    LudeoResult init = LudeoManager.Initialize();
         if (init != LudeoResult.Success && init != LudeoResult.LudeoManagerAlreadyInitialized)
         { Debug.LogError($"Ludeo Initialize: {init}"); m_onInitDone?.Invoke(false); return; }
 
@@ -496,7 +497,7 @@ timeout it activates anyway (and logs) so a no-Steam machine is never blocked fo
 #if STEAMWORKS_NET && !STEAMWORKS_OFF
 IEnumerator ActivateWhenSteamReady(Action activate)
 {
-    // Explicit auth (a launcherUserId, incl. a LUDEO_DEV runtime override) needs no Steam — go now.
+    // Explicit auth (a launcherUserId, e.g. from the dev build's LudeoConfig.ini) needs no Steam — go now.
     var settings = Resources.Load<LudeoSettings>("LudeoSettings");
     if (settings != null && settings.runWithoutLauncher) { activate(); yield break; }
 

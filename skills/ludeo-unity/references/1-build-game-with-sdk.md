@@ -89,19 +89,32 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
     `InvalidAuth`. Set the real Steam **app id** (not `0`). **Dev flags off.** Implicit auth is a
     code-ordering concern (gate `Activate`) and can't be validated from a cloud build — detail in
     `unity/UPM-INSTALL-AND-DEFINES.md §3-4`.
-  - **Testing / CI without Steam → `true` (explicit).** Set `launcherUserId` (a Steam id); no Steam
-    needed. Optionally `autoStartInLudeo` + `ludeoToAutoStart` to force the replay flow on launch.
+  - **Testing / CI without Steam → `true` (explicit).** A Steam id + beta branch; no Steam needed. In a
+    **built** dev player these come from `LudeoConfig.ini` (Step 2b), not from the asset. Optionally
+    `autoStartInLudeo` + `ludeoToAutoStart` to force the replay flow on launch.
 - **⚠️ A shipped/cloud build MUST have `runWithoutLauncher = false`.** Left `true`, the build still
   runs locally but **fails to authenticate on the Ludeo cloud** (the platform is the launcher) — an
   invisible ship-blocker. The flag is baked into `resources.assets` at build time, so the project
   value is only an *inference* of what ships; `phase 7` asserts the **actual baked value from the
   build log** before upload. Full field reference: `unity/UPM-INSTALL-AND-DEFINES.md §3`.
-- **QA/dev builds that must change `runWithoutLauncher` / `launcherUserId` / `ludeoToAutoStart` without
-  rebuilding:** the baked `.asset` can't do this. Set up the `LUDEO_DEV`-gated dev-override shim
-  (`unity/UPM-INSTALL-AND-DEFINES.md` → *Dev/QA runtime overrides*): a `ludeo-dev.ini` next to the build +
-  a loader applied before `LudeoManager.Initialize()`. **Gather the real QA values from the user and seed the file
-  with them** — don't leave placeholders. Production builds (no `LUDEO_DEV`) ignore it, so phase 7's baked
-  `runWithoutLauncher` gate stays authoritative.
+
+### Step 2b — Add the `LudeoConfig.ini` reader (DEFAULT — every integration, no question to ask)
+Every Unity integration ships a reader for a `LudeoConfig.ini` next to the built executable, so the
+**dev build** signs in as a tester (`runWithoutLauncher`, `steamUser`, `betaBranch`) while
+`LudeoSettings.asset` stays in cloud posture with **no** Steam id baked in. Do this in every
+integration, even when the asset currently holds a Steam id — that id has to come out before the cloud
+build, and the dev build then has no identity without the file. Full code + file template:
+`unity/UPM-INSTALL-AND-DEFINES.md` → *`LudeoConfig.ini`*.
+- **Create** `LudeoConfigFile.cs` in the integration folder (always compiled; applies the file only in a
+  Development Build, ignored in the Editor and in the release/upload build).
+- **Ask the user** for the tester's Steam id and the Studio Lab beta branch/code, and **seed the file with
+  those real values** — never placeholders. Keep the asset's `launcherUserId` empty.
+- **Place it** in the dev build folder (post-build copy for Development builds only, or by hand once), and
+  record its path in the integration plan so later sessions find it.
+- Phase 3 calls `LudeoConfigFile.Apply()` before `LudeoManager.Initialize()`; phase 7 checks the upload
+  folder has **no** `LudeoConfig.ini`.
+- **Verify** at the first dev build: `Player.log` shows `[Ludeo] config: applied …` with the tester's Steam
+  id, then `Activate` succeeds.
 
 ### Step 3 — Verify with the package installed
 The project still **compiles** and the game still **plays** (package present, unused). Confirms the
@@ -215,6 +228,8 @@ Only what can't be inferred from code:
 - **Auth mode** — implicit Steam (`runWithoutLauncher = false`, production; needs Steam initialized
   before `Activate`) vs explicit no-Steam (`runWithoutLauncher = true` + `launcherUserId`, testing/CI).
   Steam appId if applicable.
+- **Dev-build identity for `LudeoConfig.ini`** (Step 2b — always asked, the reader is not optional) — the
+  tester's Steam id and the Studio Lab beta branch/code the dev build signs in with.
 - **Ludeo concept** (KYG §) — what makes a good highlight moment in this game; what the player
   should experience when launching a Ludeo; typical Ludeo length; which player actions matter most.
 - **Bosses** — does the game have boss / named / scripted-encounter enemies? If a boss fight is a likely
@@ -312,6 +327,8 @@ The gate — satisfy all before advancing to phase 2.
 - [ ] Integration branch created (`feature/ludeo-integration-#N`).
 - [ ] Unity version detected; install method chosen + confirmed.
 - [ ] `LudeoSettings.asset` present with a real `apiKey`; dev flags appropriate for the build.
+- [ ] **`LudeoConfigFile.cs` added** (Step 2b) and a `LudeoConfig.ini` with the real tester Steam id + beta
+      branch placed in the dev build folder; the asset's `launcherUserId` is empty.
 - [ ] `LudeoManager.Initialize()` returns a `LudeoResult` (not `WrapperDllNotFound`), and
       `SessionManager.CreateSession` succeeds, in the **Editor and a player build**.
 - [ ] _(Self-contained build + `validate-build` — **moved to phase 7**, `7-upload-build.md` Step 3–4.)_
@@ -322,6 +339,10 @@ The gate — satisfy all before advancing to phase 2.
 - **Recreating or ticking `LudeoUnityManager`** — the package ships and ticks it (CR-005).
 - **Hand-copying the native dll** into the build — no `.meta`, breaks on the next build; reimport.
 - **Leaving `runWithoutLauncher = true`** for a shipped/cloud build — auth silently fails on the cloud.
+- **Skipping the `LudeoConfig.ini` reader because the asset already holds a Steam id** — the id has to
+  come out of the asset for the cloud build, and from then on every dev build silently fails to sign in.
+  A `LudeoConfig.ini` dropped next to an exe with no reader does nothing and logs nothing. Add the reader
+  in phase 1, always.
 - **Misclassifying a strong-but-opaque save as reconciliation** — `BinaryFormatter`/packed bytes is
   **manual** per entity regardless of how complete the save is.
 - **Treating a transition/streaming cache as the canonical save** — it holds partial deltas only.

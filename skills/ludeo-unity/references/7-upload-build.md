@@ -203,6 +203,9 @@ failing loud.
    - `*_BurstDebugInformation_DoNotShip` / `*_BackUpThisFolder_ButDontShipItWithYourGame` folders, or loose
      `.pdb` files ⇒ debug artifacts that must not ship — remove + rebuild release.
    - dev-only native dll variants present ⇒ wrong C++/config.
+   - a `LudeoConfig.ini` next to the exe ⇒ the dev build's tester config leaked into the upload folder.
+     The release build ignores it (and logs an error), but it carries a Steam id + `runWithoutLauncher = true`
+     and must not ship — delete it, and make sure the build step that copies it runs for Development builds only.
    This is a static scan of what's in the folder; `validate-build` (Step 4) complements it by launching the exe.
 
 ### Step 4: `validate-build` hard gate
@@ -392,7 +395,8 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
       hook, not inferred from the `.asset`) shows `developmentBuild=False`, `connectProfiler=False`,
       `scriptDebugging=False`, `waitForManagedDebugger=False`, `il2cppConfig=Release`/`Master`,
       `runWithoutLauncher=False`, `apiKeySet=True`, `autoStartInLudeo=False`; build self-contained (native
-      plugins shipped, deps resolved durably) with no debug artifacts in the output folder (Step 3 Layer-6 scan).
+      plugins shipped, deps resolved durably) with no debug artifacts — and no `LudeoConfig.ini` — in the output
+      folder (Step 3 Layer-6 scan).
 - [ ] **Debug features release-safe by default** (Step 2.5) — cheats / debug menus / verbose logging gated on
       `Debug.isDebugBuild` or `#if DEVELOPMENT_BUILD`, and any data-driven debug flags asserted off (allowlisted,
       not auto-fixed), so none are reachable on the cloud; audited + confirmed.
