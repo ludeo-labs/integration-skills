@@ -114,7 +114,9 @@ Surface to the orchestrator:
   `[SDK]`. Scattering `LudeoSDK` calls makes CR-001/CR-007 nearly impossible.
 - **Disable is runtime (CR-001).** Route all SDK use through interfaces with `Dummy*`/`Disabled*`
   fallbacks via `LudeoFlowSwitch` — not `#if` macros.
-- **No `LudeoConfig`/`ludeo.ini`/auth questionnaire** — config is `LudeoSettings.asset` (phase 1).
+- **No auth questionnaire** — config is `LudeoSettings.asset` (phase 1). **Do** plan the one
+  `LudeoConfigFile.Apply()` call as the first boot step before `LudeoManager.Initialize()` (phase 1 Step 2b) —
+  it is the dev build's `LudeoConfig.ini` reader and is required in every integration.
 - **Callback-driven ≠ game integration point (CR-009).**
 
 ## 6. Output Contract
@@ -150,7 +152,9 @@ Surface to the orchestrator:
 
 - **Scattering raw `[SDK]` calls** instead of the façade (breaks CR-001/CR-007).
 - **Planning `AddPlayer`/`Begin`/`CloseRoom` as game call sites** (CR-009).
-- **Planning a config class / re-gathering auth** — it's `LudeoSettings.asset` (phase 1).
+- **Planning a config class / re-gathering auth** — it's `LudeoSettings.asset` (phase 1). (The
+  `LudeoConfigFile.Apply()` call is not that; it is required — see above.)
+- **Leaving out `LudeoConfigFile.Apply()` before `Initialize`** — the dev build then can't sign in.
 - **Unfreezing before applying** in `onRoomReady` (CR-010).
 - **Forgetting to close a non-ludeoable/pause span on session `End`** — dangling exclusion.
 
