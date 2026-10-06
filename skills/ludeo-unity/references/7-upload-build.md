@@ -37,7 +37,8 @@ final phase — when it passes, the build is live on the platform.
       and closes it; every Ludeo shows all its checks and none is `WRONG`. See
       `learnings/architecture/replay-every-confirmed-ludeo-as-a-regression-gate-before-upload.md`.
 - [ ] A **release player build folder** exists — **the user triggers the build in the Unity Editor**
-      (current platform; Ludeo capture is Windows-desktop). The agent does **not** drive the Editor build.
+      (current platform; Ludeo capture is Windows-desktop). The agent does **not** drive the Editor build,
+      except through the studio's own build entry point with the Editor tooling, after asking (Step 1).
 - [ ] The **`validate-build`** user-level skill (the self-contained gate; also writes `run.bat`).
 - [ ] The **`ludeo` CLI** reachable — verify with `ludeo --help`. If not installed/located, **ask the user**
       to install it or for the path to the binary; do **not** invent a download source.
@@ -65,11 +66,34 @@ final phase — when it passes, the build is live on the platform.
 
 ## 3. Steps
 
+### Step 0.5: Replay the confirmed Ludeos in the Editor first _(only with the test harness)_
+This is an early, cheap run of the Input Contract's **Confirmed Ludeos replayed on this build** check. It
+comes before Step 1, so a regression is caught before a long build rather than after. It does **not**
+replace that check, which still runs on the build you are about to upload (see
+`learnings/architecture/replay-every-confirmed-ludeo-as-a-regression-gate-before-upload.md`).
+
+- **One list for both runs:** the Ludeos marked `confirmed` in `ludeo-integration-plan/LUDEOS.md` (their
+  wave was signed off). That file is the plan's list of confirmed Ludeos that the lesson asks for.
+- Replay each one with the harness (`agent-test-harness.md` → *Replaying a Ludeo*) and judge it as its
+  wave's gate did. A Ludeo that restored at its wave and fails now is a regression from a later change:
+  fix it before building.
+- Then turn `autoStartInLudeo` off. The pre-run check turned it on, and a build must not carry it.
+
 ### Step 1: Have the user make the release build
 **Prompt the user to make the release build themselves** in the Unity Editor (*File → Build Settings →
 Build*, or their usual pipeline) and tell them you'll take it from there. (Don't drive the Editor build
-yourself.) With the Step 2 hard-fail hook in place, even "Build And Run" aborts before producing an
+yourself — the one exception is the next paragraph.) With the Step 2 hard-fail hook in place, even "Build And Run" aborts before producing an
 artifact when `runWithoutLauncher = true` — that's the gate firing, not a separate problem.
+
+**With the Editor tooling, the agent may start the build itself, but only through the studio's own
+build entry point.** Find how the studio builds: a build window, a menu item, or a static build method
+its CI calls. If that entry point is callable (a static method, or a menu item run with
+`EditorApplication.ExecuteMenuItem`), ask the integrator once: *"Shall I start the release build through
+your <entry point>?"* Then call it through the CLI and wait for the build to finish. Never substitute
+`unity build`, Unity's Build Settings dialog or a hand-written `BuildPipeline.BuildPlayer` call; on one
+integration a build made outside the studio's pipeline broke launch, Addressables and audio at once. If
+the entry point is only a window with buttons, ask the integrator to press it. Either way, make sure the
+log and the build you then check are **from this build**: compare timestamps.
 
 ### Step 2: Release-build gate — assert production + release settings from the build log
 **Layer the defense — no single check is sufficient.** A shipped/cloud build must (a) authenticate against
@@ -232,6 +256,16 @@ crash), and **ensures a `run.bat` exists** (creating one when you approve).
     redirecting (`run.bat > out.txt 2>&1`) rather than expecting console output.
   - Unity logs and the SDK's own `OutputDebugString` logs stay **separate streams** in the collected
     output — align them by timestamp rather than expecting one interleaved file.
+
+### Step 4.5: Replay the confirmed Ludeos on this build
+The Input Contract's **Confirmed Ludeos replayed on this build** item runs here, on the build that passed
+Step 4, before anything is uploaded (from the second upload on, or whenever restore code changed).
+Follow `learnings/architecture/replay-every-confirmed-ludeo-as-a-regression-gate-before-upload.md`:
+launch the build once per confirmed Ludeo (the list in `ludeo-integration-plan/LUDEOS.md`) with the
+replay option and its own log file, collect the restore's post-settle check lines, and close it. Pass =
+every Ludeo shows **all** its check lines and none is `WRONG`; a Ludeo with no check lines at all is a
+failure, not a pass. A failure here goes back to its wave's fix loop, and the build is rebuilt and
+re-checked from Step 2.
 
 ### Step 5: Locate the CLI and authenticate
 1. `ludeo --help` — confirm the CLI is reachable and learn the current command set (the CLI evolves;
@@ -408,7 +442,10 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
       directly (no `start`) with `-logFile -`.
 - [ ] `ludeo` CLI reachable (`--help`) and authenticated (`auth status`).
 - [ ] Build type correct: **major on the first build**, **minor otherwise** (with `--major-build-id`).
-- [ ] **Release build made by the user** in the Editor; the agent took over after.
+- [ ] **Release build made by the user** in the Editor (or, with the Editor tooling, started by the agent
+      through the studio's own build entry point after asking — Step 1); the agent took over after.
+- [ ] **Confirmed Ludeos replayed on this build** before the upload (Step 4.5; preceded by the Editor run
+      in Step 0.5 when the harness exists).
 - [ ] `--sdk-version` **confirmed with the user** (not trusted from the manifest).
 - [ ] `--changes-description` non-empty (inferred or user-supplied) — empty only if the user chose so.
 - [ ] `--dry-run` reviewed (file list + resolved flags) and confirmed with the user.
@@ -434,7 +471,9 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
 - **A `run.bat` that swallows the game's logs** — omitting `-logFile -`, or wrapping the exe in
   `start "" /wait` (new console ⇒ stdout never reaches the runner). Either way the cloud run comes back
   with SDK logs and no game logs, and `Player.log` is gone with the instance (Step 4).
-- **Driving the Editor build yourself** — the user makes the build; you verify + upload.
+- **Driving the Editor build yourself** — the user makes the build; you verify + upload. The only
+  exception: with the Editor tooling, starting it through the studio's own entry point after asking
+  (Step 1) — never through `unity build`, the Build Settings dialog or your own `BuildPlayer` call.
 - **Hand-copying a missing dll into the build folder** — it's discarded next rebuild; fix durably (Step 3).
 
 ## Troubleshooting
