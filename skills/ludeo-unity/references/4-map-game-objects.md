@@ -51,7 +51,7 @@ the same file. Output (Part A) is human-approved before the phase-5 wave loop be
 
 ## 3. Steps
 
-The phase is two parts. **Part A runs once, here**, and ends at a human gate. **Part B is a reusable
+The phase is two parts. **Part A runs once, here**, and ends at a human gate (the integrator approves the census and waves). **Part B is a reusable
 procedure the phase-5 orchestrator invokes once per wave** (`references/5a-deep-scope-wave.md` dispatches
 it, scoped to that wave's types). Run only Part A in this phase.
 
@@ -109,6 +109,19 @@ Actual hook sites + field names still come from the codebase (confirmed in Part 
 Combine the genre checklist with codebase discovery. Apply `06 §9.2` to each candidate: visible during
 gameplay? influences a tracked object? referenced by a tracked object? If any → track; else skip. **When
 in doubt, track** (`06 §9.1`).
+
+> **Count what actually exists, twice.** Code tells you what *can* spawn; the scenes and prefabs tell you
+> what is *authored*; a running game tells you what *appears*.
+> 1. **Authored:** with the reading route phase 1 chose (`agent-project-reading.md`), list every
+>    component type on the gameplay scenes' objects and on the prefabs the spawners reference, with
+>    counts. Case A: grep the scene/prefab files for each script's GUID. Case B: `get_scene_hierarchy` and
+>    `find_gameobjects` per build scene. Case C: grep the dump's `[<Type>]` lines.
+> 2. **At runtime:** once the harness exists, a capture run logs the count per tracked-candidate type in
+>    the busiest levels. That also sizes the capture against the object ceiling.
+>
+> Cross-check both against the candidates from code. A type in the scenes but not in your list is a
+> census miss. A type in your list that never appears in the scenes is probably spawned at runtime, so
+> check its spawner and the runtime counts.
 
 > **Go find the appearance/loadout subsystem — don't wait for it to show up as a player field.** How a
 > visible character *looks* (equipped cosmetics, outfit, skin, model/color variant) is load-bearing for a

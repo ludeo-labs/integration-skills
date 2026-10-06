@@ -4,7 +4,7 @@
 > (`5-tracking-restore-orchestrator.md`) **once per wave**. Fill **this wave's** buckets in the
 > `ApplyRestoredState()` body (task 3 declared it as a stub on Wave 1) — the two-pass bucket read-back (the
 > inverse of task 1's capture) — then return a summary + the files you created/edited. **You do not run the
-> human-gated play test** — the orchestrator plays a captured Ludeo and reads the log. Finishing **Wave 1**
+> play test** — the orchestrator replays a captured Ludeo through the harness and reads the log. Finishing **Wave 1**
 > turns a capture into a playable Ludeo; each later wave widens what restores. You run in isolated context —
 > your inputs are the files in §2. Follow propose-confirm-execute.
 >
@@ -268,6 +268,13 @@ is `true` (set by task 3); the creator flow uses `06 §6` batch *registration* i
 > path here and surface the hook as an Open Question rather than wiring the flow. **Never leave activation to
 > the skipped trigger.**
 
+### Step 8.5: Teach the harness this wave's values _(skip only if phase 3 built no harness)_
+Extend the replay scenario so its evidence proves **this wave** restored (`agent-test-harness.md` → *What
+a pass must show*). For each of the wave's key values, sample the live value after the restore and
+compare it with the Ludeo's recorded value, read from the restored data. For each restored entity, record
+its position against the nearest ground or geometry, for the placement check. Where a value is on screen
+(a counter, a label, a health bar), have the scenario read the **rendered** value, not only the model.
+
 ### Step 9: Self-check, then hand back (no play test here)
 You do **not** play a Ludeo — the orchestrator does. Before returning, statically self-check against §7's
 pre-handoff criteria, then return a summary + the files you created/edited + any open questions. **The
@@ -323,7 +330,9 @@ Surface to the orchestrator; don't guess:
   references resolved, (3) baseline-reset list, (4) pre-existing match/spawn counts, (5) environment
   restored + excluded, (6) skipped (open questions), (7) files modified, (8) ready for the orchestrator's
   state gate.
-- **No compile / play performed** — that's the orchestrator's human gate.
+- _(If phase 3 built the test harness)_ the replay scenario's samples extended with this wave's
+  restored-vs-recorded values and placement data (Step 8.5).
+- **No compile / play performed** — that's the orchestrator's gate.
 
 ## 7. ✅ Success Criteria
 
@@ -334,7 +343,7 @@ Surface to the orchestrator; don't guess:
       default; only a missing **key** fails loud.
 - [ ] **No `ReadData` on a `<Attr>Name` label attribute** — labels are write-only readability
       (`06 §1.5`); restore keys off the `int` / stable key.
-- [ ] **Restore verified by a human** — including the replay-twice no-leak test (second Ludeo's state shows,
+- [ ] **Restore verified** (by the orchestrator through the harness, and signed off by the integrator per wave) — including the replay-twice no-leak test (second Ludeo's state shows,
       not the first's; no dropped-`Start` defaults).
 
 **Skill-specific pre-handoff criteria (satisfy before returning):**
@@ -360,7 +369,7 @@ Surface to the orchestrator; don't guess:
 
 ## 8. Common Mistakes
 
-- **Compiling / playing here** — the orchestrator owns the (human-gated) state-verify play test.
+- **Compiling / playing here** — the orchestrator owns the (orchestrator-run) state-verify play test.
 - **Touching task 3's flow** — the apply gate, freeze, entry chain, overlay are not yours to re-wire.
 - **Deferring the apply to a spawned object's `Start`/`OnEnable`** — dropped on scene-transition spawns →
   frozen 2nd-replay (`07 §4`). Apply synchronously from the driver.

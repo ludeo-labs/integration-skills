@@ -3,7 +3,7 @@
 > **Single-task subagent brief.** Dispatched by the phase-6 orchestrator (`6-actions-orchestrator.md`).
 > Insert `SendAction` calls (gameplay + non-gameplay) at the mapped sites, routed through the `[Layer]`
 > façade, and document the one-time platform global-trigger mapping — then return a summary + the files
-> you created/edited. **You do not run the human-gated compile/play** — the orchestrator plays the game
+> you created/edited. **You do not run the compile/play gate** — the orchestrator plays the game
 > and reads the log (emission is log-only evidence). You run in isolated context — your inputs are the
 > files in §2. Follow **propose → confirm → execute** for each edit.
 >
@@ -181,7 +181,7 @@ required platform step with **two ways to do it**:
 > if the game has several distinct non-ludeoable areas the backend must distinguish.
 
 ### Step 7: Self-check, then hand back (no compile/play here)
-You do **not** run the human-gated compile/play — the orchestrator does. Statically self-check against §7's
+You do **not** run the compile/play gate — the orchestrator does. Statically self-check against §7's
 pre-handoff criteria, then return a summary + files created/edited + the platform global-trigger action item
 + any skipped (low-confidence) actions. **The runtime gate (recompile clean + each action emits in the log
 in BOTH flows + correct attribution) is the orchestrator's** — emission can't be verified from this isolated
@@ -217,7 +217,7 @@ Surface to the orchestrator; don't guess:
 - A report: constants added (count); actions implemented X/Y; non-gameplay actions wired; low-confidence
   skipped (Z) with a per-action table (Action · File · class.method · Status); the global-trigger note;
   ready for the orchestrator's compile+log gate.
-- **No compile / play performed** — that's the orchestrator's human gate.
+- **No compile / play performed** — that's the orchestrator's gate.
 
 ## 7. ✅ Success Criteria
 
@@ -240,7 +240,7 @@ Surface to the orchestrator; don't guess:
 
 ## 8. Common Mistakes
 
-- **Compiling / playing here** — the orchestrator owns the (human-gated) compile + emission verification.
+- **Compiling / playing here** — the orchestrator owns the (orchestrator-run) compile + emission verification.
 - **Gating `SendAction` on `IsInLudeoFlow`** — actions must fire in **both** flows.
 - **Crediting the player with non-player actions** — missing the player-guard on a shared kill handler.
 - **Implementing Dropped-table candidates** — re-introduces the bloat phase-6 task 1 filtered out.

@@ -62,54 +62,73 @@ restorable spine, then widen) → **6** actions → **7** validate + upload → 
 (Wave 1 restores) before action enrichment. **Phase 8 is a loop, not a dead end:** it checks for state Ludeo
 could still capture, recommends it, and — if the user wants to expand — **re-enters phases 4 & 5** to add it
 as new waves (then phase 7 re-uploads the wider build), before finalizing. Always start at phase 1 unless the
-user says they've completed earlier phases. Complete one phase at a time and confirm with the user before
-advancing.
+user says they've completed earlier phases. Complete and verify one phase at a time, in order.
+
+**Run it automatically — the default.** The agent runs every phase and every gate itself: headless
+compiles, a Development player with a test harness inside, capture by pressing the highlight key,
+replays of the Ludeos the integrator sends back, its own logs, results and screenshots, the cloud build
+and the upload preparation. It stops only for what needs a person: credentials, administrator installs,
+product decisions and plan approvals (census, restore-plan rows, action map), turning captured moments
+into Ludeos, Studio Lab, a hand-played run where no stand-in reaches, one sign-off per wave, and the
+upload go-ahead. What it runs and asks in each phase:
+**`references/agent-automation.md`**. How: **`references/agent-test-harness.md`**.
 
 **Phases 3, 5, and 6 are orchestrated.** Each is one logical guideline phase made of single-task briefs,
 run by a thin orchestrator that dispatches one **subagent per task** (Agent tool) and passes artifacts by
 file — so the user experiences each as a single phase.
 - **Phase 3** ("plan & implement the SDK lifecycle") follows `references/3-lifecycle-orchestrator.md`:
-  tasks 1–4 run automatically, the compile+run gate is surfaced to the human.
+  tasks 1–4 run automatically, the agent runs the compile+run gate itself (task 5), and then builds the
+  **test harness** and the dev player (task 6, `references/agent-test-harness.md`) that let it capture
+  and replay Ludeos by itself from then on. Only if the machine can't build or launch a player does the
+  run half of the gate go to the human.
 - **Phase 5** ("tracking & restore") follows `references/5-tracking-restore-orchestrator.md` and runs as an
   **iterative wave loop**: phase 4 produces a *census + wave plan*, and phase 5 implements it **one wave at
   a time** — per wave: deep-scope (task 0) → capture (task 1) → restore-plan (task 2) → reconstruction (task
   4), with the restore-**flow** (task 3) built **once in Wave 1**. **Wave 1** proves the full capture→replay
   round-trip on the *restorable spine + must-have set*; each later wave widens the tracked set. **Every**
-  sub-task ends in a gate the orchestrator runs. **Split each gate:** the agent verifies the *compile* half
-  itself (headless `-batchmode`, then read the log — it has no interactive Console, but the Console's
-  **output** is in the log); the *human* half is only what needs a person — the capture/replay gates require
-  the human to capture/play a Ludeo and judge fidelity. On a failed gate it re-dispatches a fix subagent
-  with the logs — re-opening an **earlier wave** if the failure traces to its state.
-- **Phase 6** ("actions") follows `references/6-actions-orchestrator.md`: map → implement, then one human
-  compile+log gate (each action must emit in **both** the Creator and Player flow).
+  sub-task ends in a gate the orchestrator runs. The agent runs **both halves** of each gate: the
+  *compile* half headless (`-batchmode` with the Editor closed, or inside a resident headless Editor via
+  the Unity CLI, `references/agent-editor-tooling.md`), read from the log; and the *capture/replay* half
+  through the harness. It captures the moment, the integrator turns it into a Ludeo and sends back its
+  id, and the agent replays it and judges the result file, the restored-vs-recorded values and the
+  screenshots. The integrator signs off **once per wave** from that evidence. Only without a harness
+  does that half need a person to capture and play. On a failed gate the orchestrator re-dispatches a
+  fix subagent with the logs — re-opening an **earlier wave** if the failure traces to its state.
+- **Phase 6** ("actions") follows `references/6-actions-orchestrator.md`: map → implement, then one
+  compile+log gate (each action must emit in **both** the Creator and Player flow), run by the agent
+  through the harness: it counts the game's events against the SDK sends in both flows.
 
 | Phase | File | Purpose |
 | --- | --- | --- |
-| 1 | `references/1-build-game-with-sdk.md` | **Download the latest plugin release** (`github.com/ludeo-labs/unity-plugin-releases`) + install the UPM package, set scripting defines + `LudeoSettings`, baseline + SDK-enabled compile, run **KYG (know your game)** (incl. game-level save-system classification) |
+| 1 | `references/1-build-game-with-sdk.md` | **Download the latest plugin release** (`github.com/ludeo-labs/unity-plugin-releases`), **check what the agent can run itself** (headless compile, a dev player build and launch — `references/agent-automation.md`; pick the scene-reading route: Force Text files, the Unity CLI on Unity 6+, or the scene-dump script — `references/agent-project-reading.md`) + install the UPM package, set scripting defines + `LudeoSettings`, baseline + SDK-enabled compile, run **KYG (know your game)** (incl. game-level save-system classification) |
 | 2 | `references/2-map-game-code.md` | Produce CODE_MAP of the Unity project (scenes, MonoBehaviours, prefabs, managers) |
 | **3** | **`references/3-lifecycle-orchestrator.md`** | **SDK lifecycle (orchestrated) — dispatches the five briefs below as subagents; plans the restoration entry point + Non-Gameplay Handling** |
 | 3 · task 1 | `references/3a-find-sdk-integration-points.md` | Map each game-event → `[SDK]`/`[Layer]` call site |
 | 3 · task 2 | `references/3b-create-tdd.md` | Produce Technical Design Document (architecture, strategy, risks) |
 | 3 · task 3 | `references/3c-plan-sdk-lifecycle.md` | Plan the LudeoController layer + notification registration + non-gameplay emissions |
 | 3 · task 4 | `references/3d-implement-sdk-lifecycle.md` | Implement the LudeoController/Flow/SessionManager layer + wire hooks |
-| 3 · task 5 | `references/3e-compile-and-fix.md` | Compile in the Editor (defines on and off), fix, confirm the capture overlay — **human-gated** |
+| 3 · task 5 | `references/3e-compile-and-fix.md` | Compile headlessly (defines on and off), fix, confirm the capture overlay — **run by the orchestrator** |
+| 3 · task 6 | `references/agent-test-harness.md` | Build the test harness and the Development player: job file, launch override, runner, result writer, and the **capture** scenario — so the agent can play and capture moments itself |
 | 3f | `references/3f-classify-save-system.md` | *Superseded:* game-level save classification moved to phase 1 KYG; per-entity matrix to phase 4. Pending retirement. |
 | **4** | `references/4-map-game-objects.md` | **Guideline phase 4 — CENSUS + wave plan (Part A):** enumerate every trackable object **type**, flag load-bearing ones, assign **waves** (Wave 1 = restorable spine + must-have set). Holds the **Part B** deep-scope procedure phase 5 runs per wave. No deep detail or code here |
-| **5** | **`references/5-tracking-restore-orchestrator.md`** | **Tracking & restore (orchestrated, iterative WAVE LOOP) — implements the wave plan one wave at a time; dispatches the briefs below as subagents; owns a human gate per sub-task, per wave** |
+| **5** | **`references/5-tracking-restore-orchestrator.md`** | **Tracking & restore (orchestrated, iterative WAVE LOOP) — implements the wave plan one wave at a time; dispatches the briefs below as subagents; owns a gate per sub-task, per wave (run through the harness)** |
 | 5 · task 0 | `references/5a-deep-scope-wave.md` | **Per wave:** deep-scope this wave's types (runs phase-4 Part B) → append `## Entity` rows to `OBJECT_TRACKING.md` |
 | 5 · task 1 | `references/5b-implement-object-tracking.md` | **Per wave (additive):** wire `ILudeoStateHandler` registration & per-tick attribute capture for this wave's types |
 | 5 · task 2 | `references/5c-plan-state-restoration.md` | **Per wave (append):** plan the restoration (objectType buckets, two-pass) for this wave → `RESTORATION_PLAN.md` |
 | 5 · task 3 | `references/5d-implement-restoration-flow.md` | **ONCE (Wave 1 only):** implement the restore **flow**: `LudeoSelected`→`GetLudeo`→play flow, freeze/overlay, `RoomReady`→`Begin`, the `ApplyRestoredState()` stub |
 | 5 · task 4 | `references/5e-implement-state-reconstruction.md` | **Per wave (additive buckets):** fill `ApplyRestoredState()` for this wave — two-pass spawn-from-bucket apply, references, deferred props, environment |
-| **6** | **`references/6-actions-orchestrator.md`** | **Actions (orchestrated) — dispatches the two briefs below as subagents; runs after phase 5 (player flow proven); one human compile+log gate** |
+| **6** | **`references/6-actions-orchestrator.md`** | **Actions (orchestrated) — dispatches the two briefs below as subagents; runs after phase 5 (player flow proven); one compile+log gate in both flows** |
 | 6 · task 1 | `references/6a-map-game-actions.md` | Find action points in game code (player-perspective; incl. the non-gameplay standard actions planned in phase 3) |
 | 6 · task 2 | `references/6b-implement-game-actions.md` | Insert `SendAction` calls (gameplay + non-gameplay) + document the one-time platform global-trigger mapping |
-| **7** | `references/7-upload-build.md` | **Guideline phase 7** — validate the release build (`validate-build`) + prep & upload it to the Ludeo platform with the `ludeo` CLI, then poll status until `ready` |
+| **7** | `references/7-upload-build.md` | **Guideline phase 7** — regression + fresh-profile replays, the cloud build through the studio's pipeline, validate it (`validate-build`) + prep & upload it to the Ludeo platform with the `ludeo` CLI (after an explicit yes), then poll status until `ready` |
 | **8** | `references/8-polish.md` | **Guideline phase 8 — polish & completion (loops).** Gap-check for state Ludeo could still capture, **recommend** it, and on the user's OK **re-enter phases 4 & 5** to add it as new waves (re-upload via phase 7); plus cosmetic/timing polish + earlier-bug fixes; finalize by recording completion in the TDD. Dispatches nothing itself — routes back into the wave loop |
 
 ## Important rules
 
-- **One phase at a time.** Get user confirmation before advancing to the next phase.
+- **One phase at a time.** Finish and verify each phase before the next. Report what the phase proved,
+  with its evidence, and go on. Wait for the user only where the phase itself needs their decision (the
+  census and waves, a wave's plan rows and sign-off, the action map, the upload), or if they asked to
+  approve every phase. While waiting, carry on with work that doesn't depend on the answer.
 - **Write for the integrator, not for the skill — but do teach them the product.** Three kinds of
   vocabulary, three different jobs:
   1. **Product words — `Ludeo`, `Studio Lab`. TEACH these; never avoid them.** The integrator is
@@ -142,15 +161,26 @@ file — so the user experiences each as a single phase.
   sentence — and *disagree* with it? Their disagreement is the main error-correction available during
   an engagement; vocabulary they cannot parse silences the review you most need. If challenged on one
   term, fix the register, not just that term.
-- **Every code-writing phase ends with a recompile + run gate (hard requirement).** The files that edit
-  `.cs` (`4`, `7`, `9`, `11`, `12`) each end by requiring the integrator to (1) focus the Editor to
-  recompile clean and (2) play the game to confirm it still runs. Unity recompiles on focus, so "compile"
-  is a per-phase reality, not a one-time milestone. **For the orchestrated phases (3, 5, and 6) the
-  orchestrator runs these gates** — it dispatches the codegen subagent (which does not compile), then
-  surfaces the recompile/play gate to the human and re-dispatches a fix subagent with the logs on failure.
-  The agent reads `Editor.log`/`Player.log` where it can but cannot truly verify either step — beyond the
-  log it relies on the integrator's word. Do not advance until they confirm both (or explicitly skip). The
-  compile-and-fix loop + `error CS` table live in `phase 3 · task 5`; the gate cites it rather than repeating it.
+- **Every code-writing phase ends with a recompile + run gate (hard requirement), and the agent runs
+  it.** (1) Compile clean, headless, and judge it by the `.dll`'s timestamp and your type names in it,
+  not by zero errors or the exit code. (2) Rebuild the dev player and run the harness job that proves
+  the change: the game still runs, and whatever the phase added does what it should. **For the
+  orchestrated phases (3, 5, and 6) the orchestrator runs these gates.** It dispatches the codegen
+  subagent (which does not compile), runs the gate, and re-dispatches a fix subagent with the logs and
+  `result.json` on failure. Hand the integrator nothing the agent can run (`references/agent-automation.md`
+  lists what stays with them). Only if the machine can't build or launch a player does the run half go
+  to the integrator, and then say so. The compile-and-fix loop + `error CS` table live in
+  `phase 3 · task 5`; the gate cites it rather than repeating it.
+- **Read scenes and prefabs through the route phase 1 picked, and never change the project's
+  serialization.** Case A (Force Text): read the files. Case B (not Force Text, Unity 6+): the Unity CLI
+  with a resident headless Editor. Case C (not Force Text, older Unity): the scene-dump script. Never
+  switch the studio's project to Force Text, not even for the length of the integration
+  (`references/agent-project-reading.md`).
+- **Whenever the Unity CLI drives an Editor (case B),** the rules in `references/agent-editor-tooling.md`
+  apply: read-only commands only while reading; **no compile or asset refresh while play mode is
+  running**; one Editor per project, so stop the resident headless Editor before any `-batchmode`
+  compile or build; and when no Editor answers, check `unity pipeline list` and the log for Safe Mode
+  instead of restarting anything. Load the `unity-cli` skill before CLI work.
 - **Unity mental model first.** Internalize the "Read this first" model above (and phase 2's "How a
   Unity game is structured") before phase 1, and treat every search/instruction through it.
 - **Track objects as attributes by default, not blobs.** The SDK supports both; Ludeo strongly
@@ -279,6 +309,18 @@ ordering requirement, or exact API signature. Deferring loses the specifics that
     SDK-readiness gate that replaces the menu's implicit Activate/consent wait.
   - `CONSENT-AND-OVERLAY.md` — consent gating, gallery, pause/resume in **both** directions (CR-011); read §3 before wiring either.
   - `READING-UNITY-LOGS.md` — locating and reading `Editor.log` / `Player.log` for the compile/run gates.
+- `references/agent-automation.md` — running the integration automatically: what the agent runs in
+  each phase, what it asks the integrator for, the phase-1 readiness check, and how to work (records that
+  survive sessions, verifying by running, shared machines).
+- `references/agent-test-harness.md` — the test harness inside a Development player that the agent
+  builds in phase 3: building and launching it, capturing moments by hotkey, replaying Ludeos, actions in
+  both flows, regression sets and fresh profiles, what a passing run must show, the per-wave sign-off.
+- `references/agent-project-reading.md` — reading scenes and prefabs: picking case A (Force Text: read
+  the files), B (Unity 6+: the Unity CLI) or C (older Unity: the scene-dump script, included), and the
+  exact steps for each.
+- `references/agent-editor-tooling.md` — the Unity CLI + Pipeline package (Unity 6+): install and checks,
+  the three ways to reach an Editor (resident headless, one-shot, the integrator's), the read-only
+  commands, compiling inside it, the rules, and what to do if the project already has an MCP bridge.
 
 ## MCP configuration
 
@@ -303,9 +345,11 @@ machine. Set it up once, before doing any SDK work.
 |--------|-----------------|---------|----------|
 | `sdk-docs` | `https://ludeo-mcps-sdk-docs.ludeo.com/mcp` (HTTP, `X-User-Name` header) | **Search the Ludeo SDK documentation** | Bundled `references/ludeo-integration-docs/` |
 | `ludeo-context` | `https://mcp-ludeo-context-internal.ludeo.com/mcp` (HTTP, bearer token) | Company knowledge, QA workflows, repo context | Proceed without; analysis quality may be reduced |
-
 ## Start here
 
-Read `references/1-build-game-with-sdk.md` and follow it. (Phase 2 establishes the full Unity
-structural model and search patterns once you reach codebase mapping.)
+Read `references/agent-automation.md` (what you will run yourself and what you will ask), then
+`references/1-build-game-with-sdk.md`, and follow it. (Phase 2 establishes the full Unity structural
+model and search patterns once you reach codebase mapping.) In a later session, read
+`ludeo-integration-plan/HANDOFF.md` and the tail of `PHASE_TRACKER.md` first, and re-verify before
+trusting them.
 

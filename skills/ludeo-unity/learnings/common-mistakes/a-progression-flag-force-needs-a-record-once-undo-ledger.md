@@ -135,3 +135,13 @@ a scene object's `Start()`.
 > **The force is durable, so the memory of what it overwrote must be too. If your undo note lives only in a
 > static field, the first hard kill converts a borrow into a permanent write — and the next run will
 > faithfully record the sentinel as the truth.**
+
+## Also seen: mark every first-time flag, then test on an empty profile (TopDownRogueSample)
+
+A replay boot that borrowed the profile set only the flags for the scene the Ludeo was in. The boot
+passed through front-end and hub scenes on its way into the level, and one of those fired its own
+first-visit tutorial popup over the restored moment; that popup was also a pause source, so it could
+open a pause span mid-play. Every earlier test had run on the developer's long-played save, where all
+popups were long seen. Mark **every** first-time/tutorial flag the game tracks, not just the target
+scene's, and before the first cloud upload test once on an **empty** profile, with the developer's own
+save moved aside (move the test profile's folder, never their real one).

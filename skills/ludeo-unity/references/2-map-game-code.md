@@ -27,34 +27,29 @@ Required artifacts / pre-flight:
 > implement sub-step (write `CODE_MAP.json`). All findings carry `file:line`; verify every symbol
 > against the codebase — do not guess names.
 
-### Step 1 — Settle asset serialization (one-time; gates everything that reads a scene/prefab)
+### Step 1 — Read scenes and prefabs the way phase 1 chose (one-time; gates everything that reads a scene/prefab)
 
 Much of a Unity game's state lives **not in code but in the Editor** (which components sit on which
-GameObjects, prefab makeup, inspector-set values). When assets are **binary-serialized**, none of
-that is readable from disk. Switching to **Force Text** (YAML) makes scenes/prefabs greppable, which
-directly accelerates the discovery phases — especially **phase 4 (map game objects)**, where a large
-share of entity state is configured on the prefab/scene rather than in code. Pure `.cs` work
-(lifecycle wiring, `SendAction`, `WriteData`, restoration) is unaffected — this is a
-discovery-phase convenience, not a functional requirement.
+GameObjects, prefab makeup, inspector-set values). Phase 1's readiness check already picked how to read it
+(`agent-project-reading.md` → *Pick the route*). Apply that route here and in phases 4 and 5:
 
-1. **Detect (don't blind-prompt).** Read `ProjectSettings/EditorSettings.asset` →
-   `m_SerializationMode`: `0` = Mixed, `1` = ForceBinary, `2` = ForceText.
-   - **`2` (ForceText)** → already done; record it in the CODE_MAP and skip to Step 2. No prompt.
-   - **`0` or `1`** → ask the user (the decision itself is **§4**).
-2. **If they agree to switch:**
-   1. **Commit a clean baseline first** — so the re-serialization is an isolated, revertible point.
-   2. **Ask the user to toggle it in the Editor:** *Project Settings → Editor → Asset Serialization →
-      Force Text.* ⚠️ **You cannot do this with a file edit.** Editing `m_SerializationMode` flips the
-      *setting* but does **not** re-serialize existing assets — they stay binary until reimported.
-      Only the Editor toggle (or *Assets → Reserialize Assets* /
-      `AssetDatabase.ForceReserializeAssets()`) converts the repo.
-   3. **Verify before committing** — let Unity finish the reimport, confirm **no new import/console
-      errors** and the **game still plays** (a mass rewrite; the baseline commit is the revert point).
-   4. **Commit the re-serialization as its own isolated commit** (e.g.
-      `chore: switch asset serialization to Force Text`) so later Ludeo changes diff cleanly on top.
-3. **If they decline:** record the choice in the CODE_MAP (`serialization` note) and proceed in binary
-   mode — you'll **round-trip scene/prefab inspector lookups through the user** in this and later
-   phases. **Do not re-prompt** in phases 4/5; at most a one-line reminder of the prior choice.
+- **Case A — the project saves as Force Text:** read the `.unity`/`.prefab` files directly.
+- **Case B — not Force Text, Unity 6.0+:** query a resident headless Editor through the Unity CLI.
+- **Case C — not Force Text, before Unity 6.0 (or the studio declined the CLI's package):** run the
+  scene-dump script headlessly and read its output.
+
+**Never switch the studio's project to Force Text**, permanently or for the length of the integration.
+It rewrites every scene and prefab, and switching back doesn't restore the original files. Pure `.cs`
+work (lifecycle wiring, `SendAction`, `WriteData`, restoration) doesn't depend on any of this.
+
+1. **Confirm the case** from the tracker (phase 1 recorded it; if not, read
+   `ProjectSettings/EditorSettings.asset` → `m_SerializationMode`, `2` = Force Text, and
+   `ProjectVersion.txt`). Record it in `CODE_MAP.json` (`serialization` note).
+2. **Read what this phase needs** with that route (`agent-project-reading.md` → the case's section): the
+   build scenes, each gameplay scene's hierarchy and its manager/spawner components, the prefabs those
+   spawners reference. Write what you learn into `CODE_MAP.json` so later phases don't re-read it.
+3. **Only if no route is available** (the Editor can't run on this machine): ask the integrator for the
+   specific Inspector values you need, one batched question, and say which route would remove the need.
 
 ### Step 2 — Run the Analysis Checklist
 
@@ -170,12 +165,10 @@ artifact defined in **§6**.
 ## 4. Questions to ask the human
 
 Only what can't be inferred from code:
-- **Asset serialization (Step 1).** If the project is Mixed/ForceBinary, **recommend** switching to
-  Force Text — explain the discovery benefit (esp. the phase-4 win) and that it serves their own goal
-  of fully tracking the game's state. It has VCS implications (a one-time mass re-serialization), so
-  it's the integrator's call — recommend, don't mandate. (Procedure is in §3 Step 1.)
-- **In binary mode:** which components/values sit on a given scene object or prefab, when a grep can't
-  reach them (inspector round-trip).
+- **Asset serialization (Step 1):** nothing. Never propose switching the project to Force Text; read it
+  through the route phase 1 chose. (Case B's package was offered in phase 1.)
+- **Only if no reading route is available:** which components/values sit on a given scene object or
+  prefab (one batched question).
 - **Ambiguous session boundaries:** which scenes are gameplay vs menu/transition; whether an exit path
   you found actually ends a live run.
 
@@ -240,8 +233,8 @@ neither — and any of those can be boot-straight or menu-gated.
 1. **Create folder:** `ludeo-integration-plan/` in the Unity project root.
 2. **Save:** `ludeo-integration-plan/CODE_MAP.json` containing:
    - `project_summary` — Unity version, render pipeline if detectable, key `Assets/` folders, asmdefs
-   - `serialization` — `m_SerializationMode` found (Mixed / ForceBinary / ForceText) and the user's
-     decision (switched to Force Text / declined / already Force Text)
+   - `serialization` — `m_SerializationMode` found (Mixed / ForceBinary / ForceText), the Unity version, and the
+     reading route used (A files / B Unity CLI / C scene dump — `agent-project-reading.md`)
    - `packages` — relevant entries from `Packages/manifest.json`; whether the Ludeo package is present
    - `scenes` — scene list + load order; which is bootstrap, which are gameplay
    - `entry_points` — bootstrap MonoBehaviours / `RuntimeInitializeOnLoadMethod` hooks (file, line)
@@ -317,7 +310,7 @@ The gate — satisfy all before advancing to phase 3.
       no guessed class/method/scene names.
 
 **Skill-specific additions:**
-- [ ] `serialization` recorded (mode found + user's decision).
+- [ ] `serialization` recorded (mode found + the reading route used).
 - [ ] `session_boundaries` lists **every distinct gameplay exit path** (not just the happy-path end),
       with `assembly` set; open-world/procedural sub-structure used where applicable.
 - [ ] **World-frame determinism question (§4.6) answered from the placement code** — `world_frame`
@@ -341,13 +334,13 @@ The gate — satisfy all before advancing to phase 3.
   per-entity matrix is phase 4.
 - **Enumerating every prefab/scene exhaustively** — sample to identify entity *types*; don't dump the
   whole asset tree.
-- **Editing `m_SerializationMode` by file** and assuming the repo converted — it doesn't re-serialize
-  existing assets; only the Editor toggle / reserialize does.
+- **Switching the studio's project to Force Text** to make it readable — never; read it through case B or C
+  of `agent-project-reading.md` instead. (Editing `m_SerializationMode` by file wouldn't even convert the assets.)
 
 ## Related / Next
 
 - Patterns: `ludeo-integration-docs/game-patterns/open-world.md`, `.../procedural-world.md`.
 - **Next:** `phase 3` (SDK lifecycle) — enter via the orchestrator `3-lifecycle-orchestrator.md` and
   run it as a **single phase**. Do not treat "map SDK integration points" as a standalone phase: it is
-  only task 1 of five (map points → TDD → plan → implement → human compile gate) the orchestrator
+  only task 1 of five (map points → TDD → plan → implement → compile + run gate) the orchestrator
   dispatches as subagents.

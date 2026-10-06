@@ -2,11 +2,13 @@
 
 > **This is the phase-5 entry point.** Guideline phase 5 ("Tracking & restore (game objects)") is one
 > logical phase, run as an **iterative wave loop**: the census + wave plan from phase 4 is implemented
-> **one wave at a time**, each wave proven by a human at its own restore gate before the next widens scope.
+> **one wave at a time**, each wave proven at its own restore gate before the next widens scope. With the
+> phase-3 test harness the agent runs those gates itself; the integrator supplies Ludeo ids and signs off
+> once per wave (`agent-test-harness.md`).
 > Within a wave the work is single-task briefs: **deep-scope** (task 0) → **capture** (task 1) → **restore
 > plan** (task 2) → **restore flow** (task 3, **wave 1 only**) → **state reconstruction** (task 4). The
 > driving agent runs as an **orchestrator**: it dispatches one **subagent per task** (via the Agent tool),
-> passes artifacts **by file**, and **owns every human gate itself** — so the whole thing feels like a
+> passes artifacts **by file**, and **owns every gate itself** — so the whole thing feels like a
 > single phase to the user.
 >
 > **Legend:** `[SDK]` = Ludeo package API (signatures in
@@ -22,7 +24,7 @@ time-base/continuity + the few collections the moment is visibly wrong without):
 sample per-tick attributes (creator/write side), plan restoration, wire the SDK-orchestration play flow
 (`LudeoSelected → GetLudeo →` freeze/overlay/pause `→ RoomReady → Begin`, restore entry point), and fill the
 two-pass read-back. **Each later wave widens the tracked set** and re-runs capture + reconstruction for the
-added types, ending in the same human restore gate. **Deliverable:** a captured highlight that plays back
+added types, ending in the same restore gate. **Deliverable:** a captured highlight that plays back
 and **visibly restores positions/state** — first for Wave 1 (the prerequisite for actions/enrichment), then
 for each widened wave.
 
@@ -42,7 +44,7 @@ for each widened wave.
 ## 3. Steps (the orchestration)
 
 The driving agent is the **orchestrator**. It does **not** do the task work inline — it dispatches a
-subagent per task, inspects the returned artifact, then **runs that task's human gate itself** before
+subagent per task, inspects the returned artifact, then **runs that task's gate itself** before
 dispatching the next. This keeps each task in isolated context (no bloat) and keeps the iteration state
 (what was tried, what the log showed, which wave we're on) in the **persistent orchestrator**, not in a
 subagent that's gone.
@@ -51,13 +53,13 @@ subagent that's gone.
 > Use the **Agent** tool (`subagent_type: general-purpose`). Prompt the subagent with: the **absolute
 > path to the task brief**, the **Unity project path**, the **input artifact paths** it needs, **and which
 > wave `N` (+ the `objectType`s in that wave)**. Tell it to follow the brief exactly, produce the brief's
-> Output-Contract artifact (code and/or a plan file), **not** to run the human-gated compile/play (the
+> Output-Contract artifact (code and/or a plan file), **not** to run the compile/play gate (the
 > orchestrator owns it), and to return a short summary + the files it created/edited + any human-questions.
 > On return, **verify the artifacts exist**, relay questions, then **run the gate** (below). Pass state
 > **by file**, never by re-narrating prior output.
 
 **Fix-loop pattern (per gate failure):**
-> When a human gate fails (compile error, missing log line, wrong replay behavior), the orchestrator
+> When a gate fails (compile error, missing log line, wrong replay behavior), the orchestrator
 > **re-dispatches a fix subagent** pointed at the **same brief**, with the **failing log text / the
 > human's report passed by file** plus the list of files the prior subagent touched. The orchestrator
 > holds the iteration state across as many human round-trips as it takes. Root-cause every fix
@@ -105,26 +107,36 @@ the tracked set, the capture writers, and the `ApplyRestoredState()` data read-b
 > (data-only, **skip task 3**), each ending in its own restore gate. The wave counter simply continues; a
 > fresh session is fine (state lives in the files, not the chat).
 
-| # | Task | Brief | Cadence | Produces | Human gate (orchestrator-run) |
+| # | Task | Brief | Cadence | Produces | Gate (orchestrator-run) |
 | --- | --- | --- | --- | --- | --- |
 | 0 | Deep-scope this wave | `references/5a-deep-scope-wave.md` | **per wave** | wave N's `## Entity` rows appended to `OBJECT_TRACKING.md` (+ `save_system.per_entity`) | **human reviews & approves wave N's rows** (no code/run) |
-| 1 | Implement object tracking (capture) | `references/5b-implement-object-tracking.md` | **per wave** (additive) | capture `.cs` for N's types (register + `OnStateDataUpdate` writers + keys) | **recompile clean + play + actually capture a session**, registration fires, no `LudeoResult` errors |
+| 1 | Implement object tracking (capture) | `references/5b-implement-object-tracking.md` | **per wave** (additive) | capture `.cs` for N's types (register + `OnStateDataUpdate` writers + keys) | **recompile clean + play + actually capture a session**, registration fires, no `LudeoResult` errors. **With the harness:** the agent captures (mid-run, including wave N's types), the integrator turns the moment into a Ludeo and sends its id |
 | 2 | Plan state restoration | `references/5c-plan-state-restoration.md` | **per wave** (append) | wave N's rows in `RESTORATION_PLAN.md` | **human reviews & approves the rows** (no code/run) |
 | 3 | Implement restoration flow | `references/5d-implement-restoration-flow.md` | **ONCE (wave 1 only)** | flow `.cs` + `LudeoRestoredData` + `ApplyRestoredState()` **stub** | **play a captured Ludeo**: freeze → captured scene loads → stub reached in order → `Begin`; replay→replay tears down clean; overlay pause/resume |
 | 4 | Implement state reconstruction | `references/5e-implement-state-reconstruction.md` | **per wave** (additive buckets) | wave N's buckets filled in `ApplyRestoredState()` (two-pass read-back) | **play a captured Ludeo**: wave N's cumulative set restores on first frame, non-zero two-pass counts, cross-ref resolved; **placement sanity — no restored entity sits in empty space / far from the geometry** (§ below); replay-twice shows the **second's** state |
 
-**No task here is hands-off** — every one ends in a human gate the orchestrator must run, because the
-agent **cannot see the Unity Editor Console** and the capture/replay gates require the human to actually
-play/capture a Ludeo. Dispatch task 0, run its gate, **only then** task 1, and so on; finish a wave before
-starting the next.
+**Every task ends in a gate the orchestrator runs.** Dispatch task 0, run its gate, **only then** task 1,
+and so on; finish a wave before starting the next. **The agent runs the capture and replay gates**
+(tasks 1, 3, 4) with the phase-3 test harness (`agent-test-harness.md`). It captures with the harness,
+asks the integrator to turn the captured moment into a Ludeo and send back the id, then replays that
+Ludeo with the harness and judges the result file, the screenshots and the restored-vs-recorded values.
+Task 3 adds the **replay** scenario and the stand-in Play click to the harness. The integrator's part is
+the Ludeo ids, the plan approvals (gates 0 and 2), and **one sign-off per wave** from the evidence bundle
+(`agent-test-harness.md` → *The wave sign-off*). Only if there is no harness (the machine can't build or
+launch a player) does the human capture and play each Ludeo at these gates, as described below.
+
+While the integrator turns moments into Ludeos, don't wait idle: start the next task that doesn't need
+the Ludeo (the restore plan, the next wave's deep scope), or re-run the regression set.
 
 ### The capture-before-replay dependency (do not skip)
 
 Tasks 3 and 4 **cannot be verified without a real captured Ludeo** — you can't replay what was never
-captured. So **each wave's** task-1 gate is not just "capture compiles and runs" — the human must
-**actually play the game and capture at least one (ideally two, for the replay-twice tests) Ludeo** that
-includes **that wave's** new attributes before task 4 (and, in Wave 1, task 3) is tested. Make this ask
-explicit at every wave's task-1 gate.
+captured. So **each wave's** task-1 gate is not just "capture compiles and runs": **at least one (ideally
+two, for the replay-twice tests) Ludeo** that includes **that wave's** new attributes must exist before
+task 4 (and, in Wave 1, task 3) is tested. **With the harness,** the agent captures them and asks the
+integrator for the Ludeo ids, naming each moment by capture time and `highlightId`. **Without it,** the
+human plays the game and captures them. Make this ask explicit at every wave's task-1 gate, and record
+every Ludeo in `ludeo-integration-plan/LUDEOS.md`.
 
 > **Required at the Task-4 gate: a placement sanity check from a deep-state capture.** Two parts, both
 > mandatory — not advisory:
@@ -133,7 +145,10 @@ explicit at every wave's task-1 gate.
 >    correctly *there* even when the world's spatial frame is rebuilt non-deterministically elsewhere —
 >    masking the bug entirely. Require the gate's Ludeo to be captured **mid-run / past the first
 >    segment**.
-> 2. **Look at where the restored entities land.** Ask the integrator the symptom question directly:
+> 2. **Look at where the restored entities land.** With the harness, check it yourself: the replay's
+>    first-frame screenshot, plus each restored entity's position against the nearest ground or geometry
+>    (a raycast down, or distance to the level bounds) in the result file. Without it, ask the integrator
+>    the symptom question directly:
 >    *"On the restored first frame, does any entity (player, enemies, props) sit in empty space, fall
 >    through the floor, or appear far from the geometry?"* A **yes** is a displaced-frame bug — the
 >    captured world frame wasn't reconstructed (`CODE_MAP.session_boundaries.world_frame`;
@@ -145,16 +160,19 @@ explicit at every wave's task-1 gate.
 ### Re-capture every wave (schema invalidation)
 
 Each wave's `capture(N)` **adds attributes** to the capture schema, which **invalidates Ludeos captured in
-prior waves** (`06 §6` / `phase 5 · task 1`). So at **every** wave's task-1 gate the human must **re-capture** — the
-Ludeo used for that wave's task-4 (GATE 4) must contain wave N's new attributes, not a stale prior-wave
-capture. The same applies after any in-wave capture-schema fix.
+prior waves** (`06 §6` / `phase 5 · task 1`). So at **every** wave's task-1 gate there must be a
+**re-capture** (by the harness, or by the human without it) — the Ludeo used for that wave's task-4
+(GATE 4) must contain wave N's new attributes, not a stale prior-wave capture. The same applies after
+any in-wave capture-schema fix. Mark superseded Ludeos stale in `LUDEOS.md`.
 
 ### Reading the logs (every gate)
 
 The orchestrator runs the gates but still **cannot see the Console** — it confirms each gate by reading
 **Unity's log files** per
-[`unity/READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md), and beyond the log
-relies on the integrator's word (a clean compile never proves capture/restore works). The compile-and-fix
+[`unity/READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md). With the harness it
+also has the run's result file and screenshots. Without it, beyond the log it relies on the integrator's
+word. Either way, a clean compile never proves capture/restore works, and a `passed` verdict is not
+proof on its own (`agent-test-harness.md` → *What a pass must show*). The compile-and-fix
 loop + `error CS` table live in [`phase 3 · task 5`](3e-compile-and-fix.md) — cite it, don't repeat it.
 
 ## 4. Questions to ask the human
@@ -169,14 +187,18 @@ The orchestrator relays whatever a subagent surfaces — it does not invent its 
 - **Task 1 gate:** confirm a clean recompile + a **captured** session that includes wave N's attributes,
   **captured mid-run / past the first segment** (an origin capture masks displaced-frame bugs — see the
   Task-4 placement check) — and capture a 2nd Ludeo for the replay-twice tests. **Re-capture** if a prior
-  wave's Ludeo is stale.
+  wave's Ludeo is stale. **With the harness,** the agent does the capturing, and the only ask is: *"Please
+  turn these captured moments into Ludeos and send me their ids"*, each moment named by its `gameplayId`,
+  `highlightId`, capture time, clip length, contents and a trim hint (`agent-test-harness.md` → *Capturing a moment*).
 - **Task 2 gate:** approve **wave N's** rows in `RESTORATION_PLAN.md`.
 - **Task 3 gate (wave 1):** confirm the flow play-test (freeze → scene load → stub → `Begin`; replay→replay;
-  overlay).
+  overlay). With the harness, the agent runs it and nothing is asked.
 - **Task 4 gate:** confirm wave N's cumulative restored state on the first frame + the **placement sanity
   check** (no restored entity floating / fallen-through / far from geometry, from a deep-state capture —
-  §3) + the replay-twice no-leak test.
-- **End of each wave:** "wave N restores — widen to wave N+1?" (confirm-before-widen).
+  §3) + the replay-twice no-leak test. With the harness, the agent runs and judges all three.
+- **End of each wave:** "wave N restores — widen to wave N+1?" (confirm-before-widen). With the harness,
+  ask it **with the evidence bundle** (`agent-test-harness.md` → *The wave sign-off*). This is the
+  integrator's one testing sign-off per wave.
 
 ## 5. Patterns to apply
 
@@ -191,7 +213,7 @@ The orchestrator relays whatever a subagent surfaces — it does not invent its 
   state an already-confirmed wave should have carried, fix the **earlier** wave and re-verify its gate
   (guardrail escalation, §3). A gap belongs back in `phase 4`/task 0, not papered over downstream.
 - **Orchestrator / single-task-subagent dispatch** — each brief is written to be run by a subagent in
-  isolation; the orchestrator is thin and owns the human gates + the fix loop + the wave counter.
+  isolation; the orchestrator is thin and owns the gates + the fix loop + the wave counter.
 - **The mirror principle** — restoration (tasks 2/4) is the **row-for-row inverse** of capture (task 1)
   **for the wave's types**: same `objectType` buckets, same `LudeoKeys` constants, same stable keys. You
   cannot restore what tracking didn't capture.
@@ -201,7 +223,8 @@ The orchestrator relays whatever a subagent surfaces — it does not invent its 
 - **Capture is creator-only; restore is play-only.** Guard capture on `!IsInLudeoFlow`; the restore path
   runs because `IsInLudeoFlow` is `true` (CR-001).
 - **Player flow proven before actions.** Phase 5 reaches the actions prerequisite the moment **Wave 1**
-  restores for a human — that is the guideline's gate for proceeding to phase 6 (actions).
+  restores and the integrator has signed it off (from the harness's evidence, or by watching it without
+  the harness) — that is the guideline's gate for proceeding to phase 6 (actions).
 
 ## 6. Output Contract
 
@@ -215,7 +238,10 @@ Produced across the subagent tasks (each brief owns its own contract); the per-w
   freeze/overlay, `RoomReady → Begin`, and the `ApplyRestoredState()` **stub** (task 3, **once**).
 - The `ApplyRestoredState()` body — two-pass read-back, references, deferred queue, environment — **its
   buckets growing per wave** (task 4, additive).
-- **A human-verified captured highlight that plays back and restores state — per wave** (each wave's gate).
+- **A captured highlight that plays back and restores state, signed off by the integrator — per wave**
+  (each wave's gate).
+- _(With the harness)_ the **replay** scenario + stand-in Play click (task 3), `ludeo-integration-plan/LUDEOS.md`
+  up to date, and each wave's evidence bundle (result files, screenshots, restored-vs-recorded values).
 
 ## 7. ✅ Success Criteria (the guideline phase-5 gate)
 
@@ -259,7 +285,7 @@ green**, and is **fully complete when the last wave in the plan is green**.
 ## 8. Common Mistakes
 
 - **Implementing the whole plan in one pass** instead of wave-by-wave — loses the early round-trip proof
-  and the small, debuggable human gates that are the point of the loop.
+  and the small, debuggable gates that are the point of the loop.
 - **Re-running task 3 (flow) per wave** — it is **once, in Wave 1**. Waves ≥2 skip it; only capture +
   reconstruction grow.
 - **Editing a confirmed wave's writers/buckets when adding a later wave** — waves are **additive**; a later
@@ -270,8 +296,15 @@ green**, and is **fully complete when the last wave in the plan is green**.
   (guardrail escalation), don't absorb it here.
 - **Running the tasks inline instead of dispatching subagents** — bloats the orchestrator's context and
   loses the one-phase feel. Dispatch; pass artifacts by file.
-- **Trying to subagent-automate a gate** — every gate needs the human + the Editor. Surface it and wait.
-- **Declaring the phase done by inspection** — the gate is a human watching each wave's highlight restore.
+- **Handing a gate to a subagent** — the orchestrator runs every gate: with the integrator when there is
+  no harness, by itself (via the harness) when there is.
+- **Asking the integrator to capture or play when the harness can** — with the harness, their part is the
+  Ludeo ids and the per-wave sign-off, nothing more.
+- **Declaring the phase done by inspection** — the gate is a replay of each wave's Ludeo that shows it
+  restoring: watched by a human, or run by the harness and judged from its evidence, including the
+  screenshots.
+- **Trusting a `passed` verdict** — read the evidence lines and open the screenshots
+  (`agent-test-harness.md` → *What a pass must show*).
 
 ## Related / Next
 

@@ -45,11 +45,26 @@ task in isolated context (no bloat) and lets the user experience one continuous 
 | 3 | Plan the layer | `references/3c-plan-sdk-lifecycle.md` | the three above | `SDK_LIFECYCLE_PLAN_<Game>.md` |
 | 4 | Implement layer + hooks | `references/3d-implement-sdk-lifecycle.md` | TDD + plan | layer `.cs` files + edited game hooks |
 | 5 | **Compile + run gate** | `references/3e-compile-and-fix.md` | the edited project | clean compile + live capture overlay |
+| 6 | **Build the test harness** | `references/agent-test-harness.md` → *The pieces*, *Building the dev player*, *Capturing a moment* | the layer + `CODE_MAP.json` | harness assembly + launch override + a **capture** scenario, built into the dev player; one automated capture confirmed from the log |
 
-**Tasks 1–4 run automatically as subagents. Task 5 does NOT** — the agent cannot see the Unity Editor
-Console, and the gate needs the human to focus the Editor (recompile) and play the game (overlay). The
-orchestrator runs 1→4 hands-off, then **surfaces the task-5 gate to the user** and waits for their
-confirmation (or explicit skip). This is the single unavoidable human touch-point in phase 3.
+**Tasks 1–4 run automatically as subagents.** The orchestrator runs task 5's compile itself, not as a
+subagent: headless with the Editor closed (`3e-compile-and-fix.md`), or inside a resident headless Editor
+through the Unity CLI (case B). It then **dispatches task 6** to build the test harness into the dev player, and
+runs the **run half** of the gate through it:
+
+- a `capture-run` job whose `result.json` shows every lifecycle call returning `Success` (`Activate`,
+  `OpenRoom`, `AddPlayer`, `RoomReady`, `BeginGameplay`, `EndGameplay`, `CloseRoom`), the pause and
+  non-ludeoable spans balanced, and the save untouched;
+- the **overlay check**: the launcher presses the highlight key read from the overlay's own log line
+  (`LudeoSdkConfig received -- bindings rebuilt …`), and the log shows the highlight taken and an
+  `onCaptureVideoRequest` line with a `highlightId`. A screenshot shows the overlay's saving toast.
+
+Nothing in phase 3 then needs the integrator except questions. **If the machine has no desktop session
+the agent can focus** (it builds and launches the player, but can't press keys in its window), run the
+capture job anyway and ask the integrator to press the highlight key once at the moment you name; then
+confirm the highlight from the log yourself. **Only if the phase-1 readiness check found that the machine
+can't build or launch a player** does the whole run half go to the human: surface it, wait for their
+confirmation (or explicit skip), and skip task 6.
 
 **Non-Gameplay Handling is planned in this phase (emitted later).** The guideline folds non-gameplay
 handling into the lifecycle. In Unity it splits three ways — task 1 maps the sites, task 3 plans the
@@ -61,7 +76,10 @@ action names.
 The orchestrator relays whatever a subagent surfaces — it does not invent its own. Expected ones:
 - **In the TDD task:** studio/graphics details and game modes not inferable from code.
 - **In the plan task (open-world/streaming games):** which `start_sites[]` entry binds `OpenRoom`.
-- **The compile + run gate (task 5):** the user confirms a clean recompile and a live capture overlay.
+- **The compile + run gate (tasks 5–6):** nothing to ask, unless the machine can't build or launch a
+  player. Then the user confirms a clean recompile and a live capture overlay.
+- **Task 6 (harness):** how to get the game to a moment worth capturing, if the code shows no dev or cheat
+  command that does it (a level-select, a debug spawn, a time skip).
 
 ## 5. Patterns to apply
 
@@ -100,7 +118,10 @@ Three distinct mechanisms; don't conflate them (the third is itself two opposite
    - **Requests, SDK → game** (`PauseGameRequested`/`ResumeGameRequested`, plain `Action`): the Ludeo
      overlay is covering the game — freeze `Time.timeScale`. **Cloud Player Flow only** — never in Creator
      Flow and never in a local build, so this half can only be verified on the streamed build. The handler
-     must **also** reach the trigger emit below.
+     must **also** reach the trigger emit below. (One exception, observed on plugin 4.3.3: when a locally
+     auto-started Ludeo's time runs out, the local overlay sends one final `PauseGameRequested` with no
+     resume. It proves the handler is wired, not the mid-play overlay pause:
+     `learnings/engine-quirks/the-next-ludeo-comes-from-the-end-of-run-screen-not-the-auto-start.md`.)
    - **Triggers, game → SDK** (`SendAction` with the standard names **`PauseLudeo`** / **`ResumeLudeo`**):
      **every** pause, in either flow — the player's ESC/pause menu, cutscenes, dialogue, loading screens, and
      the SDK-requested overlay pause. This is the **only** thing that stops the objective timer (freezing the
@@ -123,6 +144,9 @@ Produced across the subagent tasks (each brief owns its own contract):
 - `ludeo-integration-plan/SDK_LIFECYCLE_PLAN_<Game>.md` (task 3) — includes the Non-Gameplay Handling plan
 - `LudeoController` layer `.cs` files + edited game hooks (task 4)
 - A clean compile and a live capture overlay (task 5)
+- the test harness (assembly, job file, launch override, runner, result writer) and the capture scenario
+  in the dev player, and `ludeo-integration-plan/LUDEOS.md` started with the first automated capture
+  (task 6)
 
 ## 7. ✅ Success Criteria (the guideline phase-3 gate)
 
@@ -144,13 +168,21 @@ The orchestrator confirms **all** of these before advancing — they are produce
 - [ ] **No dangling non-ludeoable on `End`** — any open `StartNoneLudeable`/`PauseLudeo` span is closed
       before a Gameplay Session ends.
 - [ ] **Project compiles with/without the SDK** (task 5).
-- [ ] **Capture overlay appears at runtime** — the human-confirmed proof a Gameplay Session opened.
+- [ ] **The capture overlay works at runtime** — the proof a Gameplay Session opened. The agent shows it
+      from a harness capture run: the highlight key (read from the overlay's bindings log line) produced a
+      highlight and an `onCaptureVideoRequest` line, and the moment is listed in `LUDEOS.md` (task 6). The
+      human confirms it only when the machine can't build or launch a player.
 
 ## 8. Common Mistakes
 
 - **Running the tasks inline instead of dispatching subagents** — bloats the orchestrator's context and
   loses the one-phase feel. Dispatch; pass artifacts by file.
-- **Trying to subagent-automate the compile gate** — task 5 needs the human + the Editor. Surface it.
+- **Handing task 5 to a subagent** — the orchestrator runs the compile and the run gate itself.
+- **Handing the integrator a gate the agent can run** — compile, overlay and capture checks are the
+  agent's, through the headless compile and the harness. Ask the integrator only for what needs them
+  (`agent-automation.md`).
+- **Failing the overlay check because no idle overlay widget is visible** — it may never be drawn. The
+  proof is the highlight key producing a highlight in the log.
 - **Re-narrating prior output to the next task** instead of pointing it at the artifact file.
 - **Treating callback-driven ops as game call sites** (`AddPlayer`/`Begin`/`CloseRoom` — CR-009).
 - **Planning a config class / re-gathering auth** — config is `LudeoSettings.asset` (phase 1).
@@ -161,7 +193,7 @@ The orchestrator confirms **all** of these before advancing — they are produce
 ## Related / Next
 
 - Briefs: `3a-find-sdk-integration-points.md`, `3b-create-tdd.md`, `3c-plan-sdk-lifecycle.md`,
-  `3d-implement-sdk-lifecycle.md`, `3e-compile-and-fix.md`.
+  `3d-implement-sdk-lifecycle.md`, `3e-compile-and-fix.md`; task 6 follows `agent-test-harness.md`.
 - **Next:** phase 4 (map game objects) — `4-map-game-objects.md` (census + wave plan), then phase 5
   (tracking & restore). Actions are phase 6 (after the player flow is proven); the non-gameplay standard
   actions planned here are emitted there.

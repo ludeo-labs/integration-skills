@@ -31,3 +31,12 @@ signal that the wrapper and core are mismatched.
 
 **Corollary:** when reporting an SDK bug to Ludeo, quote **both** numbers — the UPM package version
 and the core banner (plus its `GitHash`). They identify different components.
+
+## Also seen: the release notes can claim a core newer than the DLL in the zip (IdleSample)
+
+A different mismatch from the one above: a plugin release's notes named the core it switched to (and new
+DLL properties such as signing), but the zip still carried the previous core. If a release-note item is
+why you upgraded, read the core DLL itself under the package's `LudeoSDK/` folder (not `Plugins/`): its
+FileVersion, CompanyName and Authenticode status (`Get-AuthenticodeSignature` in PowerShell). When
+reporting, give three things: the package version, the core banner plus GitHash, and what the notes
+claimed.

@@ -3,13 +3,13 @@
 > **Single-task subagent brief.** Dispatched by the phase-5 orchestrator
 > (`5-tracking-restore-orchestrator.md`) **once per wave**. Wire the `[Layer]` handler calls for **this
 > wave's** entities (the `## Entity` rows task 0 just appended for `wave: N`), then return a summary + the
-> files you created/edited. **You do not run the human-gated compile/play** — the orchestrator runs it (it
+> files you created/edited. **You do not run the compile/play gate** — the orchestrator runs it (it
 > can see neither the Editor Console nor a captured session). You run in isolated context — your inputs are
 > the files in §2. Follow propose-confirm-execute.
 >
 > **Wave-loop role (additive):** capture grows **per wave**. Wire only **this wave's** types; **do not edit
 > a previously-confirmed wave's writers, `objectType` buckets, or `LudeoKeys`** — append new ones. Adding
-> attributes changes the capture schema, so the orchestrator will have the human **re-capture** at your
+> attributes changes the capture schema, so the orchestrator will **re-capture** (with the harness) at your
 > gate (prior-wave Ludeos are now stale, `06 §6`).
 >
 > **Legend:** `[SDK]` = Ludeo package API (signatures in
@@ -184,7 +184,7 @@ stream-in hook, not in a one-shot whole-world pass (`open-world-tracking.md §6`
 > captured before the identity attribute existed comes back with an empty key and "chunk '' not found"
 > (`07 §8`). Capture it here, sampled every tick. **Corollary:** adding *or renaming* any capture attribute
 > (here or in a later phase) **invalidates every previously captured Ludeo** for that field — there is no
-> migration. After any capture-schema change, tell the orchestrator the human must **re-capture** before
+> migration. After any capture-schema change, tell the orchestrator a **re-capture** is needed before
 > testing restore; a fresh run re-samples valid data.
 
 > **Time-base / continuity (`phase 4` Step 4.5):** implement the singleton `SessionState`/`Continuity`
@@ -210,7 +210,7 @@ named fields the game's own serializer writes. For **manual** entities, all writ
 > "reconciliation" entry that actually serializes a blob to the orchestrator (`phase 4` Step 8, `06 §1.4`).
 
 ### Step 9: Self-check, then hand back (no compile here)
-You do **not** run the human-gated compile/play — the orchestrator does. Before returning, statically
+You do **not** run the compile/play gate — the orchestrator does. Before returning, statically
 self-check against §7's pre-handoff criteria, then return a summary + the files you created/edited + any
 open questions. **The runtime gate (recompile clean + capture a session + no `LudeoResult` errors in the
 log) is the orchestrator's** — it cannot be verified from this isolated context.
@@ -249,7 +249,7 @@ Surface to the orchestrator; don't guess:
 - A report: (1) style chosen (per subsystem if mixed), (2) keys classes created/filled, (3) entities
   instrumented X/Y + properties wired, (4) batch sites, (5) reconciliation vs manual counts, (6) skipped
   (open questions), (7) files modified, (8) ready for the orchestrator's runtime gate.
-- **No compile performed** — that's the orchestrator's human gate.
+- **No compile performed** — that's the orchestrator's gate.
 
 ## 7. ✅ Success Criteria
 
@@ -276,7 +276,7 @@ Surface to the orchestrator; don't guess:
 
 ## 8. Common Mistakes
 
-- **Compiling here** — the orchestrator owns the (human-gated) compile + capture verification.
+- **Compiling here** — the orchestrator owns the (orchestrator-run) compile + capture verification.
 - **Splitting "register now, key later"** instead of writing identity + dynamics in one lambda (`06 §3.1`).
 - **Unregistering on `OnDestroy`/stream-out** in a streaming world (presence ≠ existence).
 - **Defaulting to blobs** instead of discrete typed attributes (`06 §1.4`).
@@ -288,5 +288,5 @@ Surface to the orchestrator; don't guess:
 ## Related / Next
 
 - `phase 4` (`4-map-game-objects.md`) — produces `OBJECT_TRACKING.md`, the plan this task consumes.
-- **Next (orchestrator):** run the task-1 human gate (recompile + capture a session), then dispatch task 2
+- **Next (orchestrator):** run the task-1 gate (recompile + capture a session), then dispatch task 2
   (`5c-plan-state-restoration.md`) — restoration is the row-for-row inverse of this capture.

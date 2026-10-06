@@ -3,7 +3,7 @@
 > **Single-task subagent brief.** Dispatched by the phase-5 orchestrator
 > (`5-tracking-restore-orchestrator.md`) **once — in Wave 1 only.** Wire the restore-side **flow** (the
 > inverse of `phase 3`'s session lifecycle), declare `ApplyRestoredState()` as a **stub**, then return a
-> summary + the files you created/edited. **You do not run the human-gated play test** — the orchestrator
+> summary + the files you created/edited. **You do not run the play test** — the orchestrator
 > plays a captured Ludeo and reads the log (you can see neither the Console nor a live replay). You run in
 > isolated context — your inputs are the files in §2. Follow propose-confirm-execute.
 >
@@ -278,6 +278,23 @@ don't filter the codebase scan to state-touching mechanisms and miss a blocking 
 > the game's activation entry point (`Activate`/`EnterCombat`/`Arm`) **minus** any reposition branch. If the
 > plan left this to a captured attribute, there's nothing to wire here — task 4 restores it.
 
+### Step 5.5: Extend the test harness for replay _(skip only if phase 3 built no harness)_
+Follow [`agent-test-harness.md`](agent-test-harness.md) → *The pieces* and *Replaying a Ludeo*. Add three
+things, all test-only (in the harness assembly, or behind the layer's dev define):
+- **The stand-in Play click** — a method on the layer that re-enters the **same** `RoomReady → Begin`
+  path this task just wired, so a replay can begin with nobody connected. It calls that path; it does
+  not reimplement or bypass it. (A real Play click then travels exactly the code the harness tested.)
+- **The replay scenario** — wait for the Ludeo flow, the gameplay scene, world-ready and the restore
+  applied (the stub's log line for now), press the stand-in click, observe for N seconds sampling once a
+  second, and take start and end screenshots. Add a **replay-again** variant that re-selects through the
+  layer's real re-selection path, including once during the first boot. Label it simulated: locally the
+  auto-start delivers only one selection, and a real second one comes from the platform.
+- **The launch override** — the job's Ludeo id set on the in-memory `LudeoSettings`
+  (`autoStartInLudeo`, `ludeoToAutoStart`) before `LudeoManager.Initialize()`, with
+  `runWithoutLauncher = true` (`agent-test-harness.md` → *The pieces*).
+
+Task 4 later adds each wave's restored-vs-recorded comparison to the scenario's samples.
+
 ### Step 6: Self-check, then hand back (no play test here)
 You do **not** play a Ludeo — the orchestrator does. Before returning, statically self-check against §7's
 pre-handoff criteria, then return a summary + the files you created/edited + any open questions. **The
@@ -322,7 +339,9 @@ Surface to the orchestrator; don't guess:
 - A report: (1) apply placement + apply shape (freeze vs suppress), (2) flow `[Layer]` added, (3) the Seam
   (`ApplyRestoredState()` STUB call site), (4) overlay hooks wired, (5) pre-match suppression gated, (6)
   files modified, (7) ready for the orchestrator's flow gate. Note (5) covers **both** categories — state-clobbering and flow-blocking UI.
-- **No compile / play performed** — that's the orchestrator's human gate.
+- _(If phase 3 built the test harness)_ the stand-in Play click, the replay and replay-again scenarios,
+  and the replay settings in the pre-run check (Step 5.5).
+- **No compile / play performed** — that's the orchestrator's gate.
 
 ## 7. ✅ Success Criteria
 
@@ -330,7 +349,7 @@ Surface to the orchestrator; don't guess:
 - [ ] **Flow reaches the restore entry point on a real captured Ludeo** — freeze on select → captured scene
       loads on Play → `ApplyRestoredState()` stub reached in order → `Begin`.
 - [ ] **Pause/overlay behavior correct** — overlay open freezes the sim, close resumes (CR-011).
-- [ ] **Restore (flow) verified by a human** — including the replay→replay teardown (no stale-flag deadlock).
+- [ ] **Restore (flow) verified** (by the orchestrator through the harness; by a human only without one) — including the replay→replay teardown (no stale-flag deadlock).
 
 **Skill-specific pre-handoff criteria (satisfy before returning):**
 - [ ] `LudeoRestoredData` built in `HandleGetLudeoDone`: `GetObjects` called once, grouped into
@@ -357,7 +376,7 @@ Surface to the orchestrator; don't guess:
 
 ## 8. Common Mistakes
 
-- **Compiling / playing here** — the orchestrator owns the (human-gated) play test.
+- **Compiling / playing here** — the orchestrator owns the (orchestrator-run) play test.
 - **Reading entity attributes back** — that's task 4; leave the stub.
 - **A scene load in the `LudeoSelected` handler** instead of `onBeginRestore` (read-then-load).
 - **Begin-then-apply / unfreeze-then-apply / apply-in-GetLudeo** — wrong order (`07 §2.1`).

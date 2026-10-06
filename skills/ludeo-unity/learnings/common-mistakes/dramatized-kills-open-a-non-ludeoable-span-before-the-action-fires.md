@@ -105,3 +105,13 @@ suppressing it would hand the backend a stretch of cutscene as scoreable gamepla
   same override-doesn't-chain hazard as
   [[one-base-class-register-hook-misses-subclasses-that-skip-base-start]], on the action seam instead of
   the register seam.
+
+## Also seen: the mirror case, an announcement sent after the dramatization (IdleSample)
+
+The emit site for a progression beat was the game's own "unlocked" message, published right after the
+beat's cinematic ended. The span machine polled its sources once per frame, late, so on that frame it had
+not yet seen the cinematic end and the action still landed inside the span. Send at the **decision**
+instead (the frame the state changes, baselined at `Begin` so restore-time changes never count), and order
+the frame: close spans whose source already ended, flush queued actions, then let the machine open new
+spans. Verify in an automated run (with the dramatization re-armed so it really plays) that
+`action: X` precedes `span: StartNoneLudeable` in the log.
