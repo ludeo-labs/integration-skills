@@ -92,3 +92,14 @@ This is the "read the evidence lines, not the verdict" rule applied to the *subj
 state* rather than the result. A harness that chooses its own subject, or that inherits a world
 somebody else has already changed, has a hidden input — and a green run says nothing until you know
 what it ran against.
+
+## Also seen: guards and holds proven on a world that could not fail them (TopDownRogueSample)
+
+- **A suppression guard with no subject.** A first-time popup that arms only after N attempts cannot
+  fire on a fresh test profile, so "no popup appeared" is true with or without the guard. Arm the
+  condition in the test, log each guard's refusals (site + count), and assert the count is > 0 in the
+  run meant to prove it.
+- **"Nothing progressed under the hold" on an idle world** passes trivially. Seed work in flight first
+  (items queued or mid-production), then compare counters across the hold.
+- **Rate-based proofs on a maxed-progression profile** are indistinguishable from noise: items finish in
+  a fraction of a second. Use a low-progression capture for timing proofs.

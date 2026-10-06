@@ -56,3 +56,12 @@ trains whoever reads the report to expect noise, which is how the next real faul
 Conversely, do not "fix" it by widening tolerances until the noise stops. A 90 m tolerance on enemy
 placement would silence this and also silence a wholesale re-placement. Exempt the *class* of value
 instead, and keep the tolerance tight on the values that remain.
+
+## Also seen: one more frame ticks between the final re-assert and the freeze (IdleSample)
+
+When the final re-assert and `Time.timeScale = 0` run in the same late callback, the freeze only applies
+from the next frame's `deltaTime`, so systems driven by `Update` and `deltaTime` advance once more first.
+The verify then fails "at Begin" by exactly one frame of progress, intermittently. At `Begin` only, give
+ticking values a **forward-only** window (at most 1 s of the live rate, or one cycle's payout per discrete
+producer), keep "after the settle" exact, and log the window you computed so a real drift still fails.
+Do not freeze earlier to make the check pass; that changes what the viewer sees on the first frame.

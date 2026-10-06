@@ -68,3 +68,15 @@ void OnStateChanged(GameState s)
    `m_selfDrivenStateChange` flag.
 
 See also [[classify-non-ludeoable-by-whether-the-sim-actually-freezes]].
+
+## Also seen: UI screens as pause sources, "never stuck paused" by construction (TopDownRogueSample)
+
+- **Level-triggered holders.** Each frame, ask whether a pausing screen is on show now, from real
+  visibility (`activeInHierarchy`, the owner enabled), so a pause cannot outlive its screen by more than
+  a frame.
+- **Guard each screen read** with its own `try/catch`, a throw counting as closed; a destroyed canvas
+  would otherwise throw every frame, stop the machine and leave the pause open.
+- **A short release debounce** (~0.15 s unscaled) on the way out of a pause only, so a screen that swaps
+  straight to the next sends no Resume/Pause pair. Teardown never waits for it.
+- **Close the open span in the first step of every teardown**, before `End`; afterwards clear leftover
+  state without sending, since the room is gone.

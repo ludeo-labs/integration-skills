@@ -49,3 +49,12 @@ menus show.
 
 Related: [[forcing-a-setting-for-a-replay-must-not-persist-it]] — the same leak through a settings setter
 that writes the save slot.
+
+## Also seen: lift the block only after a full reload (IdleSample)
+
+A local replay can end in a front end where saving is enabled (title or menu with autosave) and which
+reloads only part of the save. Lifting the block there lets the next autosave write the replay's state,
+or a wiped profile, over the player's run. Before lifting the block, **reload the entire save through
+the game's own load path** (the same call launch-then-Continue uses), and lift it only if that reload
+succeeded; otherwise keep saving blocked for the rest of the session. Verify by byte-comparing the save
+file before and after a replay-to-title cycle.
