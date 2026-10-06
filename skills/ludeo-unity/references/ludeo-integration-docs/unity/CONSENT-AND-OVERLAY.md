@@ -21,7 +21,6 @@ Ludeos. Subscribe to `PlayerConsentUpdated` `[SDK]` before `Activate`; it can fi
 session.PlayerConsentUpdated += data => {              // [SDK] C# event — subscribe with +=
     // data.canCreateLudeo, data.canPlayLudeo
     m_switch.SetFlags(data.canCreateLudeo, data.canPlayLudeo);   // [Layer] CR-001 + CR-012 mechanism
-    galleryButton.SetActive(data.canCreateLudeo || data.canPlayLudeo);   // [Unity] hide if neither
 };
 ```
 
@@ -32,7 +31,7 @@ Rules:
 - **Gate create vs play independently.** Don't `OpenRoom` **for create** unless `canCreateLudeo`;
   don't `OpenRoom` **for play** unless `canPlayLudeo` (`SwitchToCreate()`/`SwitchToPlay()` `[Layer]`
   already return `false` and stay disabled when the matching flag is off).
-- **Both false ⇒ treat the SDK as disabled this run** — no gallery, no rooms, dummies everywhere.
+- **Both false ⇒ treat the SDK as disabled this run** — no rooms, dummies everywhere.
 
 > **⚠️ Consent arrives *async* — an `OpenRoom` at run-start can fire before it and silently no-op.**
 > `Activate` and the **first** `ConsentUpdated` complete on the SDK's schedule, which can be **after** the
@@ -45,19 +44,17 @@ Rules:
 > after `SetFlags`, if `wantCapture && canCreateLudeo` and no room is open, fire `OpenRoom` there — the
 > first point `canCreateLudeo` is known. (Keep it idempotent: guard on room-already-open.)
 
-## 2. The gallery (entry to the play flow)
+## 2. Entering the play flow
 
-The gallery is the Ludeo UI where the player picks a Ludeo to play. Open it through the façade:
+There is no in-game entry point to browse or pick a Ludeo. A Ludeo starts when the **`LudeoSelected`
+`[SDK]` notification arrives**, and it can arrive **at any time once the session is activated** — at
+boot, from the menu, or mid-run. `isLudeoSelected` in the `Activate` callback only tells you one is
+arriving imminently; it is a hint, not the trigger. Subscribe **before** `Activate` and be ready to
+enter the play flow from **any** state.
 
-```csharp
-public void OpenLudeoGallery() => m_data.ludeoSession?.OpenGallery();   // [Layer] → [SDK] OpenGallery
-```
-- **Only surface the gallery button when consent allows it** — gate its visibility on
-  `canCreateLudeo || canPlayLudeo` (the `[Layer]` exposes this as `IsEnablePlayableMoments` /
-  `isDisplayPlayableMoment`). A gallery button on a consent-off run is a dead end.
-- Choosing a Ludeo fires the `LudeoSelected` `[SDK]` notification → the play/restore flow
-  (`GetLudeo` → restore → `OpenRoom` for the ludeo). That flow is phase 5 · task 3; here we only ensure the
-  entry point exists and is consent-gated.
+The notification drives the play/restore flow (`GetLudeo` → restore → `OpenRoom` for the ludeo). That
+flow is phase 5 · task 3; here we only ensure the notification is subscribed **before** `Activate` and
+that the play flow is consent-gated.
 
 ## 3. Pause / resume — two directions, both required (CR-011)
 
@@ -281,7 +278,6 @@ notifications" and [`REFERENCE-ARCHITECTURE.md`](./REFERENCE-ARCHITECTURE.md) `H
 | Ludeo overlay and the game's pause menu both on screen | Game's ESC handler still opens its menu while the overlay is up | Stand the ESC handler down while the SDK's overlay pause is in effect (§3.1) |
 | **Player can't pause at all while replaying a Ludeo locally** | ESC handler gated on `IsInLudeoFlow` — but locally no overlay exists and no pause request ever arrives, so nothing takes its place | Gate on the overlay-pause flag, not the flow (§3.1). Locally, pause is the game's own menu + §3.2's actions |
 | Objective timer never restarts after a pause | Dangling `PauseLudeo` — an exit path skips `ResumeLudeo` | Emit `ResumeLudeo` on **every** unpause/exit path (§3.2) |
-| Gallery button on a consent-off run does nothing | Visibility not gated on consent | Gate on `canCreateLudeo \|\| canPlayLudeo` (CR-012) |
 | Resume unfreezes a mid-restoration pause | One shared pause flag | Separate CR-010 / CR-011 flags; paused iff either set |
 | Restored Ludeo loads but player can't move/act ("dead input") | A persistent-singleton pause/freeze flag left `true` by a prior playmode session keeps `timeScale = 0` | Reset all mutable runtime state at the start/bootstrap hook; never assume zero-init (§3) |
 | **Second replay** (in one session) hangs / double room / suppression off | First play's run not torn down — stale pause flag (deadlock), unclosed room+session, un-reset gameplay-active | Make `HandleGetLudeoDone` re-entrant: `AbortGameplay` + `ResetBeginGate` + per-restore pause reset, new play in the teardown callback (07 §2.2) |
@@ -294,13 +290,14 @@ notifications" and [`REFERENCE-ARCHITECTURE.md`](./REFERENCE-ARCHITECTURE.md) `H
 ## Calls used in this doc
 
 **`[SDK]`** (authority: [`../12-SDK-API-REFERENCE.md`](../12-SDK-API-REFERENCE.md)):
-`LudeoSession` events `{PlayerConsentUpdated, LudeoSelected, PauseGameRequested, ResumeGameRequested,
-GameBackToMenuRequested, MuteGameRequested, LocalizationUpdated}` · `LudeoSession.OpenGallery` ·
-`LudeoRoom.CloseRoom` · `LudeoRoomWriter.SendAction` / `LudeoPlayer.SendAction`.
+`LudeoSession.{Activate, GetLudeo}` · `LudeoSession` events `{PlayerConsentUpdated, LudeoSelected,
+PauseGameRequested, ResumeGameRequested, GameBackToMenuRequested, MuteGameRequested,
+LocalizationUpdated}` · `LudeoRoom.CloseRoom` ·
+`LudeoRoomWriter.SendAction` / `LudeoPlayer.SendAction`.
 
 **`[Layer]`** (from [`REFERENCE-ARCHITECTURE.md`](./REFERENCE-ARCHITECTURE.md)):
-`LudeoFlowSwitch.{SetFlags, SwitchToCreate, SwitchToPlay}` · `LudeoController.OpenLudeoGallery` ·
-`LudeoController.IsEnablePlayableMoments` · `LudeoController.IsInLudeoFlow` · `LudeoController.SendAction` ·
+`LudeoFlowSwitch.{SetFlags, SwitchToCreate, SwitchToPlay}` ·
+`LudeoController.IsInLudeoFlow` · `LudeoController.SendAction` ·
 `LudeoActionKeys.{PauseLudeo, ResumeLudeo, StartNoneLudeable, StopNoneLudeable}`.
 
 **`[Unity]`:** `Time.timeScale` · `SceneManager.LoadScene` · `AudioListener.volume` ·

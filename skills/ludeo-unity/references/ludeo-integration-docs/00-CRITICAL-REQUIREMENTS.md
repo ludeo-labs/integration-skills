@@ -132,7 +132,7 @@ returns `void` and reports its result through an `Action<…CallbackData>`. Chec
 ```csharp
 session.Activate(data => {                                       // [SDK]
     if (data.resultCode != LudeoResult.Success) { Debug.LogError($"Activate failed: {data.resultCode}"); return; }  // [Unity] Debug.LogError
-    // activated — and check data.isLudeoSelected to branch into the play flow
+    // activated — data.isLudeoSelected only hints a LudeoSelected notification is imminent
 });
 ```
 
@@ -371,8 +371,7 @@ Subscribe to `PlayerConsentUpdated` (before `Activate`). Gate behaviour on the f
 ```csharp
 session.PlayerConsentUpdated += data => {                 // [SDK] event
     // data.canCreateLudeo, data.canPlayLudeo
-    bool sdkUsable = data.canCreateLudeo || data.canPlayLudeo;
-    galleryButton.SetActive(sdkUsable);    // [Unity] hide gallery if neither
+    m_switch.SetFlags(data.canCreateLudeo, data.canPlayLudeo);   // [Layer] CR-012 mechanism
 };
 ```
 - Don't open a room **for create** unless `canCreateLudeo`; don't open **for play** unless
@@ -413,7 +412,7 @@ captured to restored objects. Restoration matches by **`ObjectType` bucket**.
 - **CR-009:** `AddPlayer`/`BeginGameplay`/`CloseRoom` only from their driving callbacks; restore `BeginGameplay` gates on RoomReady ∧ AddPlayer ∧ scene-loaded.
 - **CR-010 (⚠️):** restoring-flag first → start load (onBeginRestore) → freeze → cache reader → on RoomReady **apply → unfreeze → BeginGameplay** (never unfreeze before apply; never `timeScale=0` around an awaited spawn — suppress instead).
 - **CR-011 (⚠️):** both directions — (a) `PauseGameRequested`/`ResumeGameRequested` subscribed before Activate, freeze the sim; (b) `PauseLudeo`/`ResumeLudeo` emitted at the game's pause primitive on **every** pause, the SDK-requested one included, so the objective timer actually stops. Freezing ≠ stopping the clock. Emit once per transition; the action must be mapped to a Studio Lab Global Trigger to have any effect.
-- **CR-012:** consent flags gate create/play and the gallery button.
+- **CR-012:** consent flags gate create/play.
 - **CR-013:** SDK/GameObject access on the main thread.
 - **CR-014:** no cross-run instance ids; stable-id-as-attribute only when re-binding.
 - **N/A (handled by plugin):** CR-004 (window handle), CR-008 (release info — but the `LudeoDataReader` is now `IDisposable`). *(CR-002 is no longer N/A — see above.)*

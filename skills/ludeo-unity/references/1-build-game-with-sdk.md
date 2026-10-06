@@ -116,21 +116,23 @@ evidence where it comes from code; mark unknowns `?`; **ask** the human-only ite
    (→ `game-patterns/bosses.md`; a boss fight is a common highlight and a load-bearing special case),
    and the **Ludeo concept** (what a good highlight moment is; what the player should experience when
    launching a Ludeo; typical length; the player actions that matter most).
-2. **Launch model ⭐** — a **product choice** (not inferable from code alone) that selects the startup
-   flow the integration builds. Two **independent** axes — ask both; a game can be boot-straight for
-   creation but gallery-based for replay, or vice-versa:
+2. **Launch model ⭐** — the **creator** side is a product choice (not inferable from code alone) and
+   selects the startup flow the integration builds:
    - **Creator launch** — does a normal (capture) session start through a **main menu / level-select**,
      or does the game **boot straight into gameplay** (first scene auto-starts a run, no menu between)?
-   - **Player (Ludeo) launch** — does a player enter a replay via an **in-game gallery**
-     (`LudeoSelected` mid-app), or is the app **launched preselected** and boots straight into the
-     replay (`isLudeoSelected` at `Activate`; the `autoStartInLudeo` dev flag in Step 2 is the test
-     harness for this), or **both**?
+   - **Player (Ludeo) launch** — **not a product choice.** A Ludeo starts when the `LudeoSelected`
+     `[SDK]` notification arrives, and it can arrive **at any time once the session is activated** —
+     at boot, from the menu, or in the middle of a live capture run. `isLudeoSelected` in the
+     `Activate` callback is only an **advance hint** that one is arriving imminently (the
+     boot-into-a-Ludeo case; the `autoStartInLudeo` dev flag in Step 2 is the test harness for it).
+     The integration must be able to enter the play flow **from any state**, not just at startup.
 
-   > If either axis is "boot-straight" / "launched preselected" — **or** the creator launch is
-   > menu-gated but the menu is fast/skippable — the integration needs the **SDK-readiness gate**
-   > (`unity/LAUNCH-AND-READINESS.md`): the menu can no longer be relied on to absorb the async
-   > Activate + consent latency before the first creator `OpenRoom`. Record the answer; phase 2
-   > cross-checks it against the code (`CODE_MAP.launch_model`), and phases 3–5 build the gate.
+   > Because `LudeoSelected` can arrive at any point after `Activate`, the play flow **always** needs
+   > the **SDK-readiness gate** (`unity/LAUNCH-AND-READINESS.md`); the creator flow needs it too when
+   > the launch is boot-straight — **or** menu-gated but the menu is fast/skippable: the menu can no
+   > longer be relied on to absorb the async Activate + consent latency before the first creator
+   > `OpenRoom`. Record the answer; phase 2 cross-checks it against the code
+   > (`CODE_MAP.launch_model`), and phases 3–5 build the gate.
 3. **Save-system classification (game level)** — run the greps and assign the group:
    - `Grep("PlayerPrefs\\.")`, `Grep("JsonUtility|JsonConvert|\\[Serializable\\]|\\[SerializeField\\]")`,
      `Grep("ScriptableObject")`, `Grep("BinaryFormatter|BinaryWriter|MemoryStream|byte\\[\\]")`,
@@ -223,8 +225,8 @@ Only what can't be inferred from code:
   and flagging the boss as load-bearing in the census. Code-level detail is confirmed later; the human
   knows the shape of the fight now.
 - **Launch model** (KYG §) — menu-gated vs. boot-straight-to-gameplay for a capture session; and
-  whether a Ludeo is entered via an in-game gallery or launched preselected. A product choice — ask;
-  don't infer it solely from the current first scene.
+  a Ludeo starts whenever `LudeoSelected` arrives, which can be at any time after `Activate`.
+  The creator launch is a product choice — ask; don't infer it solely from the current first scene.
 - Anything the save-system greps leave ambiguous (does the game persist *gameplay* state or only
   settings/scores; full snapshot vs checkpoint).
 
@@ -273,8 +275,8 @@ Context files (read first; relative to this workflow file):
 
 ## Launch model
 - Creator launch: menu-gated | boot-straight-to-gameplay
-- Player (Ludeo) launch: in-game gallery | launched preselected (autoStartInLudeo) | both
-- SDK-readiness gate required? yes (boot-straight / preselected / fast-skippable menu) | no (slow click-through menu)
+- Player (Ludeo) launch: `LudeoSelected` can arrive at any time after Activate (boot / menu / mid-run) — entry from any state required
+- SDK-readiness gate required? yes — always for the play flow; also for the creator flow when boot-straight / fast-skippable menu
 - Notes: <existing splash/loading screen the gate's "ready" cover can reuse; any forced auto-start at boot>
 
 ## Save-system classification (game level)
@@ -306,7 +308,7 @@ The gate — satisfy all before advancing to phase 2.
 - [ ] Project compiles **with** the SDK (package installed; baseline intact).
 - [ ] Project compiles **without** the SDK (the pre-install baseline — Step 0c).
 - [ ] KYG questionnaire answered and recorded (`KYG.md` + `CODE_MAP.json` `save_system` block),
-      **incl. the launch model** (creator + player axes; whether the SDK-readiness gate is required).
+      **incl. the launch model** (creator launch; whether the SDK-readiness gate is required).
 
 **Skill-specific additions:**
 - [ ] Integration branch created (`feature/ludeo-integration-#N`).
