@@ -99,7 +99,7 @@ copy of their Build Profile without the store define and with a cloud define, bu
 `LudeoSettings` dev flags (`runWithoutLauncher`, `autoStartInLudeo`) off for the build and restores them
 in a `finally`, and restores the active profile. Ask the integrator once: *"Shall I build the cloud
 version through a second <profile/configuration> next to yours?"* Then run it headlessly with the Editor
-closed (or through the CLI with the optional Editor tooling) and wait for it to finish.
+closed (stop any resident headless Editor of your own first) and wait for it to finish.
 
 Never substitute `unity build`, Unity's Build Settings dialog or a `BuildPipeline.BuildPlayer` call with
 your own options that bypasses the studio's configuration. On one integration a build made outside the

@@ -87,8 +87,8 @@ file — so the user experiences each as a single phase.
   4), with the restore-**flow** (task 3) built **once in Wave 1**. **Wave 1** proves the full capture→replay
   round-trip on the *restorable spine + must-have set*; each later wave widens the tracked set. **Every**
   sub-task ends in a gate the orchestrator runs. The agent runs **both halves** of each gate: the
-  *compile* half headless (`-batchmode` with the Editor closed, or through the open Editor with the
-  optional `references/agent-editor-tooling.md`), read from the log; and the *capture/replay* half
+  *compile* half headless (`-batchmode` with the Editor closed, or inside a resident headless Editor via
+  the Unity CLI, `references/agent-editor-tooling.md`), read from the log; and the *capture/replay* half
   through the harness. It captures the moment, the integrator turns it into a Ludeo and sends back its
   id, and the agent replays it and judges the result file, the restored-vs-recorded values and the
   screenshots. The integrator signs off **once per wave** from that evidence. Only without a harness
@@ -100,7 +100,7 @@ file — so the user experiences each as a single phase.
 
 | Phase | File | Purpose |
 | --- | --- | --- |
-| 1 | `references/1-build-game-with-sdk.md` | **Download the latest plugin release** (`github.com/ludeo-labs/unity-plugin-releases`), **check what the agent can run itself** (headless compile, a dev player build and launch — `references/agent-automation.md`; optionally the Editor tooling on Unity 6+ — `references/agent-editor-tooling.md`) + install the UPM package, set scripting defines + `LudeoSettings`, baseline + SDK-enabled compile, run **KYG (know your game)** (incl. game-level save-system classification) |
+| 1 | `references/1-build-game-with-sdk.md` | **Download the latest plugin release** (`github.com/ludeo-labs/unity-plugin-releases`), **check what the agent can run itself** (headless compile, a dev player build and launch — `references/agent-automation.md`; pick the scene-reading route: Force Text files, the Unity CLI on Unity 6+, or the scene-dump script — `references/agent-project-reading.md`) + install the UPM package, set scripting defines + `LudeoSettings`, baseline + SDK-enabled compile, run **KYG (know your game)** (incl. game-level save-system classification) |
 | 2 | `references/2-map-game-code.md` | Produce CODE_MAP of the Unity project (scenes, MonoBehaviours, prefabs, managers) |
 | **3** | **`references/3-lifecycle-orchestrator.md`** | **SDK lifecycle (orchestrated) — dispatches the five briefs below as subagents; plans the restoration entry point + Non-Gameplay Handling** |
 | 3 · task 1 | `references/3a-find-sdk-integration-points.md` | Map each game-event → `[SDK]`/`[Layer]` call site |
@@ -171,12 +171,16 @@ file — so the user experiences each as a single phase.
   lists what stays with them). Only if the machine can't build or launch a player does the run half go
   to the integrator, and then say so. The compile-and-fix loop + `error CS` table live in
   `phase 3 · task 5`; the gate cites it rather than repeating it.
-- **If the optional Editor tooling is set up (Unity 6+),** three rules from
-  `references/agent-editor-tooling.md` apply everywhere: **trigger no compile or asset refresh while
-  play mode is running** (a mid-play domain reload silently wipes the game's state); never run
-  `-batchmode` against a project an Editor holds; and when the CLI can't see the Editor, find out why
-  (`unity pipeline list`: package not resolved, or Safe Mode) instead of restarting the Editor or
-  hand-editing blind. Load the `unity-cli` skill before Editor or package work.
+- **Read scenes and prefabs through the route phase 1 picked, and never change the project's
+  serialization.** Case A (Force Text): read the files. Case B (not Force Text, Unity 6+): the Unity CLI
+  with a resident headless Editor. Case C (not Force Text, older Unity): the scene-dump script. Never
+  switch the studio's project to Force Text, not even for the length of the integration
+  (`references/agent-project-reading.md`).
+- **Whenever the Unity CLI drives an Editor (case B),** the rules in `references/agent-editor-tooling.md`
+  apply: read-only commands only while reading; **no compile or asset refresh while play mode is
+  running**; one Editor per project, so stop the resident headless Editor before any `-batchmode`
+  compile or build; and when no Editor answers, check `unity pipeline list` and the log for Safe Mode
+  instead of restarting anything. Load the `unity-cli` skill before CLI work.
 - **Unity mental model first.** Internalize the "Read this first" model above (and phase 2's "How a
   Unity game is structured") before phase 1, and treat every search/instruction through it.
 - **Track objects as attributes by default, not blobs.** The SDK supports both; Ludeo strongly
@@ -311,9 +315,12 @@ ordering requirement, or exact API signature. Deferring loses the specifics that
 - `references/agent-test-harness.md` — the test harness inside a Development player that the agent
   builds in phase 3: building and launching it, capturing moments by hotkey, replaying Ludeos, actions in
   both flows, regression sets and fresh profiles, what a passing run must show, the per-wave sign-off.
-- `references/agent-editor-tooling.md` — optional (Unity 6+): the agent's way into the open Unity Editor
-  through the `unity` CLI and the Pipeline package, the rules that keep it from corrupting a run, and what
-  to do if the project already has an MCP bridge into the Editor.
+- `references/agent-project-reading.md` — reading scenes and prefabs: picking case A (Force Text: read
+  the files), B (Unity 6+: the Unity CLI) or C (older Unity: the scene-dump script, included), and the
+  exact steps for each.
+- `references/agent-editor-tooling.md` — the Unity CLI + Pipeline package (Unity 6+): install and checks,
+  the three ways to reach an Editor (resident headless, one-shot, the integrator's), the read-only
+  commands, compiling inside it, the rules, and what to do if the project already has an MCP bridge.
 
 ## MCP configuration
 

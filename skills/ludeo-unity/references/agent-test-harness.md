@@ -22,7 +22,7 @@ what the agent runs in each phase and what it asks; this file is how.
 | | Development player + harness (default) | Editor play mode ([optional](agent-editor-tooling.md)) |
 | --- | --- | --- |
 | Unity version | any the project builds with | 6000.0+ (the Pipeline package) |
-| Needs an open Editor | no. Batch mode builds it with the Editor **closed** | yes, and it is shared with the integrator and other sessions |
+| Needs an Editor holding the project | only while building (batch mode, with no other Editor on the project) | yes, for every run: a headless Editor the CLI drives, or the integrator's own |
 | A compile during a run | impossible: the run is a separate process | a domain reload silently wipes the run's state |
 | Native SDK state between runs | gone: every run is a fresh process | the overlay/native layer survives play-stop (CR-007) |
 | What it tests | the player code that ships, with the store client and overlay as players get them | Editor paths (`UNITY_EDITOR`, often no store client) |
@@ -37,7 +37,7 @@ Check in phase 1 ([`agent-automation.md`](agent-automation.md) → *Phase 1 read
 | The project's Unity Editor installed on this machine | `ProjectSettings/ProjectVersion.txt` against the Hub's editor folder | Ask the integrator to install it. A Hub or CLI install can need an administrator prompt the agent can't answer. |
 | The project **not open** in an Editor while you compile or build | no `Temp/UnityLockfile`, and no `Unity.exe` with this `-projectPath` (on Windows, `Get-CimInstance Win32_Process`) | Ask the integrator to close it for the build, or use the Editor route for that step. Batch mode refuses a locked project. |
 | A desktop session where the agent's shell can open windows and focus them | launch any windowed app and read its window handle | Capture and screenshots need it. Without it the harness still runs lifecycle and replay checks. For capture (including phase 3's overlay proof), launch the dev build with a capture job and ask the integrator to press the highlight key at the moment you name; then confirm it from the log yourself. |
-| An Editor holding the project when you need to build | the lockfile check above | Ask the integrator to close it for the build, or build through the CLI with the optional Editor tooling. Don't build from a second copy of the project without asking: it costs a full import and can drift from their working copy. |
+| An Editor holding the project when you need to build | the lockfile check above | Ask the integrator to close it for the build (and in case B, stop your own resident headless Editor first). Don't build from a second copy of the project without asking: it costs a full import and can drift from their working copy. |
 | The player starts outside its store launcher | the first dev build launches and reaches the main menu | Fix that first. Steam needs `steam_appid.txt` next to the exe (see *Building the dev player*). |
 
 ## The pieces

@@ -48,8 +48,8 @@ task in isolated context (no bloat) and lets the user experience one continuous 
 | 6 | **Build the test harness** | `references/agent-test-harness.md` → *The pieces*, *Building the dev player*, *Capturing a moment* | the layer + `CODE_MAP.json` | harness assembly + launch override + a **capture** scenario, built into the dev player; one automated capture confirmed from the log |
 
 **Tasks 1–4 run automatically as subagents.** The orchestrator runs task 5's compile itself, not as a
-subagent: headless with the Editor closed (`3e-compile-and-fix.md`), or through the open Editor with the
-optional Editor tooling. It then **dispatches task 6** to build the test harness into the dev player, and
+subagent: headless with the Editor closed (`3e-compile-and-fix.md`), or inside a resident headless Editor
+through the Unity CLI (case B). It then **dispatches task 6** to build the test harness into the dev player, and
 runs the **run half** of the gate through it:
 
 - a `capture-run` job whose `result.json` shows every lifecycle call returning `Success` (`Activate`,

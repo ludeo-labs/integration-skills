@@ -173,13 +173,17 @@ When the user confirms nothing material remains:
    new capture schema also invalidates prior cloud captures (`06 §6`). Tell the user to re-run **phase 7**
    (`7-upload-build.md`) to publish the widened build (a **minor** attached to the existing major), and that
    test captures must be re-recorded against the new schema.
-3. **Ask whether the agent's Editor tooling stays** — only if phase 1 Step 0c installed it. The Pipeline
+3. **Ask whether the Pipeline package stays** — only if phase 1 Step 0c installed it (case B). The Pipeline
    package (`com.unity.pipeline`) is in the game's `Packages/manifest.json` on the integration branch.
-   Ask, plainly: *"Phase 1 added a Unity package, Pipeline, so I could work in your Editor directly. It's
+   Ask, plainly: *"Phase 1 added a Unity package, Pipeline, so I could read your scenes through Unity's command-line tool. It's
    a developer tool; keep it in the project, or remove it before this branch merges?"* On *remove*,
    follow `agent-editor-tooling.md` → *Removing it*, confirm the
    project still compiles, and commit. On *keep*, note it in the TDD completion section.
-4. Declare the integration complete **at the agreed scope**, naming what was and wasn't covered.
+4. **List the agent's dev-only tools in the TDD completion section:** the harness assembly (compiled
+   only into Development builds), the dev-build and cloud-build scripts, and, in case C, the
+   `LudeoProjectDump.cs` Editor script. None of them ship in the cloud build. Say they stay so the next
+   integration round can re-run the regression set, unless the integrator wants them removed.
+5. Declare the integration complete **at the agreed scope**, naming what was and wasn't covered.
 
 ## 4. Questions to ask the human
 - **Step 2 (the core one):** which recommended gaps to expand now vs. finalize at current scope — expansion
@@ -190,7 +194,7 @@ When the user confirms nothing material remains:
 - **Perf tradeoff (1b):** if a large widening pushes the write budget, whether to lower cadence / add
   skip-unchanged, or proceed at full cadence.
 - **Finalize:** confirm "complete at current scope" before writing the TDD completion section.
-- **Editor tooling (if phase 1 installed it):** keep the Pipeline package in the game's
+- **Pipeline package (case B, if phase 1 installed it):** keep it in the game's
   project, or remove it before the branch merges (Step 5.3).
 
 ## 5. Patterns to apply
@@ -260,7 +264,7 @@ TDD completion section:
       timing pushed back to its owning wave as core, not patched here.
 - [ ] **Completion recorded in the TDD** with final coverage + accepted gaps; **re-upload flagged** (phase 7)
       when the build changed, with re-recorded captures noted.
-- [ ] _(If phase 1 installed the Editor tooling)_ the integrator decided whether the Pipeline package
+- [ ] _(Case B, if phase 1 installed the Pipeline package)_ the integrator decided whether it
       stays; if removed, the removal is committed and the project still compiles.
 - [ ] Integration declared complete **at the user-agreed scope** — nothing stopped silently.
 

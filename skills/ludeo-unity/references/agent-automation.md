@@ -9,8 +9,8 @@ batches those into as few messages as it can.
 
 This is not a shortcut around the gates. Each one is held to a stricter standard than a person watching
 the screen: a written result, the restored values compared with the recorded ones, screenshots read,
-and the log lines cited. How it is done: [`agent-test-harness.md`](agent-test-harness.md). The optional
-in-Editor tooling (Unity 6+): [`agent-editor-tooling.md`](agent-editor-tooling.md).
+and the log lines cited. How the game is run: [`agent-test-harness.md`](agent-test-harness.md). How its
+scenes and prefabs are read: [`agent-project-reading.md`](agent-project-reading.md).
 
 > **Evidence.** One integration ran phases 1–8 this way. The agent ran every compile, about 200
 > harness runs, the capture/replay loop for every wave, both action flows, regression sets after each
@@ -53,8 +53,9 @@ message what remains:
 4. **A desktop session** where the agent's shell can open and focus windows (for capture and screenshots).
 5. **Other agent sessions or Editors on this machine?** List running `Unity.exe` processes with their
    `-projectPath`, and read `learnings/common-mistakes/parallel-agent-sessions-share-one-editor.md`.
-6. **Optional, Unity 6+:** offer the Editor tooling (`agent-editor-tooling.md`) for in-Editor scene
-   queries. The harness does not need it.
+6. **The reading route** for scenes and prefabs (`agent-project-reading.md` → *Pick the route*): case A
+   (Force Text: read the files), B (Unity 6+: the Unity CLI with a headless Editor, after offering its
+   package) or C (older Unity: the scene-dump script). Never switch the project to Force Text.
 
 If 2 or 3 can't be met, the agent still writes and compiles code where it can and hands the run gates to
 the integrator, as each phase file describes for that case. If only 4 fails, the harness still runs
@@ -66,9 +67,9 @@ at the moment you name, in a run you launched). Say plainly what each gap costs.
 | Phase | The agent runs | Proof it reads | It asks |
 | --- | --- | --- | --- |
 | **1** install | plugin download and install; hand-written `LudeoSettings.asset` (`learnings/engine-quirks/hand-author-ludeosettings-asset-write-every-field.md`); baseline and SDK-enabled compiles; the `Initialize()` smoke test, headless and in the dev player; the readiness check above | `0 error CS`, `.dll` newer than the edits, your type names in it; `init=Success create=Success` in the player log | credentials, the Editor install, KYG product questions |
-| **2** map code | the code map (subagents), cross-checked by the orchestrator | the map parses; key facts spot-checked against the code | nothing new |
+| **2** map code | the code map (subagents), cross-checked by the orchestrator; scenes and prefabs read through the phase-1 reading route | the map parses; key facts spot-checked against the code and the scenes | nothing new (never "may I switch to Force Text") |
 | **3** lifecycle | the layer; the compile gate; **the harness core and the dev player build (task 6)**; the overlay check by pressing the highlight key | a capture run's `result.json` (every lifecycle call `Success`, spans balanced, save untouched); `onCaptureVideoRequest` with a `highlightId` | how to get the game to a capturable moment, if no dev command does it |
-| **4** census | the census and wave plan; size checks against the object ceiling | counts per type from a harness capture run, not only from code | approval of the census and waves |
+| **4** census | the census and wave plan; size checks against the object ceiling | counts per type in the authored scenes (reading route) and from a harness capture run, not only from code | approval of the census and waves |
 | **5** tracking and restore, per wave | deep scope; capture code; **a capture run per wave**; restore plan; restore code; **replays of the integrator's Ludeos**, judged from the result, the restored-vs-recorded values and the screenshots; the fix loop | `agent-test-harness.md` → *What a pass must show* | the Ludeo ids for each batch of captured moments; the restore-plan approval; the wave sign-off |
 | **6** actions | the action map and code; a creator run and a replay that count the game's events against the SDK sends; stand-ins for what an idle player never does; one run that sends every action once, so Studio Lab lists them | equal counts in both flows, nothing rejected, nothing sent before Begin | Studio Lab triggers and goals (or the browser-control offer); a hand-played run only for unreachable actions |
 | **7** cloud | the regression set and fresh-profile runs; the cloud build through the studio's pipeline (after asking once); the build gate; the folder checks; a 30-second launch test of `run.bat`; the dry run; **after an explicit yes**, the upload; polling to `success` | the gate line, the folder scan, the launch log, the dry-run file list, `builds get` status | the access token; SDK version confirmation; the upload go-ahead; environment assignment and a cloud play |

@@ -23,8 +23,8 @@ Required artifacts / pre-flight:
       Use a different source **only** if Ludeo explicitly hands you a specific build (a pinned tag, a
       private tarball, or a `.unitypackage`).
 - [ ] **`apiKey`** obtained from the user (required for `LudeoSettings`).
-- [ ] What the agent can run itself on this machine (Step 0c readiness check), and, on Unity 6+ only,
-      the integrator's answer to the optional Editor-tooling offer.
+- [ ] What the agent can run itself on this machine (Step 0c readiness check), and the reading route
+      (case A/B/C); in case B, the integrator's answer to the Pipeline package offer.
 - [ ] Context files read (§5).
 
 ## 3. Steps
@@ -70,16 +70,19 @@ defines its Build Profiles own), and a desktop session where you can open and fo
 you can; tell the integrator in **one** message what you need from them (usually an Editor install, or
 closing the Editor during builds) and what it costs if it stays missing.
 
-**Optional, Unity 6000.0 or later:** offer the Editor tooling: the `unity` command-line tool and its
-agent skill (in Claude Code, `unity:unity-cli`), plus the **Pipeline** package (`com.unity.pipeline`) in
-the game's project. It lets the agent query scenes and prefabs in the open Editor and compile while the
-integrator keeps it open. The harness doesn't need it. **Follow
-[`agent-editor-tooling.md`](agent-editor-tooling.md)** for the offer wording, the install and its checks.
-Install it only on a yes, because it changes the game's package list.
+**Pick how you'll read scenes and prefabs** ([`agent-project-reading.md`](agent-project-reading.md) →
+*Pick the route*) from `m_SerializationMode` and the Unity version, and record the case in the tracker:
 
-- **If a tooling check fails because the Editor is in Safe Mode** (compile errors), the project did
-  not compile *before* the integration touched it. That is a baseline failure: stop and tell the
-  integrator.
+- **Case A, Force Text:** nothing to set up.
+- **Case B, not Force Text and Unity 6.0+:** offer the Unity CLI's **Pipeline** package (the wording,
+  install, commit and checks are in [`agent-editor-tooling.md`](agent-editor-tooling.md)). Install it only
+  on a yes, because it changes the game's package list. On a no, use case C.
+- **Case C, not Force Text and before Unity 6.0:** add the scene-dump script to the integration's Editor
+  folder now and run it once, so phase 2 starts with the dump.
+- **Never switch the project to Force Text** to make it readable.
+
+- **If a check fails because the Editor is in Safe Mode** (compile errors), the project did not compile
+  *before* the integration touched it. That is a baseline failure: stop and tell the integrator.
 
 ### Step 0d — Baseline (the "without SDK" compile)
 Before installing the Ludeo package: confirm the project compiles and the game plays **as-is**. This is
@@ -109,7 +112,7 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
 - Open via **Ludeo → Setup and Show LudeoSettings** (creates/pings `LudeoSettings.asset` under
   `Assets/LudeoSDK/Resources/`). **Do this yourself:** write the asset with every field
   ([hand-author-ludeosettings-asset-write-every-field](../learnings/engine-quirks/hand-author-ludeosettings-asset-write-every-field.md)),
-  or with the Editor tooling run that menu item through the CLI (`EditorApplication.ExecuteMenuItem`) and
+  or in case B run that menu item through the Unity CLI (`EditorApplication.ExecuteMenuItem`) and
   set the fields. Read the values back from the next run's log. The integrator supplies the `apiKey` and
   the auth answers; don't ask them to click.
 - Set `apiKey` (required), `gameName`, `gameVersion`.
@@ -222,7 +225,7 @@ private static void LudeoSmokeTest()
   Editor trigger.** Run it yourself, headless, with `-batchmode -executeMethod`: the process exits when
   the method returns, so the cursor hook can't linger (see
   [headless-smoke-test-instead-of-editor-init](../learnings/common-mistakes/headless-smoke-test-instead-of-editor-init.md)).
-  With the Editor tooling you can instead fire that one call through the CLI.
+  In case B you can instead fire that one call through the Unity CLI.
 - **Player-build leg — yours too.** The gated snippet above auto-fires **only in the built player**, so
   it's safe to leave in for that one build without ever touching the Editor cursor. Rebuild the Step 0d
   dev player, launch it with `-logFile <abs>`, and read the result from that log (first IL2CPP builds
@@ -249,8 +252,8 @@ Only what can't be inferred from code:
   or were given a custom build (private tarball / `.unitypackage`).
 - **What the agent needs to run things itself** — only what the Step 0c readiness check couldn't fix
   (an Editor install, closing the Editor during builds), in one message.
-- **Editor tooling (Unity 6+ only, optional)** — the Step 0c offer, in the words given in
-  `agent-editor-tooling.md`.
+- **The Pipeline package (case B only: not Force Text, Unity 6+)** — the Step 0c offer, in the words
+  given in `agent-editor-tooling.md`.
 - **`apiKey`**, `gameName`, `gameVersion`.
 - **Auth mode** — implicit Steam (`runWithoutLauncher = false`, production; needs Steam initialized
   before `Activate`) vs explicit no-Steam (`runWithoutLauncher = true` + `launcherUserId`, testing/CI).
@@ -283,14 +286,16 @@ Context files (read first; relative to this workflow file):
 - `ludeo-integration-docs/unity/READING-UNITY-LOGS.md` — reading Unity's logs (Step 4 smoke test).
 - `agent-automation.md` — what the agent runs itself and asks in each phase; the Step 0c readiness check.
 - `agent-test-harness.md` → *Building the dev player* — the Step 0d player build.
-- `agent-editor-tooling.md` — the optional Editor tooling (Step 0c) and the rules for using it.
+- `agent-project-reading.md` — the three reading routes (Step 0c picks one).
+- `agent-editor-tooling.md` — the Unity CLI + Pipeline package (case B) and the rules for using it.
 
 ## 6. Output Contract
 
 | Artifact | Purpose |
 | --- | --- |
 | `feature/ludeo-integration-#N` branch | Isolates the attempt; discard by deleting the branch |
-| _(Unity 6+, if accepted)_ Pipeline package in `Packages/manifest.json`, committed on the branch as its own commit | The agent's way into the Editor; phase 8 asks whether it stays |
+| _(Case B, if accepted)_ Pipeline package in `Packages/manifest.json`, committed on the branch as its own commit | Reading scenes and prefabs through the Unity CLI; phase 8 asks whether it stays |
+| _(Case C)_ `LudeoProjectDump.cs` in the integration's Editor folder, and a first dump (not committed) | Reading scenes and prefabs saved as binary |
 | Installed package; `using LudeoSDK;` compiles | SDK resolves with no extra wiring |
 | `LudeoSettings.asset` with real `apiKey` | SDK config; dev flags appropriate for the build |
 | `ludeo-integration-plan/KYG.md` | Recorded KYG (below) |
@@ -358,10 +363,12 @@ The gate — satisfy all before advancing to phase 2.
 - [ ] Readiness check done (Step 0c): headless compile works, a Development player built through the
       studio's pipeline launches from its own folder, and the integrator was told in one message what
       the agent still needs.
-- [ ] _(Unity 6+, optional)_ Editor-tooling offer made and answered. If accepted, the checks in
-      `agent-editor-tooling.md` pass: `unity status` shows this project `ready`, `unity command` lists
-      what the Editor exposes (whether `eval` is among them is recorded), and one harmless call returns
-      **this** project's `Application.dataPath`.
+- [ ] Reading route picked and recorded (case A/B/C, `agent-project-reading.md`); the project's
+      serialization left as it was.
+      - Case B, if accepted: the checks in `agent-editor-tooling.md` pass. A resident headless Editor
+        answers `unity command --project-path …` (whether `eval` is listed is recorded), and one harmless
+        `eval` returns **this** project's `Application.dataPath`.
+      - Case C: the dump ran and logged `[LudeoDump] done` with the expected scene count.
 - [ ] `LudeoSettings.asset` present with a real `apiKey`; dev flags appropriate for the build.
 - [ ] `LudeoManager.Initialize()` returns a `LudeoResult` (not `WrapperDllNotFound`), and
       `SessionManager.CreateSession` succeeds, in the **Editor and a player build**.

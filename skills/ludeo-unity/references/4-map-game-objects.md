@@ -110,15 +110,18 @@ Combine the genre checklist with codebase discovery. Apply `06 §9.2` to each ca
 gameplay? influences a tracked object? referenced by a tracked object? If any → track; else skip. **When
 in doubt, track** (`06 §9.1`).
 
-> **With the phase-1 Editor tooling, count what actually exists.** Code tells you what *can* spawn;
-> the open Editor tells you what the scenes and prefabs *contain*. Through the CLI, list every component
-> type on the gameplay scenes' objects and on the prefabs the spawners reference, with counts. Cross-check
-> that list against the candidates from code. A type that appears in the scenes but not in your list is
-> a census miss; a type in your list that never appears is probably spawned at runtime, so check its
-> spawner. Read-only queries only: save nothing, and reopen whatever scene was open.
-> **Without the Editor tooling,** get the same cross-check at runtime: once the harness exists, a capture
-> run can log the count per type it sees in the busiest levels, which also sizes the capture against the
-> object ceiling.
+> **Count what actually exists, twice.** Code tells you what *can* spawn; the scenes and prefabs tell you
+> what is *authored*; a running game tells you what *appears*.
+> 1. **Authored:** with the reading route phase 1 chose (`agent-project-reading.md`), list every
+>    component type on the gameplay scenes' objects and on the prefabs the spawners reference, with
+>    counts. Case A: grep the scene/prefab files for each script's GUID. Case B: `get_scene_hierarchy` and
+>    `find_gameobjects` per build scene. Case C: grep the dump's `[<Type>]` lines.
+> 2. **At runtime:** once the harness exists, a capture run logs the count per tracked-candidate type in
+>    the busiest levels. That also sizes the capture against the object ceiling.
+>
+> Cross-check both against the candidates from code. A type in the scenes but not in your list is a
+> census miss. A type in your list that never appears in the scenes is probably spawned at runtime, so
+> check its spawner and the runtime counts.
 
 > **Go find the appearance/loadout subsystem — don't wait for it to show up as a player field.** How a
 > visible character *looks* (equipped cosmetics, outfit, skin, model/color variant) is load-bearing for a

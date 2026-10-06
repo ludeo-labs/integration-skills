@@ -47,12 +47,13 @@ script compilation; errors land in the `-logFile` you passed (or `Editor.log` wi
 **How "compile" works in Unity:** the Editor recompiles automatically when `.cs` changes and it
 regains focus (or on `AssetDatabase.Refresh`) — no `make`/`cmake`.
 
-**Editor open with the optional phase-1 Editor tooling (Unity 6+): compile through it yourself.** Trigger the
-refresh through the `unity` CLI, then read `Editor.log` for `error CS`. Judge the result by timestamps
-(your edit, then the `.dll` under `Library/ScriptAssemblies/`, then the log) and your type names in the
-`.dll`, not by zero errors alone: a failed compile leaves the previous `.dll` in place. Rules and pitfalls:
-[`agent-editor-tooling.md`](agent-editor-tooling.md). **Don't run `-batchmode` while an Editor holds
-the project.** It refuses the locked project.
+**A resident headless Editor is running (case B, Unity 6+): compile inside it.** A separate `-batchmode`
+run is refused while any Editor holds the project. Run `unity command recompile --project-path …`, poll
+`unity command recompile_status` until `completed`, then read errors with `unity command console_status`
+and `unity command console` ([`agent-editor-tooling.md`](agent-editor-tooling.md) → *Compiling inside a
+resident Editor*). Or stop it and use the default below. Either way, judge the result by timestamps (your
+edit, then the `.dll` under `Library/ScriptAssemblies/`, then the log) and your type names, not by zero
+errors alone: a failed compile leaves the previous `.dll` in place.
 
 **Default — headless, with no Editor holding the project:** force a compile to a clean log, and judge it
 the same way (timestamps, then your type names in the `.dll`):
@@ -88,7 +89,7 @@ and hand to the user for manual review.
 ## 4. Questions to ask the human
 
 Normally nothing: compile and run it yourself. Ask only when you can't:
-- **The Editor holds the project** and there is no Editor tooling: ask the user to close it for the
+- **The integrator's Editor holds the project:** ask them to close it for the
   headless compile (or to focus it to recompile, and report).
 - **The machine can't build or launch a player:** ask the user to **play the game, enter gameplay**, and
   confirm the **capture overlay** appears.

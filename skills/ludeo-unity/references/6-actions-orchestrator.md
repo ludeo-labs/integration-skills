@@ -67,7 +67,7 @@ approval**, then the orchestrator **runs the gate**: recompile clean + play and 
 **emits in the log in BOTH flows** (capture *and* replay).
 
 **The agent runs both halves of this gate.** It recompiles headlessly with the Editor closed
-(`-batchmode -quit … -logFile`), or through the open Editor with the optional Editor tooling, and reads
+(`-batchmode -quit … -logFile`), or inside a resident headless Editor through the Unity CLI (case B), and reads
 the result itself (`learnings/common-mistakes/agent-can-run-unity-compile-gates-headlessly.md`). It
 produces the runs with the harness (`agent-test-harness.md` → *Actions*):
 

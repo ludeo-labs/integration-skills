@@ -1,174 +1,170 @@
-# Agent Editor tooling — letting the agent work in the open Unity Editor (optional, Unity 6+)
+# Unity CLI + Pipeline package — the agent's way into a Unity Editor (Unity 6+)
 
-**Optional.** The agent's default way of running the game is a Development player with the test harness
-inside, built headlessly with the Editor closed ([`agent-test-harness.md`](agent-test-harness.md)). That
-route needs nothing from this file and works on any Unity version. This tooling adds what only an open
-Editor can give: querying scenes and prefabs directly (phases 2 and 4, whatever the serialization mode),
-compiling while the integrator keeps the Editor open, and running the harness in Editor play mode.
-Unity's command-line tool, with one package in the game's project, gives the agent that way into the
-open Editor.
+Unity's command-line tool (`unity`) plus one package in the game's project (**Pipeline**,
+`com.unity.pipeline`) let the agent drive a Unity Editor from its shell: read scenes, prefabs and
+components, run C# inside the Editor, and recompile. **It does not need an Editor window open.** The CLI
+can start a headless Editor itself.
 
-| Piece | What it is | Where it lives |
-| --- | --- | --- |
-| **`unity` CLI** + its agent skill | Unity's command-line tool. Drives a running Editor (`unity status`, `unity command …`, `unity command eval "<C#>"`), and reads logs, lists Editors, etc. The skill teaches the agent how to use it. | The agent's machine. In Claude Code the skill is `unity:unity-cli`, from Unity's `unity` plugin. |
-| **Pipeline package** (`com.unity.pipeline`) | The Editor side of the CLI. Without it the CLI can see no Editor at all. | The game's `Packages/manifest.json` |
+In this skill it has one main job, plus extras:
 
-This file is the single place for this tooling. Phase files point here instead of repeating it.
+- **Main job: reading a project whose assets aren't saved as text** (case B in
+  [`agent-project-reading.md`](agent-project-reading.md)). Projects saved as Force Text are read from
+  the files, and projects before Unity 6 use the scene-dump script.
+- **Extras:** compiling inside a running headless Editor, and querying the integrator's open Editor.
+- **Running the game** stays with the dev-player test harness
+  ([`agent-test-harness.md`](agent-test-harness.md)) on every Unity version.
 
-> **Status of this route.** Unity's AI Assistant documentation marks the Assistant's MCP server
-> deprecated and points to the CLI instead. Earlier integrations drove the Editor through that MCP
-> server, not the CLI, so no Ludeo integration has yet run end to end on the CLI. The rules below are
-> only those that are about **Unity itself** (and so hold whichever tool triggers them) or that come
-> from the CLI's own documentation. Problems seen only on the MCP server are in
-> [the bridge section](#if-the-project-already-has-an-mcp-bridge-into-the-editor), not here. When
-> the CLI behaves differently from what this file says, capture a learning.
+> **Status.** The CLI is in beta and the Pipeline package is experimental. The commands, timings and
+> behaviours below were checked on Unity 6000.3.7f1, CLI 1.0.0-beta.5 and `com.unity.pipeline`
+> 0.8.0-exp.1, on a project saved as binary. Re-check names with `unity command --project-path …` on
+> the version you install, and capture a learning wherever this file turns out wrong. The CLI's own
+> reference is Unity's `unity-cli` agent skill and docs.unity.com → Unity CLI.
 
 ## When it applies
 
-Decide from facts you can check, before offering anything:
-
 | Check | How | If not met |
 | --- | --- | --- |
-| Unity **6000.0 or later** | `ProjectSettings/ProjectVersion.txt` (recorded in phase 1 Step 0b) | **Skip this whole file.** The Pipeline package declares `"unity": "6000.0"`. The headless route covers everything else: `-batchmode` compiles with the Editor closed (phase 3 · task 5) and the dev-player harness. |
-| The integrator **agrees** | the offer below | Skip it. Scene and prefab questions then go through the files (Force Text) or the integrator; everything else runs through the harness as usual. Don't ask again unless they bring it up. |
+| Unity **6000.0 or later** | `ProjectSettings/ProjectVersion.txt` | Skip this file. The package declares `"unity": "6000.0"`. Read the project with the scene-dump script (`agent-project-reading.md` → case C). |
+| The integrator **agrees** to the package on the integration branch | the offer below | Skip it and use the scene-dump script instead. Don't ask again unless they bring it up. |
+| The project path is **short** (Windows) | project path length + ~150 characters stays under 260 | The package's own files fail to import from a deep path (`DirectoryNotFoundException` under `Library\PackageCache\com.unity.pipeline@…`). Ask about a shorter checkout path, or use the scene-dump script. |
 
-## The offer (phase 1, Step 0c)
+## The offer (phase 1 Step 0c, for case B)
 
-Offer it; don't install it silently, because it adds a package to the game's project. Say, in plain
-words:
+It adds a package to the game's project, so offer it, and install it only on a yes:
 
-> "I'll run the compiles and test runs myself with your Editor closed, through a test build of the game.
-> Optionally I can also work inside your open Unity Editor. That needs Unity's command-line tool and its
-> agent skill on my side, and one Unity package, **Pipeline**, in your project, which lets the
-> command-line tool talk to the open Editor. With it I can look through your scenes and prefabs directly
-> and compile while you keep the Editor open. The package goes on the integration branch only, and at the
-> end I'll ask whether you want to keep it. Want me to set it up?"
+> "Your project's scenes and prefabs are saved in Unity's binary format, so I can't read them as files.
+> Unity's own command-line tool can read them through a headless copy of the Editor, with nothing open
+> on your screen. It needs one Unity package, **Pipeline**, added to the project on the integration
+> branch only, and I'll ask at the end whether you want to keep it. I won't change how your project
+> saves its files. Shall I add it?"
 
 ## Install — each piece, then check it
 
 Run the checks. Don't report a piece as set up because its install command exited cleanly.
 
-### 1. The `unity` CLI
+1. **The `unity` CLI.** `unity --version`. If it's missing, install it with Unity's installer (current
+   commands in the `unity-cli` skill; on Windows:
+   `$env:UNITY_CLI_CHANNEL='beta'; irm https://public-cdn.cloud.unity3d.com/hub/prod/cli/install.ps1 | iex`),
+   open a new shell, and check `unity --version` again. `unity auth status` must show a signed-in user.
+2. **The CLI's agent skill.**
+   - Claude Code: `claude plugin marketplace add Unity-Technologies/unity-agent-plugin`, then
+     `claude plugin install unity@unity-agent-plugin`. It loads in the next session.
+   - Other agents: `unity skill install <client>`.
+   - Load the skill before CLI work; it is the reference for the CLI itself.
+3. **The Pipeline package.** `unity pipeline install --project-path "<ABS_PROJECT>"`. This only adds the
+   package to `Packages/manifest.json`, in about a second, and the next Editor that opens the project
+   resolves it. Quote the path.
+4. **Commit** `Packages/manifest.json` and `Packages/packages-lock.json` on the integration branch as their
+   own commit ("add Pipeline package for agent Editor access"). A package that lived only in one working
+   copy vanished on the first revert, along with everything that depended on it.
+5. **Check it works:** start a headless Editor (next section), then:
+   - `unity command --project-path "<ABS_PROJECT>"` lists the commands (160 on 0.8.0-exp.1, including
+     `eval`);
+   - `unity command eval --code 'return UnityEngine.Application.dataPath;' --project-path "<ABS_PROJECT>"`
+     returns **this** project's path.
 
-```bash
-unity --version            # already installed? stop here
-```
-If not, install it with Unity's installer (current commands are in the `unity-cli` skill, or at
-docs.unity.com → Unity CLI). On Windows:
-```powershell
-$env:UNITY_CLI_CHANNEL='beta'; irm https://public-cdn.cloud.unity3d.com/hub/prod/cli/install.ps1 | iex
-```
-Open a new shell so `unity` is on PATH. **Check:** `unity --version` prints a version.
+## Three ways to reach an Editor
 
-### 2. The CLI's agent skill
+| Way | How | Cost | Use it for |
+| --- | --- | --- | --- |
+| **A resident headless Editor** (default) | `"<Unity.exe>" -batchmode -nographics -projectPath "<ABS_PROJECT>" -logFile "<ABS_LOG>"`, with **no `-quit`**, started in the background. Then `unity command <name> … --project-path "<ABS_PROJECT>"`. | Start-up once (a few seconds on a warm `Library`), then about 0.2–0.8 s per command. Holds a Unity license seat and the project lock while it runs. | Reading phases (2, 4, every wave's deep scope); compiling while it runs. |
+| **One-shot** | `unity run "<ABS_PROJECT>" --command <name> --format ndjson -- <args>` | A fresh batch Editor per call (about 7 s on a small warm project), then it exits. | A single query when nothing else is running. |
+| **The integrator's open Editor** | `unity command … --project-path "<ABS_PROJECT>"` against their running Editor | None, but it's their Editor. | Only when they keep the Editor open and agree. Read-only. |
 
-- **Claude Code:** install Unity's plugin, which carries the `unity:unity-cli` skill:
-  ```bash
-  claude plugin marketplace add Unity-Technologies/unity-agent-plugin
-  claude plugin install unity@unity-agent-plugin
-  ```
-  It loads in the **next** session, or after `/reload-plugins`. **Check:** `/unity:` lists `unity-cli`.
-- **Any other agent:** the CLI installs the same skill into supported clients:
-  `unity skill install --list`, then `unity skill install <client>`. If the client isn't listed,
-  `unity skill show` prints the skill so the agent can read it.
+Facts that matter (checked):
 
-**Load that skill before any Editor, package or build step** from here on. The rules below are the
-Ludeo-specific additions; the skill is the reference for the CLI itself.
+- **Wait for the headless Editor with `unity command`, not `unity status`.** A batch-mode Editor is not
+  listed by `unity status` (it reports `STATUS_NO_INSTANCES`) but answers `unity command` within seconds.
+- **A one-shot reuses a running Editor.** With a resident or open Editor on the project, `unity run
+  --command` answers in about 0.2 s and reports `"reusedRunningEditor": true`.
+- **One Editor per project.** While any Editor holds the project, a separate `-batchmode` run (a compile,
+  the dev-player build) is refused: `It looks like another Unity instance is running with this project
+  open`. Stop the resident Editor first, or do the work inside it.
+- **One-shot output:** the result is a single JSON line on stdout with `--format ndjson`; the Editor's
+  own log goes to stderr. A `Thread was being aborted` error during its shutdown is noise.
+- **Stop a resident Editor with `eval`.** The `quit` command fails in the Editor (it is meant for players):
+  `unity command eval --code 'UnityEditor.EditorApplication.delayCall += () => UnityEditor.EditorApplication.Exit(0); return "exiting";' --project-path "<ABS_PROJECT>"`.
+  It's gone in about a second and the lock is released. Never kill an Editor you didn't start.
 
-The agent drives the CLI from its shell, so it needs no MCP server for this. The CLI can also register
-itself as one (`unity mcp configure`); skip that unless the agent has no shell.
+## Reading commands (read-only)
 
-### 3. The Pipeline package
-
-```bash
-unity pipeline install --project-path "<ABS_PROJECT>"
-```
-Quote the path; a space in it splits the argument. The Editor resolves the package on its next focus or
-refresh. With more than one Editor open, pass `--project-path` to **every** Editor-driving `unity`
-command from here on.
-
-**Check, in this order:**
-1. `unity status --format json` shows this project with state `ready`.
-2. `unity command --project-path "<ABS_PROJECT>"` lists the commands this Editor exposes. **Look for
-   `eval`.** Unity's docs say only some projects and Pipeline versions register it, and `eval` is what
-   lets the agent run arbitrary C#.
-3. One harmless call returns **this** project:
-   ```bash
-   unity command eval "return UnityEngine.Application.dataPath;" --project-path "<ABS_PROJECT>"
-   ```
-
-**If `eval` isn't listed**, use the commands that are. The `unity-cli` skill covers adding a project
-command (`[CliCommand]`) for anything missing; put it in the integration's Editor-only folder. Tell the
-integrator what the agent can and can't do without it, rather than falling back to asking them silently.
-
-### 4. Commit the package change
-
-Commit `Packages/manifest.json` and `Packages/packages-lock.json` **on the integration branch**, as their
-own commit ("add Pipeline package for agent Editor access"). An integration whose Editor-access package
-existed only in one machine's working copy lost it on the first revert. Every tool that depended on it
-vanished with no error. Phase 8 asks whether to keep it before the branch merges.
-
-## Which route when
-
-| Situation | Use |
+| Need | Command |
 | --- | --- |
-| Editor open, Pipeline `ready` | **The CLI** (`unity command …`, `unity command eval`) |
-| No Editor open | Headless `-batchmode` with `-logFile` (phase 3 · task 5). **Only then:** an open Editor holds `Temp/UnityLockfile`, and batch mode refuses a locked project. |
-| Player builds | The studio's own build pipeline (phase 7). Don't substitute `unity build` or Unity's Build Settings dialog: on one integration a player built with the dialog, outside the studio's pipeline, broke Steam launch, Addressables and audio at once. `unity build` was never tried there, so treat it the same until it's shown to run the studio's steps. |
-| `unity test`, or `unity run` without `--command` | The CLI docs say each launches its own batch-mode Editor, so it hits the same lock while an Editor holds the project. `unity run --command <name>` is different: the same docs say it reuses an open Editor. |
+| Scenes in the build, build target | `get_build_settings`; `list_build_profiles` (Unity 6 Build Profiles) |
+| Open a scene to read it (headless Editor only) | `open_scene --path Assets/…/X.unity` |
+| A scene's GameObject tree with component names | `get_scene_hierarchy` (optionally `--path`) |
+| Objects by name, tag, component type or path | `find_gameobjects` |
+| One component's serialized values (custom fields included) | `get_component_properties --target <name or hierarchy path> --type <ComponentType>`; `get_serialized_fields` |
+| Assets by type or name | `find_assets --type GameObject` for prefabs (`Prefab` is not a type), `--type <ScriptableObject class>`, `--name …`; `search` (Unity Search) |
+| Anything else, read-only | `eval --code '<C# returning a value>'` (Roslyn, no recompile, no domain reload; about 0.8 s) |
 
-## Rules learned the hard way
+**Never call a mutating command while reading:** anything named `save_*`, `set_*`, `create_*`,
+`delete_*`, `add_*`, `remove_*`, `apply_*`, `revert_*`, `move_*`, `rename_*`, `unpack_*`,
+`instantiate_*`, `switch_build_target`, and no `eval` that changes assets or calls `AssetDatabase.Refresh`.
+In the integrator's own Editor, don't `open_scene` either: it changes their open scene.
+
+## Compiling inside a resident Editor
+
+The headless Editor doesn't notice file edits on its own. After editing `.cs` files:
+
+1. `unity command recompile --project-path …`, then poll `unity command recompile_status` until
+   `completed` (about 3 s on a small project) or `up_to_date`.
+2. Check errors with `unity command console_status` (error counts and the compile-failure flag) and read
+   them with `unity command console`.
+3. Judge it as any compile: your new types or fields are visible (for example through
+   `get_component_properties`), not only "no errors".
+
+Or stop the resident Editor and use the usual headless compile (`3e-compile-and-fix.md`). **Builds** of the
+dev player and the cloud player go through the studio's own pipeline as usual, so stop the resident Editor
+before them. A build started from inside the resident Editor is untested here.
+
+## Rules
 
 | When… | Do this | Why |
 | --- | --- | --- |
-| **Play mode is running** | **Trigger no compile and no asset refresh** until play stops: no `.cs` edit the Editor will pick up, no `AssetDatabase.Refresh`, no recompile command, no `eval` that does any of these. | A domain reload mid-play wipes every static while `isPlaying` stays true, so the session looks healthy and every value read afterwards is meaningless; on one integration it went on to crash the Editor. That is Unity's behaviour, whatever triggers it. (There, the trigger was an MCP bridge that compiles on every call.) The CLI docs say `command` and `eval` themselves run **with no recompile and no domain reload**, so a read-only `eval` mid-play is not that risk. No Ludeo integration has tested one yet, so the first time, check `Editor.log` around the call for a reload. |
-| **Before compiling after a play run** | Believe play has stopped only on a signal this run created (its own result file, or the integrator saying so). | Log lines that look like "play exited" recur once per run, so an old one reads as a new one. |
-| **Designing test runs** | Prefer an in-game runner: write a job file, enter play mode, let the runner do the work and write a result file, read that file from disk. | The same runner works unchanged under `-batchmode` and in a player build, and the evidence is a file on disk rather than text parsed out of a log. With the CLI this is a design choice, not a workaround. |
-| **Judging a compile** | Order the timestamps (your edit, then the `.dll` in `Library/ScriptAssemblies/`, then the log), and look for your **type names** in the `.dll`. | A failed compile leaves the previous `.dll` in place. Zero `error CS` only proves *an* assembly exists. String literals survive from anywhere. |
-| **`unity status` is empty** | Don't conclude "no Editor". Run `unity pipeline list`: the Pipeline hasn't resolved, or the Editor is in **Safe Mode** because of compile errors. | Safe Mode loads no packages (Unity behaviour), and the Pipeline is a package, so the CLI can't connect, precisely when you need it to fix the errors. Per the CLI's own docs: `unity-cli` → *Recovering from Safe Mode*. |
-| **A new `.cs` file** would fix the current compile errors | Prefer fixing inside existing files. Otherwise close the Editor and compile headless. | Unity defers importing new scripts while the project has compile errors, so the file that would fix them never gets imported. |
-| **Restarting the Editor** | Only when you must (leaving Safe Mode). Ask the integrator first. | It costs import time and any command-line flags the Editor was launched with. |
-| **Several agent sessions share one Editor** | Before any compile or reload, ask the other session and wait for an answer. | Every compile is a domain reload in everyone's Editor. It kills their play session, and a human capture in progress leaves no file you could check first. |
+| **Play mode is running** in an Editor you drive | Trigger no compile and no asset refresh until play stops. | A domain reload mid-play wipes every static while `isPlaying` stays true, so every value read afterwards is meaningless; on one integration it crashed the Editor. The CLI docs say `command` and `eval` themselves don't recompile. |
+| **Judging a compile** | Order the timestamps (edit, then `.dll` in `Library/ScriptAssemblies/`, then the log) and look for your type names. | A failed compile leaves the previous `.dll` in place. |
+| **No Editor answers** | Check `unity pipeline list --project-path …` (is the package resolved?) and the Editor log for compile errors. | Compile errors put the Editor in **Safe Mode**, which loads no packages, so the CLI can't connect exactly when you need it to fix them (`unity-cli` → *Recovering from Safe Mode*). |
+| **A new `.cs` file** would fix the current compile errors | Prefer fixing inside existing files. | Unity defers importing new scripts while the project has compile errors. |
+| **Several agent sessions or Editors on one machine** | Pass `--project-path` on every command; before any compile or reload in a shared Editor, ask the other session and wait for an answer. | Without it the CLI targets the Editor whose project contains the current directory. A compile in a shared Editor kills the others' play sessions. |
+
+## Optional: the Pipeline inside the dev player (untested here)
+
+Per Unity's docs (Pipeline manual → *Runtime setup*), a **Development** standalone build that contains a
+`RuntimePipelineManager` with `enableInBuilds = true` serves the CLI too:
+`unity command --runtime "<Game>.exe" <command>`. It offers `eval` against live game state, `console`,
+`set_timescale`, `quit`, and `simulate_key` / `simulate_pointer` (Input System only). The code is compiled
+out of non-development builds. It could make debugging a restore faster. It does **not** replace the
+harness's Win32 key send for the capture hotkey: the Ludeo overlay reads the keyboard itself, and
+`simulate_key` goes through Unity's Input System. No Ludeo integration has tried it; capture a learning if
+you do.
 
 ## If the project already has an MCP bridge into the Editor
 
-Some projects arrive with one already installed. The usual one is the AI Assistant package
-(`com.unity.ai.assistant`), whose MCP server exposes a run-this-C# tool. Don't install one for this
-skill, and don't remove one the integrator uses. If the agent ends up connected to one:
+Some projects arrive with one installed, usually the AI Assistant package (`com.unity.ai.assistant`),
+whose MCP server exposes a run-this-C# tool. Unity now marks that server deprecated in favour of the CLI.
+Don't install one for this skill, and don't remove one the integrator uses. If the agent ends up
+connected to one:
 
-- **Use one route at a time.** The CLI and the bridge can each compile and reload the same Editor. With
-  both in play you can't tell which one caused a reload, or which Editor you reached. Default to the
-  CLI, and say when you switch.
+- **Use one route at a time.** The CLI and the bridge can each compile and reload the same Editor.
+  Default to the CLI, and say when you switch.
 - **Pin it to this project.** Its relay attaches to the **first** Editor it finds unless its MCP entry
   carries `--project-path <ABS_PROJECT>` (or `UNITY_PROJECT_PATH`). Without that it has run calls in
   another project's Editor.
 - **If its tools vanish** mid-session, read `Logs/relay.txt` (last `connection.established` /
-  `connection.lost`; the client id carries the Editor's process id; timestamps are UTC) and
-  `Library/AI.MCP/connections-v2.asset` (`Status: 4` plus a `ValidationReason` = a refused connection).
-  Usually it's the Unity plan's connection cap (3 on one plan). Free a slot; don't restart the Editor.
+  `connection.lost`; timestamps are UTC) and `Library/AI.MCP/connections-v2.asset` (`Status: 4` plus a
+  `ValidationReason` = a refused connection). Usually it's the Unity plan's connection cap. Free a slot;
+  don't restart the Editor.
 - **An idle stop isn't a dead bridge.** The relay stops after ~3 minutes idle and reconnects on the next
-  call, which it doesn't log. Make one harmless call.
+  call. Make one harmless call.
 - **Connections need the integrator's approval** under *Project Settings → AI → Unity MCP Server →
-  Pending Connections*. After an Editor restart, check that page before concluding the bridge is broken.
-- **Every call compiles a C# snippet**, so on a bridge the play-mode rule covers *every* call, reads
-  included: no bridge calls at all between play start and play stop.
-- **A reported failure may not be one.** The bridge reports a call as failed whenever *anything* logged a
-  warning during it, even when the call did its job. Check what the call was meant to write before
-  believing it.
-
-## Where this changes the workflow
-
-| Phase | Change |
-| --- | --- |
-| 1 · Step 0c | The offer and install above. Compiles can then also run through the open Editor; the headless route stays available. |
-| 1 · Step 2 | The agent can set up `LudeoSettings` through the Editor's own menu item instead of hand-writing the asset. |
-| 2, 4 | The agent reads scenes and prefabs from the open Editor (no Force Text switch needed), and counts the object types that actually exist. |
-| 3 · task 5 | The agent can compile while the integrator keeps the Editor open. The overlay check still runs on the dev player ([`agent-test-harness.md`](agent-test-harness.md)). |
-| 3–8 | The harness can also run in Editor play mode (`agent-test-harness.md` → *Pitfalls*, the Editor play-mode variant). Builds still go through the studio's own pipeline only, which the agent may call through the CLI (no `unity build`). |
-| 8 · Finalize | Ask whether the Pipeline package stays in the game's project. |
+  Pending Connections*.
+- **Every call compiles a C# snippet**, so on a bridge make no calls at all between play start and stop.
+- **A reported failure may not be one.** The bridge reports failure whenever anything logged a warning
+  during the call. Check what the call was meant to write before believing it.
 
 ## Removing it (phase 8, if the integrator says no)
 
 Remove `com.unity.pipeline` from `Packages/manifest.json` (and let the lock file update), confirm the
 project still compiles, and commit that on the integration branch. The CLI and its skill are on the
-agent's machine, not in the game, so they stay unless the integrator asks.
+agent's machine, not in the game, so they stay.
