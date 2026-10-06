@@ -160,7 +160,7 @@ The orchestrator confirms **all** of these before advancing to phase 7:
       dangling open span on `EndGameplay`.
 - [ ] **Objective timer verified stopping** — pause from the game's own menu and confirm exactly one
       `PauseLudeo` per pause in the log, with a matching `ResumeLudeo`. The **overlay** pause path can only be
-      exercised on the cloud build (`PauseGameRequested` never fires locally) — check it there, not here.
+      exercised on the cloud build (the mid-play `PauseGameRequested` never fires locally) — check it there, not here.
 - [ ] **The Global Triggers exist** — Pause/Resume on `PauseLudeo`/`ResumeLudeo`, and Non-Ludeoable Area on
       `StartNoneLudeable`/`StopNoneLudeable` (Studio Lab → environment → *Global Triggers*). Nothing reaches the
       backend until they do, so "action in the log" is not proof the timer stopped. Once the recording run has

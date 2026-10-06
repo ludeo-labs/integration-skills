@@ -349,7 +349,7 @@ Surface to the orchestrator; don't guess:
 - [ ] **Flow reaches the restore entry point on a real captured Ludeo** — freeze on select → captured scene
       loads on Play → `ApplyRestoredState()` stub reached in order → `Begin`.
 - [ ] **Pause/overlay behavior correct** — overlay open freezes the sim, close resumes (CR-011).
-- [ ] **Restore (flow) verified by a human** — including the replay→replay teardown (no stale-flag deadlock).
+- [ ] **Restore (flow) verified** (by the orchestrator through the harness; by a human only without one) — including the replay→replay teardown (no stale-flag deadlock).
 
 **Skill-specific pre-handoff criteria (satisfy before returning):**
 - [ ] `LudeoRestoredData` built in `HandleGetLudeoDone`: `GetObjects` called once, grouped into

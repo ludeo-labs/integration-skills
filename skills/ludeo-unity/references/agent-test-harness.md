@@ -36,7 +36,8 @@ Check in phase 1 ([`agent-automation.md`](agent-automation.md) → *Phase 1 read
 | --- | --- | --- |
 | The project's Unity Editor installed on this machine | `ProjectSettings/ProjectVersion.txt` against the Hub's editor folder | Ask the integrator to install it. A Hub or CLI install can need an administrator prompt the agent can't answer. |
 | The project **not open** in an Editor while you compile or build | no `Temp/UnityLockfile`, and no `Unity.exe` with this `-projectPath` (on Windows, `Get-CimInstance Win32_Process`) | Ask the integrator to close it for the build, or use the Editor route for that step. Batch mode refuses a locked project. |
-| A desktop session where the agent's shell can open windows and focus them | launch any windowed app and read its window handle | Capture and screenshots need it. Without it the harness still runs lifecycle and replay checks, and capturing goes to the integrator. |
+| A desktop session where the agent's shell can open windows and focus them | launch any windowed app and read its window handle | Capture and screenshots need it. Without it the harness still runs lifecycle and replay checks. For capture (including phase 3's overlay proof), launch the dev build with a capture job and ask the integrator to press the highlight key at the moment you name; then confirm it from the log yourself. |
+| An Editor holding the project when you need to build | the lockfile check above | Ask the integrator to close it for the build, or build through the CLI with the optional Editor tooling. Don't build from a second copy of the project without asking: it costs a full import and can drift from their working copy. |
 | The player starts outside its store launcher | the first dev build launches and reaches the main menu | Fix that first. Steam needs `steam_appid.txt` next to the exe (see *Building the dev player*). |
 
 ## The pieces
@@ -200,7 +201,8 @@ and save block, or back the save up first and restore it afterwards.
    Begin.
 3. **Replay to replay is simulated locally.** The auto-start delivers exactly one `LudeoSelected`. When
    the clip's time runs out, the local overlay pauses the game for good (`PauseGameRequested`, with no
-   resume) and asks for end-of-run recommendations. A second selection comes only from the platform,
+   resume; observed on plugin 4.3.3, and the only local `PauseGameRequested`: the mid-play overlay pause
+   happens only on the cloud) and asks for end-of-run recommendations. A second selection comes only from the platform,
    when someone clicks one. A harness step that re-selects through the layer still tests the layer's
    own re-entry, including a re-selection **during** the first boot (a viewer pressing Replay early),
    which reaches code no clean replay does. Label it simulated, and put the real replay-to-replay on the
@@ -221,7 +223,9 @@ logic. The harness checks the restored state and that the game then runs; it doe
   can physically reach. Failures (death, game over) and hard successes (a boss kill) need a stand-in,
   forced through the game's damage path and never by calling the action directly, or a hand-played run.
   Run a forced outcome in a replay as well as a capture: suppression during the restore and the hand-back
-  after it live in the replay path.
+  after it live in the replay path. Give a forced death its own job: it ends the run, so other checks in
+  that job must come before it, while jobs that must survive a damage objective use invulnerability
+  frames instead.
 - **Make Studio Lab list every action.** Run one creator job that sends each action once after Begin.
   Studio Lab lists an action only after a build has sent it
   ([studio-lab-lists-an-action-only-after-a-build-sent-it](../learnings/common-mistakes/studio-lab-lists-an-action-only-after-a-build-sent-it.md)).

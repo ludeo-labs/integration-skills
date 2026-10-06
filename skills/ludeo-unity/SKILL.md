@@ -68,8 +68,9 @@ user says they've completed earlier phases. Complete and verify one phase at a t
 compiles, a Development player with a test harness inside, capture by pressing the highlight key,
 replays of the Ludeos the integrator sends back, its own logs, results and screenshots, the cloud build
 and the upload preparation. It stops only for what needs a person: credentials, administrator installs,
-product decisions, turning captured moments into Ludeos, Studio Lab, a hand-played run where no stand-in
-reaches, one sign-off per wave, and the upload go-ahead. What it runs and asks in each phase:
+product decisions and plan approvals (census, restore-plan rows, action map), turning captured moments
+into Ludeos, Studio Lab, a hand-played run where no stand-in reaches, one sign-off per wave, and the
+upload go-ahead. What it runs and asks in each phase:
 **`references/agent-automation.md`**. How: **`references/agent-test-harness.md`**.
 
 **Phases 3, 5, and 6 are orchestrated.** Each is one logical guideline phase made of single-task briefs,
@@ -125,8 +126,9 @@ file — so the user experiences each as a single phase.
 ## Important rules
 
 - **One phase at a time.** Finish and verify each phase before the next. Report what the phase proved,
-  with its evidence, and go on. Wait for the user only where the phase itself ends in their decision
-  (census and waves, a wave's sign-off, the upload), or if they asked to approve every phase.
+  with its evidence, and go on. Wait for the user only where the phase itself needs their decision (the
+  census and waves, a wave's plan rows and sign-off, the action map, the upload), or if they asked to
+  approve every phase. While waiting, carry on with work that doesn't depend on the answer.
 - **Write for the integrator, not for the skill — but do teach them the product.** Three kinds of
   vocabulary, three different jobs:
   1. **Product words — `Ludeo`, `Studio Lab`. TEACH these; never avoid them.** The integrator is

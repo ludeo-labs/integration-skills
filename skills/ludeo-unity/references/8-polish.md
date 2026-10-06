@@ -278,7 +278,7 @@ TDD completion section:
 - **Expanding without asking** — the recommendation is opt-in; the user picks the scope.
 - **Declaring done without re-uploading** — a widened build + new capture schema is stale until phase 7
   re-runs and captures are re-recorded (`06 §6`).
-- **Claiming a wave restores from a clean compile** — every new wave needs the human play/restore gate.
+- **Claiming a wave restores from a clean compile** — every new wave needs the play/restore gate (a harness replay judged from its evidence, then the wave sign-off).
 
 ## Related / Next
 - [`4-map-game-objects.md`](4-map-game-objects.md) — append the new wave(s) to `## Wave Rollout` (Part-A

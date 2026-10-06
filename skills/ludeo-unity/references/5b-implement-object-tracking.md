@@ -9,7 +9,7 @@
 >
 > **Wave-loop role (additive):** capture grows **per wave**. Wire only **this wave's** types; **do not edit
 > a previously-confirmed wave's writers, `objectType` buckets, or `LudeoKeys`** — append new ones. Adding
-> attributes changes the capture schema, so the orchestrator will have the human **re-capture** at your
+> attributes changes the capture schema, so the orchestrator will **re-capture** (with the harness) at your
 > gate (prior-wave Ludeos are now stale, `06 §6`).
 >
 > **Legend:** `[SDK]` = Ludeo package API (signatures in
@@ -184,7 +184,7 @@ stream-in hook, not in a one-shot whole-world pass (`open-world-tracking.md §6`
 > captured before the identity attribute existed comes back with an empty key and "chunk '' not found"
 > (`07 §8`). Capture it here, sampled every tick. **Corollary:** adding *or renaming* any capture attribute
 > (here or in a later phase) **invalidates every previously captured Ludeo** for that field — there is no
-> migration. After any capture-schema change, tell the orchestrator the human must **re-capture** before
+> migration. After any capture-schema change, tell the orchestrator a **re-capture** is needed before
 > testing restore; a fresh run re-samples valid data.
 
 > **Time-base / continuity (`phase 4` Step 4.5):** implement the singleton `SessionState`/`Continuity`

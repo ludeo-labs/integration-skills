@@ -343,7 +343,7 @@ Surface to the orchestrator; don't guess:
       default; only a missing **key** fails loud.
 - [ ] **No `ReadData` on a `<Attr>Name` label attribute** — labels are write-only readability
       (`06 §1.5`); restore keys off the `int` / stable key.
-- [ ] **Restore verified by a human** — including the replay-twice no-leak test (second Ludeo's state shows,
+- [ ] **Restore verified** (by the orchestrator through the harness, and signed off by the integrator per wave) — including the replay-twice no-leak test (second Ludeo's state shows,
       not the first's; no dropped-`Start` defaults).
 
 **Skill-specific pre-handoff criteria (satisfy before returning):**

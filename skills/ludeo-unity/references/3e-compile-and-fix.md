@@ -13,10 +13,10 @@
 
 ## 1. Goal / Purpose
 
-Get the project compiling cleanly in the Editor **with the package installed** (and, if the optional
+Get the project compiling cleanly (headless by default) **with the package installed** (and, if the optional
 `LUDEO_SDK` define is used, also with it **off**), then confirm the game still plays **and the Ludeo
-capture overlay appears** — the first end-to-end proof a Gameplay Session opened. "Compiling" is Editor
-script compilation; errors land in `Editor.log`.
+capture overlay works** — the first end-to-end proof a Gameplay Session opened. "Compiling" is Editor
+script compilation; errors land in the `-logFile` you passed (or `Editor.log` with the Editor open).
 
 ## 2. Inputs (Input Contract)
 

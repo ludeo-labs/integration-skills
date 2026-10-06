@@ -27,7 +27,8 @@ Ask for these, and nothing else the agent can run:
 | **Credentials**: the Ludeo `apiKey`, a test Steam id and beta branch, the CLI access token | secrets, and accounts the agent mustn't create | once, in phase 1 (token in phase 7). Keep the token in a file outside the repo and pass it per command. |
 | **Installs that need an administrator**: the Unity Editor version, a missing build module | elevation prompts the agent can't answer | name the exact version or module, and the check you'll run afterwards |
 | **Product decisions**: scope, waves, what a good moment is, the launch model, what a replay may and may not do | the integrator owns the game | as concrete either/or choices, with your recommendation |
-| **Turning captured moments into Ludeos** in Creator Lab, and sending back the ids | the agent has no Creator Lab access | one message per batch: `highlightId`, capture time, clip length, contents, trim hint (`agent-test-harness.md` → *Capturing a moment*) |
+| **Plan approvals**: the census and waves (phase 4), each wave's entity rows and restore-plan rows (phase 5 gates 0 and 2), the action map (phase 6) | they are product calls in table form | batch them where you can (one message with the rows and your recommendation); keep working on what doesn't depend on the answer |
+| **Turning captured moments into Ludeos** in Creator Lab, and sending back the ids | the agent has no Creator Lab access | one message per batch: `gameplayId`, `highlightId`, capture time, clip length, contents, trim hint (`agent-test-harness.md` → *Capturing a moment*) |
 | **Studio Lab**: Global Triggers, goals, checking that actions are listed | the integrator's account | at phases 6–7, unless they accept the browser-control offer (`learnings/architecture/offer-to-set-up-studio-lab-with-browser-control.md`) |
 | **A hand-played run**, only when no honest stand-in reaches it | progress the test profile lacks, how something feels | name what the run must reach, and play a frozen copy of the build. Read their `Player.log` yourself. |
 | **One sign-off per wave**, from the evidence bundle | they decide when it is good enough | *"wave N restores — widen to wave N+1?"* with the bundle (`agent-test-harness.md` → *The wave sign-off*) |
@@ -56,7 +57,9 @@ message what remains:
    queries. The harness does not need it.
 
 If 2 or 3 can't be met, the agent still writes and compiles code where it can and hands the run gates to
-the integrator, as each phase file describes for that case. Say plainly what that costs.
+the integrator, as each phase file describes for that case. If only 4 fails, the harness still runs
+lifecycle and replay jobs, and only the key press of each capture goes to the integrator (they press it
+at the moment you name, in a run you launched). Say plainly what each gap costs.
 
 ## Phase by phase
 
@@ -87,7 +90,10 @@ the integrator for the cloud session's log.
   doesn't depend on it: the next wave's deep scope, read-only mapping, the regression set, the cloud
   folder checks. Never edit code under a build you have declared upload-ready. Note in the tracker what
   is blocked on whom.
-- **Records that survive sessions** (in `ludeo-integration-plan/`):
+- **Records that survive sessions** (in `ludeo-integration-plan/`; create `HANDOFF.md`,
+  `PHASE_TRACKER.md` and `LUDEOS.md` at the end of phase 1). "Re-verify before trusting" means: check the
+  branch and its last commits, that the builds and job folders it names exist and are as new as it says,
+  and re-run one regression job before building on its claims.
   - `HANDOFF.md`: rewritten at the end of each session. What is done, what is in the cloud, the
     integrator's binding rules, the exact build/run/upload commands, known gaps and next steps. A new
     session reads it first and re-verifies before trusting it.

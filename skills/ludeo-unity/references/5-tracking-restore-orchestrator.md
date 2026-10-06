@@ -188,8 +188,8 @@ The orchestrator relays whatever a subagent surfaces — it does not invent its 
   **captured mid-run / past the first segment** (an origin capture masks displaced-frame bugs — see the
   Task-4 placement check) — and capture a 2nd Ludeo for the replay-twice tests. **Re-capture** if a prior
   wave's Ludeo is stale. **With the harness,** the agent does the capturing, and the only ask is: *"Please
-  turn these captured moments into Ludeos and send me their ids"*, each moment named by capture time,
-  `highlightId` and what it contains.
+  turn these captured moments into Ludeos and send me their ids"*, each moment named by its `gameplayId`,
+  `highlightId`, capture time, clip length, contents and a trim hint (`agent-test-harness.md` → *Capturing a moment*).
 - **Task 2 gate:** approve **wave N's** rows in `RESTORATION_PLAN.md`.
 - **Task 3 gate (wave 1):** confirm the flow play-test (freeze → scene load → stub → `Begin`; replay→replay;
   overlay). With the harness, the agent runs it and nothing is asked.

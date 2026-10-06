@@ -59,9 +59,12 @@ runs the **run half** of the gate through it:
   (`LudeoSdkConfig received -- bindings rebuilt …`), and the log shows the highlight taken and an
   `onCaptureVideoRequest` line with a `highlightId`. A screenshot shows the overlay's saving toast.
 
-Nothing in phase 3 then needs the integrator except questions. **Only if the phase-1 readiness check
-found that the machine can't build or launch a player** does the run half go to the human: surface it,
-wait for their confirmation (or explicit skip), and skip task 6.
+Nothing in phase 3 then needs the integrator except questions. **If the machine has no desktop session
+the agent can focus** (it builds and launches the player, but can't press keys in its window), run the
+capture job anyway and ask the integrator to press the highlight key once at the moment you name; then
+confirm the highlight from the log yourself. **Only if the phase-1 readiness check found that the machine
+can't build or launch a player** does the whole run half go to the human: surface it, wait for their
+confirmation (or explicit skip), and skip task 6.
 
 **Non-Gameplay Handling is planned in this phase (emitted later).** The guideline folds non-gameplay
 handling into the lifecycle. In Unity it splits three ways — task 1 maps the sites, task 3 plans the
@@ -115,7 +118,10 @@ Three distinct mechanisms; don't conflate them (the third is itself two opposite
    - **Requests, SDK → game** (`PauseGameRequested`/`ResumeGameRequested`, plain `Action`): the Ludeo
      overlay is covering the game — freeze `Time.timeScale`. **Cloud Player Flow only** — never in Creator
      Flow and never in a local build, so this half can only be verified on the streamed build. The handler
-     must **also** reach the trigger emit below.
+     must **also** reach the trigger emit below. (One exception, observed on plugin 4.3.3: when a locally
+     auto-started Ludeo's time runs out, the local overlay sends one final `PauseGameRequested` with no
+     resume. It proves the handler is wired, not the mid-play overlay pause:
+     `learnings/engine-quirks/the-next-ludeo-comes-from-the-end-of-run-screen-not-the-auto-start.md`.)
    - **Triggers, game → SDK** (`SendAction` with the standard names **`PauseLudeo`** / **`ResumeLudeo`**):
      **every** pause, in either flow — the player's ESC/pause menu, cutscenes, dialogue, loading screens, and
      the SDK-requested overlay pause. This is the **only** thing that stops the objective timer (freezing the

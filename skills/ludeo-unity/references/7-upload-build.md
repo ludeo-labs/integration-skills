@@ -309,7 +309,8 @@ re-checked from Step 2.
    **trust `--help` over any commands quoted here**). If not found, ask the user to install it / give the path.
 2. `ludeo auth status` — if not authenticated, `ludeo auth set-token` (ask the user for the token) or pass
    `--access-token` on each call. Tokens are stored in `~/.ludeo/config.json`. **If the machine's login
-   belongs to another game or another session, never `set-token`**: keep this game's token in a file
+   belongs to another game or another agent session, don't `set-token` over it** (it replaces the one
+   saved login they all use; do it only if the integrator says that login can go): keep this game's token in a file
    outside the repository, pass it with `--access-token` on every command from a script, and replace it
    with `<redacted>` in anything you log
    (`learnings/common-mistakes/ludeo-cli-set-token-ignores-config.md`). `ludeo builds list --verbose`
