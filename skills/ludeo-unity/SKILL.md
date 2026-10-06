@@ -305,7 +305,7 @@ machine. Set it up once, before doing any SDK work.
 |--------|-----------------|---------|----------|
 | `sdk-docs` | `https://ludeo-mcps-sdk-docs.ludeo.com/mcp` (HTTP, `X-User-Name` header) | **Search the Ludeo SDK documentation** | Bundled `references/ludeo-integration-docs/` |
 | `ludeo-context` | `https://mcp-ludeo-context-internal.ludeo.com/mcp` (HTTP, bearer token) | Company knowledge, QA workflows, repo context | Proceed without; analysis quality may be reduced |
-| `ludeo-mcp` | *URL not final — ask the integrations team* (HTTP, bearer token) | **Studio Lab platform work** the agent otherwise hands to the user — environments, the Beta Version Name that routes local runs to one, and invites. Touchpoints + read/write policy: [`references/ludeo-studio-mcp.md`](references/ludeo-studio-mcp.md) | Ask the user to do the step in Studio Lab |
+| `ludeo-mcp` | `https://mcp.ludeo.com/mcp` (HTTP, OAuth sign-in) | **Studio Lab platform work** the agent otherwise hands to the user — environments, the Beta Version Name that routes local runs to one, and invites. Touchpoints + read/write policy: [`references/ludeo-studio-mcp.md`](references/ludeo-studio-mcp.md) | Ask the user to do the step in Studio Lab |
 
 ## Start here
 

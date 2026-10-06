@@ -8,13 +8,14 @@ every row below still has a manual fallback, so an absent server never blocks a 
 ## Setup
 
 Copy the `ludeo-mcp` entry from `<skill-base-dir>/config/mcp_config.template.json` into the project's
-`.mcp.json` (or `claude mcp add`), then start a fresh session so it connects. Ask the Ludeo integrations
-team for the URL and credentials, and don't add the entry until you have them — the template's URL is a placeholder.
+`.mcp.json` (or `claude mcp add --transport http ludeo-mcp https://mcp.ludeo.com/mcp`), then start a fresh
+session so it connects. **It signs in with OAuth — no token goes in the file.** The client prompts the user to
+log in with their Studio Lab account (Claude Code: `/mcp` → Authenticate); until they do, the server is listed but
+its tools aren't.
 
 **Identify it by its tools, not by its name.** The name **may** carry a deployment suffix (a staging deployment
 appears as `ludeo-mcp-staging`), so match the `ludeo-mcp` prefix — or just look for `list_game_environments`
-and `ping` in your tool list. Confirm the production name with the integrations team before pinning it
-anywhere. **If more than one `ludeo-mcp*` server is connected** — a staging entry kept alongside production — they expose the same tools, so nothing disambiguates them. **Stop and ask the user which deployment to use**, name it in your reply, and use only that one for the rest of the integration. Guessing here means writing the beta version to the wrong platform.
+and `ping` in your tool list. **If more than one `ludeo-mcp*` server is connected** — a staging entry kept alongside production — they expose the same tools, so nothing disambiguates them. **Stop and ask the user which deployment to use**, name it in your reply, and use only that one for the rest of the integration. Guessing here means writing the beta version to the wrong platform.
 
 ## Touchpoints
 

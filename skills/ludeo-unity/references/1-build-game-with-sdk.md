@@ -29,8 +29,8 @@ Required artifacts / pre-flight:
       *MCP configuration*) — they only connect in a fresh session, so do this before the phase work, not
       after. `ludeo-mcp` **may** carry a deployment suffix; match the prefix, or look for
       `list_game_environments` in your tool list. If a server can't be connected, say which fallback you're
-      on and continue. **Only add a server entry you have real values for** — the template ships a placeholder
-      URL, and writing that into the project’s `.mcp.json` commits a dead entry. If one has to be added, say so
+      on and continue. `ludeo-mcp` signs in with OAuth — the user logs in with their Studio Lab account when the
+      client prompts; no token goes in the file. If one has to be added, say so
       and ask the user to restart the session and resume phase 1; that restart is expected, not the
       prior-context STOP above.
 - [ ] Context files read (§5).
@@ -258,8 +258,8 @@ Only what can't be inferred from code:
   you run it on?"* Either way it has to match the Beta Version Name on the environment this build targets.
 - **Is the integrator's own Steam user in each environment they'll capture in?** Name the environment —
   *"has your Steam account been added to <environment> for this game?"* Creation silently fails without it:
-  highlights record but never convert to Ludeos, `canCreate` comes back false, and nothing in any log says
-  why. No tool can answer this — `list_game_environments` returns no membership — so it is always a question.
+  highlights record but never convert to Ludeos, `canCreateLudeo` still reads true (it is a consent flag, not
+  membership), and nothing in any log says why. No tool can answer this — `list_game_environments` returns no membership — so it is always a question.
   Record the answer per environment in `KYG.md` → **Ludeo platform**, and ask again whenever the target
   environment changes (phase 7's gate does).
 - **Anyone else who needs to make Ludeos** — until the game is live on Ludeo, only people invited to the
