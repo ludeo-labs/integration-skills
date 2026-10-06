@@ -1,11 +1,12 @@
-# Agent Editor tooling — letting the agent work in the Unity Editor itself (Unity 6+)
+# Agent Editor tooling — letting the agent work in the open Unity Editor (optional, Unity 6+)
 
-Without this, the agent can edit files but cannot touch the Editor: every compile check, every "does it
-still run", every test run goes through the integrator ("focus the Editor", "press Play", "read me the
-Console"). Unity's command-line tool, with one package in the game's project, gives the agent its own
-way into the open Editor. It can compile, inspect the scene, run C# and start test runs by itself, and
-the integrator is left with only what needs a person — playing a Ludeo and judging whether it looks
-right.
+**Optional.** The agent's default way of running the game is a Development player with the test harness
+inside, built headlessly with the Editor closed ([`agent-test-harness.md`](agent-test-harness.md)). That
+route needs nothing from this file and works on any Unity version. This tooling adds what only an open
+Editor can give: querying scenes and prefabs directly (phases 2 and 4, whatever the serialization mode),
+compiling while the integrator keeps the Editor open, and running the harness in Editor play mode.
+Unity's command-line tool, with one package in the game's project, gives the agent that way into the
+open Editor.
 
 | Piece | What it is | Where it lives |
 | --- | --- | --- |
@@ -28,21 +29,20 @@ Decide from facts you can check, before offering anything:
 
 | Check | How | If not met |
 | --- | --- | --- |
-| Unity **6000.0 or later** | `ProjectSettings/ProjectVersion.txt` (recorded in phase 1 Step 0b) | **Skip this whole file.** The Pipeline package declares `"unity": "6000.0"`. Stay on the headless route: `-batchmode` compiles with the Editor closed (phase 3 · task 5). Tell the integrator the agent will ask them to compile and play more often. |
-| The integrator **agrees** | the offer below | Skip it and say what that costs (more hand-offs). Don't ask again unless they bring it up. |
+| Unity **6000.0 or later** | `ProjectSettings/ProjectVersion.txt` (recorded in phase 1 Step 0b) | **Skip this whole file.** The Pipeline package declares `"unity": "6000.0"`. The headless route covers everything else: `-batchmode` compiles with the Editor closed (phase 3 · task 5) and the dev-player harness. |
+| The integrator **agrees** | the offer below | Skip it. Scene and prefab questions then go through the files (Force Text) or the integrator; everything else runs through the harness as usual. Don't ask again unless they bring it up. |
 
 ## The offer (phase 1, Step 0c)
 
 Offer it; don't install it silently, because it adds a package to the game's project. Say, in plain
 words:
 
-> "Before the first compile I'd like to set myself up to work in your Unity Editor directly: Unity's
-> command-line tool plus its agent skill on my side, and one Unity package, **Pipeline**, in your
-> project, which lets the command-line tool talk to the open Editor. With it I can compile, check the
-> scene and start test runs myself instead of asking you each time. Later I'll also build a small test
-> harness so I can capture moments and replay Ludeos myself; you'd only turn captured moments into
-> Ludeos for me and sign off each stage from the screenshots and results. The package goes on the integration
-> branch only; at the end I'll ask whether you want to keep it. **(Recommended.)** Want me to go ahead?"
+> "I'll run the compiles and test runs myself with your Editor closed, through a test build of the game.
+> Optionally I can also work inside your open Unity Editor. That needs Unity's command-line tool and its
+> agent skill on my side, and one Unity package, **Pipeline**, in your project, which lets the
+> command-line tool talk to the open Editor. With it I can look through your scenes and prefabs directly
+> and compile while you keep the Editor open. The package goes on the integration branch only, and at the
+> end I'll ask whether you want to keep it. Want me to set it up?"
 
 ## Install — each piece, then check it
 
@@ -160,12 +160,11 @@ skill, and don't remove one the integrator uses. If the agent ends up connected 
 
 | Phase | Change |
 | --- | --- |
-| 1 · Step 0c, 0d | The offer and install above; the agent then checks the baseline compile itself. |
-| 1 · Steps 2, 4 | The agent sets up `LudeoSettings` and fires the one-time smoke test itself. |
+| 1 · Step 0c | The offer and install above. Compiles can then also run through the open Editor; the headless route stays available. |
+| 1 · Step 2 | The agent can set up `LudeoSettings` through the Editor's own menu item instead of hand-writing the asset. |
 | 2, 4 | The agent reads scenes and prefabs from the open Editor (no Force Text switch needed), and counts the object types that actually exist. |
-| 3 · task 5 | The agent compiles and confirms the capture overlay itself (log line + screenshot). |
-| 3 · task 6 → 5, 6 | The agent builds the **test harness** and from then on captures moments and replays Ludeos itself ([`agent-test-harness.md`](agent-test-harness.md)). The integrator turns captured moments into Ludeos, approves plans and signs off once per wave. |
-| 7 | Replay every confirmed Ludeo before building. Builds go through the studio's own entry point only, which the agent may call through the CLI (no `unity build`). |
+| 3 · task 5 | The agent can compile while the integrator keeps the Editor open. The overlay check still runs on the dev player ([`agent-test-harness.md`](agent-test-harness.md)). |
+| 3–8 | The harness can also run in Editor play mode (`agent-test-harness.md` → *Pitfalls*, the Editor play-mode variant). Builds still go through the studio's own pipeline only, which the agent may call through the CLI (no `unity build`). |
 | 8 · Finalize | Ask whether the Pipeline package stays in the game's project. |
 
 ## Removing it (phase 8, if the integrator says no)

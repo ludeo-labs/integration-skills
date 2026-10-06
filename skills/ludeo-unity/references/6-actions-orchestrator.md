@@ -3,7 +3,7 @@
 > **This is the phase-6 entry point.** Guideline phase 6 ("Actions") is one logical phase made of two
 > single-task briefs: **map** the action points, then **implement** the `SendAction` calls. The driving
 > agent runs as an **orchestrator**: it dispatches one **subagent per task** (via the Agent tool),
-> passing artifacts **by file**, and **runs the single human gate itself** — so the whole thing feels
+> passing artifacts **by file**, and **runs the single gate itself** — so the whole thing feels
 > like a single phase to the user.
 >
 > **Runs after phase 5.** Per the guideline, actions are wired only once the **player flow is proven**
@@ -39,19 +39,19 @@ mapping** the backend uses to exclude those windows. Deliverable: a reviewed act
 ## 3. Steps (the orchestration)
 
 The driving agent is the **orchestrator**. It does **not** do the task work inline — it dispatches a
-subagent per task, inspects the returned artifact, then **runs the human gate itself** after task 2. This
+subagent per task, inspects the returned artifact, then **runs the gate itself** after task 2. This
 keeps each task in isolated context and lets the user experience one continuous phase.
 
 **Dispatch pattern (per task):**
 > Use the **Agent** tool (`subagent_type: general-purpose`). Prompt the subagent with: the **absolute
 > path to the task brief**, the **Unity project path**, and the **input artifact paths** it needs. Tell
 > it to follow the brief exactly, produce the brief's Output-Contract artifact, **not** to run the
-> human-gated compile/play (the orchestrator owns it), and to return a short summary + the artifact path /
+> compile/play gate (the orchestrator owns it), and to return a short summary + the artifact path /
 > files touched + any human-questions. On return, **verify the artifact exists**, relay questions, then
 > dispatch the next task. Pass state **by file**, never by re-narrating prior output.
 
 **Fix-loop pattern (gate failure):**
-> When the human gate fails (compile error, or an action doesn't emit in a flow), the orchestrator
+> When the gate fails (compile error, or an action doesn't emit in a flow), the orchestrator
 > **re-dispatches a fix subagent** pointed at the **implement** brief with the failing log text / the
 > human's report **by file** + the files the prior subagent touched. Root-cause every fix
 > (no try/catch or symptom-masking, `phase 3 · task 5`/`3e-compile-and-fix.md`); propose-confirm-execute each change.
@@ -66,26 +66,30 @@ for approval** (the action list is a judgment call — naming, keep/drop, scope)
 approval**, then the orchestrator **runs the gate**: recompile clean + play and confirm each action
 **emits in the log in BOTH flows** (capture *and* replay).
 
-**Split this gate — only the play half needs a human, and with the test harness not even that.** The
-agent recompiles itself — through the open Editor when the phase-1 Editor tooling is set up
-(`agent-editor-tooling.md`), otherwise headlessly with the Editor closed (`-batchmode -quit … -logFile`) —
-and reads the result itself. Emission evidence is log-only, and the log is readable, so the agent
-verifies it directly once the run has happened. Do not hand over the compile half as well. See
-`learnings/common-mistakes/agent-can-run-unity-compile-gates-headlessly.md`.
+**The agent runs both halves of this gate.** It recompiles headlessly with the Editor closed
+(`-batchmode -quit … -logFile`), or through the open Editor with the optional Editor tooling, and reads
+the result itself (`learnings/common-mistakes/agent-can-run-unity-compile-gates-headlessly.md`). It
+produces the runs with the harness (`agent-test-harness.md` → *Actions*):
 
-- **With the harness** (`agent-test-harness.md`): the agent produces the runs too. Add a capture-flow
-  scenario step that performs each action at least once, through the game's own code paths (a scripted
-  input, or the game's dev command that triggers it), and check each action's emission line. Then replay
-  a Ludeo from that session (the integrator sends its id) and check the Player-flow emissions in the
-  same way. The integrator is asked for the Ludeo id and nothing else at this gate.
-- **Without it:** capture and replay need the integrator to play.
+- **Creator flow:** a capture job performs each action at least once through the game's own code paths
+  (the game's drivers, or a stand-in through the game's damage path for kills and deaths), counts the
+  game's own events independently, and compares them with the SDK sends in `result.json` (`sent`,
+  `rejected`, `dropped`).
+- **Player flow:** a replay job does the same inside a replay. Any Ludeo the integrator already sent
+  works for this. Pass = equal counts, nothing rejected, nothing sent before Begin.
+- **Studio Lab:** one creator job sends every action once, so Studio Lab lists them all
+  (`learnings/common-mistakes/studio-lab-lists-an-action-only-after-a-build-sent-it.md`).
+- **What no run can reach** (an outcome only a skilled player gets): say so, and ask for a short
+  hand-played run of a frozen copy of the build. Read its log yourself.
+
+Only if there is no harness (the machine can't build or launch a player) do capture and replay need the
+integrator to play.
 
 ### Reading the logs (the gate)
 
 The orchestrator runs the gate but **cannot see the Console** — it confirms emission by reading **Unity's
-log files** per [`unity/READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md). With
-the harness it also has each run's result file; without it, beyond the log it relies on the integrator's
-word. The compile-and-fix loop + `error CS` table live in
+log files** per [`unity/READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md), and
+each run's `result.json`. The compile-and-fix loop + `error CS` table live in
 [`phase 3 · task 5`](3e-compile-and-fix.md).
 
 ## 4. Questions to ask the human
@@ -94,16 +98,17 @@ The orchestrator relays whatever a subagent surfaces — it does not invent its 
 - **Task 1:** genre (if the web search fails); a candidate that's plausibly state/noise (keep or drop);
   whether a player-scoped action's site can fire for non-player actors (needs a player-guard).
 - **Task 1 gate:** approve `GAME_ACTIONS_MAP.md` (kept actions, names, drops, scope).
-- **Task 2 gate:** confirm a clean recompile + each action emits in the log in **both** Creator and Player
-  flow, and that the player-scoped actions are correctly attributed. With the harness, the agent confirms
-  all of this itself and asks only for the Ludeo id of the session that fired the actions.
+- **Task 2 gate:** nothing, normally. The agent confirms the clean recompile, each action's emission in
+  **both** flows and the player-scoped attribution itself, through the harness. It asks only for a
+  hand-played run when an action is out of every scenario's reach (and, without a harness, for the
+  integrator to play both flows).
 - **Out-of-code:** the **platform global-trigger mapping** for `StartNoneLudeable`/`StopNoneLudeable` — a
   one-time step the integrator performs on the platform (task 2 documents it).
 
 ## 5. Patterns to apply
 
 - **Orchestrator / single-task-subagent dispatch** — each brief is run by a subagent in isolation; the
-  orchestrator is thin and owns the human gate + fix loop.
+  orchestrator is thin and owns the gate + fix loop.
 - **Actions emit in BOTH flows.** `SendAction` is **never** gated on `IsInLudeoFlow` — the play flow
   re-fires the same sites so the SDK can score the Ludeo's win/fail during playback. Only **state writes**
   (phase 5 capture) are creator-only.
@@ -131,7 +136,7 @@ Produced across the subagent tasks (each brief owns its own contract):
   non-gameplay boundary/pause actions.
 - Filled `LudeoActionKeys` + `SendAction` call sites (gameplay + non-gameplay), with backups (task 2).
 - The **platform global-trigger mapping** note — the one-time out-of-code step (task 2).
-- A clean compile + actions confirmed emitting in **both** flows in the log (the human gate).
+- A clean compile + actions confirmed emitting in **both** flows in the log (the gate, run through the harness).
 
 ## 7. ✅ Success Criteria (the guideline phase-6 gate)
 

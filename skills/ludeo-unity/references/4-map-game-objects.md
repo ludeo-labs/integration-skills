@@ -51,7 +51,7 @@ the same file. Output (Part A) is human-approved before the phase-5 wave loop be
 
 ## 3. Steps
 
-The phase is two parts. **Part A runs once, here**, and ends at a human gate. **Part B is a reusable
+The phase is two parts. **Part A runs once, here**, and ends at a human gate (the integrator approves the census and waves). **Part B is a reusable
 procedure the phase-5 orchestrator invokes once per wave** (`references/5a-deep-scope-wave.md` dispatches
 it, scoped to that wave's types). Run only Part A in this phase.
 
@@ -116,6 +116,9 @@ in doubt, track** (`06 §9.1`).
 > that list against the candidates from code. A type that appears in the scenes but not in your list is
 > a census miss; a type in your list that never appears is probably spawned at runtime, so check its
 > spawner. Read-only queries only: save nothing, and reopen whatever scene was open.
+> **Without the Editor tooling,** get the same cross-check at runtime: once the harness exists, a capture
+> run can log the count per type it sees in the busiest levels, which also sizes the capture against the
+> object ceiling.
 
 > **Go find the appearance/loadout subsystem — don't wait for it to show up as a player field.** How a
 > visible character *looks* (equipped cosmetics, outfit, skin, model/color variant) is load-bearing for a

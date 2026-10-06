@@ -161,7 +161,7 @@ don't re-implement:**
 > and belongs in the owning **phase-5 wave** (its CR-010 freeze / wait-for-player flow,
 > `5c-plan-state-restoration.md §10` / `07 §10`), not here. Only sequence-the-visible-result work is polish.
 
-Any code change here goes through the same recompile + **play/restore** human gate the wave loop uses — the
+Any code change here goes through the same recompile + **play/restore** gate the wave loop uses (run through the harness) — the
 agent cannot see the Console (`unity/READING-UNITY-LOGS.md`); a clean compile never proves restore fidelity.
 
 ### Step 5: Finalize

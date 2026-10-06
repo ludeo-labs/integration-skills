@@ -4,7 +4,7 @@
 > (`5-tracking-restore-orchestrator.md`) **once per wave**. Fill **this wave's** buckets in the
 > `ApplyRestoredState()` body (task 3 declared it as a stub on Wave 1) — the two-pass bucket read-back (the
 > inverse of task 1's capture) — then return a summary + the files you created/edited. **You do not run the
-> human-gated play test** — the orchestrator plays a captured Ludeo and reads the log. Finishing **Wave 1**
+> play test** — the orchestrator replays a captured Ludeo through the harness and reads the log. Finishing **Wave 1**
 > turns a capture into a playable Ludeo; each later wave widens what restores. You run in isolated context —
 > your inputs are the files in §2. Follow propose-confirm-execute.
 >
@@ -268,7 +268,7 @@ is `true` (set by task 3); the creator flow uses `06 §6` batch *registration* i
 > path here and surface the hook as an Open Question rather than wiring the flow. **Never leave activation to
 > the skipped trigger.**
 
-### Step 8.5: Teach the harness this wave's values _(only if phase 3 task 6 built one)_
+### Step 8.5: Teach the harness this wave's values _(skip only if phase 3 built no harness)_
 Extend the replay scenario so its evidence proves **this wave** restored (`agent-test-harness.md` → *What
 a pass must show*). For each of the wave's key values, sample the live value after the restore and
 compare it with the Ludeo's recorded value, read from the restored data. For each restored entity, record
@@ -369,7 +369,7 @@ Surface to the orchestrator; don't guess:
 
 ## 8. Common Mistakes
 
-- **Compiling / playing here** — the orchestrator owns the (human-gated) state-verify play test.
+- **Compiling / playing here** — the orchestrator owns the (orchestrator-run) state-verify play test.
 - **Touching task 3's flow** — the apply gate, freeze, entry chain, overlay are not yours to re-wire.
 - **Deferring the apply to a spawned object's `Start`/`OnEnable`** — dropped on scene-transition spawns →
   frozen 2nd-replay (`07 §4`). Apply synchronously from the driver.

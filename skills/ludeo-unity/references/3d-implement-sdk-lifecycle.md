@@ -2,7 +2,7 @@
 
 > **Single-task subagent brief.** Dispatched by the phase-3 orchestrator
 > (`3-lifecycle-orchestrator.md`). Create the layer + wire the hooks, then return a summary + the list
-> of files created/edited. **You do not compile** — the orchestrator runs task 5 (the human-gated
+> of files created/edited. **You do not compile** — the orchestrator runs task 5 (the orchestrator-run
 > compile+run) after you return. You run in isolated context — inputs are the files in §2.
 > **Entry: only via the orchestrator.** This is task 4 of 5 in phase 3 (SDK lifecycle), not a phase of
 > its own — never open or run it standalone.
@@ -163,7 +163,7 @@ artifacts don't resolve it. Otherwise implement the plan as written.
 
 ## 8. Common Mistakes
 
-- **Compiling here** — task 5 owns the (human-gated) compile.
+- **Compiling here** — task 5 owns the (orchestrator-run) compile.
 - **Wiring an SDK tick** (CR-005) or editing the non-gameplay `SendAction` call sites (phase 6).
 - **Skipping the `LudeoSession.Dispose()`** in `Shutdown()` — 2nd Editor Play returns `WrongState`.
 - **Registering notifications after `Activate`**, or using the C++ `…Request` names.
@@ -171,4 +171,4 @@ artifacts don't resolve it. Otherwise implement the plan as written.
 
 ## Related / Next
 
-- **Next (orchestrator):** task 5 — `3e-compile-and-fix.md`, the **human-gated** compile+run gate.
+- **Next (orchestrator):** task 5 — `3e-compile-and-fix.md`, the compile+run gate (orchestrator-run, through the harness).

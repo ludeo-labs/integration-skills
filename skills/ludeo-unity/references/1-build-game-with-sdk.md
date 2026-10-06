@@ -23,7 +23,8 @@ Required artifacts / pre-flight:
       Use a different source **only** if Ludeo explicitly hands you a specific build (a pinned tag, a
       private tarball, or a `.unitypackage`).
 - [ ] **`apiKey`** obtained from the user (required for `LudeoSettings`).
-- [ ] **Unity 6+ only:** the integrator's answer to the Editor-tooling offer (Step 0c).
+- [ ] What the agent can run itself on this machine (Step 0c readiness check), and, on Unity 6+ only,
+      the integrator's answer to the optional Editor-tooling offer.
 - [ ] Context files read (§5).
 
 ## 3. Steps
@@ -60,30 +61,36 @@ the latest release is a newer major with further API changes, re-verify against 
 - `Glob("**/ProjectSettings/ProjectVersion.txt")` to record the project's Unity version; report it and
   confirm with the user. If Ludeo handed you a `.unitypackage` instead, use the *Import Package* path in Step 1.
 
-### Step 0c — Offer the agent its own way into the Editor ⭐ (Unity 6+)
-On **Unity 6000.0 or later**, offer to set up the agent's Editor tooling: the `unity` command-line tool
-and its agent skill (in Claude Code, `unity:unity-cli` from Unity's `unity` plugin), plus the
-**Pipeline** package (`com.unity.pipeline`) in the game's project. With them the agent compiles,
-inspects the scene and starts test runs itself, and every later gate asks the integrator only for what
-needs a person. **Follow [`agent-editor-tooling.md`](agent-editor-tooling.md)** for the conditions, the
-offer wording, the install and its checks, and the rules for using it. It is offered, recommended, and
-installed only on a yes, because it changes the game's package list.
+### Step 0c — Check what you can run yourself ⭐
+The integration runs automatically by default: the agent compiles, builds a Development player, plays
+it through a test harness and reads the results itself ([`agent-automation.md`](agent-automation.md)).
+Run the **readiness check** in `agent-automation.md` → *Phase 1 readiness check* now: the project's Unity
+Editor installed, the project not held by an open Editor, the studio's build pipeline found (and any
+defines its Build Profiles own), and a desktop session where you can open and focus windows. Fix what
+you can; tell the integrator in **one** message what you need from them (usually an Editor install, or
+closing the Editor during builds) and what it costs if it stays missing.
 
-- **Older Unity (before 6000.0):** the Pipeline package requires Unity 6. Skip this step, tell the integrator
-  you'll use headless `-batchmode` compiles with the Editor closed, and that you'll ask them to compile
-  and play more often.
-- **Declined:** skip it, say what that costs (more hand-offs), and don't ask again unless they raise it.
-- **If the tooling check fails because the Editor is in Safe Mode** (compile errors), the project did
+**Optional, Unity 6000.0 or later:** offer the Editor tooling: the `unity` command-line tool and its
+agent skill (in Claude Code, `unity:unity-cli`), plus the **Pipeline** package (`com.unity.pipeline`) in
+the game's project. It lets the agent query scenes and prefabs in the open Editor and compile while the
+integrator keeps it open. The harness doesn't need it. **Follow
+[`agent-editor-tooling.md`](agent-editor-tooling.md)** for the offer wording, the install and its checks.
+Install it only on a yes, because it changes the game's package list.
+
+- **If a tooling check fails because the Editor is in Safe Mode** (compile errors), the project did
   not compile *before* the integration touched it. That is a baseline failure: stop and tell the
   integrator.
 
 ### Step 0d — Baseline (the "without SDK" compile)
-Before installing the Ludeo package: confirm the project compiles in the Editor and the game plays
-**as-is**. This is the guideline's *"compiles without the SDK enabled"* criterion — for Unity that means
-the **pre-install** state (the package is auto-referenced and disable-is-runtime; there is no compile
-toggle). Note the baseline so later failures are attributable to the integration. With the Step 0c
-tooling the agent checks the compile half itself, through the open Editor. Playing the game is still the
-integrator's.
+Before installing the Ludeo package: confirm the project compiles and the game plays **as-is**. This is
+the guideline's *"compiles without the SDK enabled"* criterion — for Unity that means the
+**pre-install** state (the package is auto-referenced and disable-is-runtime; there is no compile
+toggle). Note the baseline so later failures are attributable to the integration. **Do both halves
+yourself:** a headless `-batchmode -quit -logFile` compile (record the `warning CS` count as the baseline),
+and a Development player built through the studio's pipeline and launched once from its own folder:
+does it reach the main menu outside the store launcher? A Steam game needs `steam_appid.txt` next to the
+exe ([`agent-test-harness.md`](agent-test-harness.md) → *Building the dev player*). This first build
+becomes the harness build in phase 3.
 
 ### Step 1 — Install the package (the "with SDK" compile)
 Install the **extracted** package (from Step 0b) one of two ways — put the extracted folder somewhere
@@ -100,10 +107,11 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
 
 ### Step 2 — Configure `LudeoSettings`
 - Open via **Ludeo → Setup and Show LudeoSettings** (creates/pings `LudeoSettings.asset` under
-  `Assets/LudeoSDK/Resources/`). **With the Editor tooling (Step 0c), do this yourself** through the CLI:
-  run that menu item (`EditorApplication.ExecuteMenuItem`), set the fields below on the asset, save it,
-  and read the values back. The integrator still supplies the `apiKey` and the auth answers; don't ask
-  them to click.
+  `Assets/LudeoSDK/Resources/`). **Do this yourself:** write the asset with every field
+  ([hand-author-ludeosettings-asset-write-every-field](../learnings/engine-quirks/hand-author-ludeosettings-asset-write-every-field.md)),
+  or with the Editor tooling run that menu item through the CLI (`EditorApplication.ExecuteMenuItem`) and
+  set the fields. Read the values back from the next run's log. The integrator supplies the `apiKey` and
+  the auth answers; don't ask them to click.
 - Set `apiKey` (required), `gameName`, `gameVersion`.
 - **`runWithoutLauncher` is the implicit/explicit auth toggle** (the only auth switch — the plugin
   marshals the auth struct from it; no per-call `authDetails` like C++):
@@ -128,7 +136,8 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
 
 ### Step 3 — Verify with the package installed
 The project still **compiles** and the game still **plays** (package present, unused). Confirms the
-package didn't break the baseline.
+package didn't break the baseline. Check both yourself: the headless compile, then the dev player
+rebuilt and launched once.
 
 ### Step 3.5 — Run the KYG (know your game) questionnaire ⭐
 Fill `ludeo-integration-plan/KYG.md` (template in §6) with the user. Answer with `file:line`
@@ -210,13 +219,14 @@ private static void LudeoSmokeTest()
 - **Editor leg — fire it once, manually, then stop.** Trigger a single init from a `[MenuItem]` button
   (or one hand-invoked call), read the log, confirm a `LudeoResult`, then **stop play immediately**. Do
   **not** leave an init auto-firing in the Editor. As soon as this leg returns a result, **delete the
-  Editor trigger.** With the Editor tooling, the agent fires that one call itself through the CLI and
-  reads the result from the log. Or, with the Editor closed, run it headless with `-batchmode
-  -executeMethod`: the process exits when the method returns, so the cursor hook can't linger (see
+  Editor trigger.** Run it yourself, headless, with `-batchmode -executeMethod`: the process exits when
+  the method returns, so the cursor hook can't linger (see
   [headless-smoke-test-instead-of-editor-init](../learnings/common-mistakes/headless-smoke-test-instead-of-editor-init.md)).
-- **Player-build leg — often deferred** (first IL2CPP builds run ~30–60 min). The gated snippet above
-  auto-fires **only in the built player**, so it's safe to leave in for that one build without ever
-  touching the Editor cursor. Run the build, confirm the result in `Player.log`.
+  With the Editor tooling you can instead fire that one call through the CLI.
+- **Player-build leg — yours too.** The gated snippet above auto-fires **only in the built player**, so
+  it's safe to leave in for that one build without ever touching the Editor cursor. Rebuild the Step 0d
+  dev player, launch it with `-logFile <abs>`, and read the result from that log (first IL2CPP builds
+  can take 30–60 min: run the build in the background and keep working).
 - **Read the result from Unity's log** — the agent can't see the Editor Console. Follow
   `ludeo-integration-docs/unity/READING-UNITY-LOGS.md` (read `Editor.log` / `Player.log`, or run
   headless with `-logFile`) and grep for `[Ludeo]` / `WrapperDllNotFound`.
@@ -237,7 +247,9 @@ Only what can't be inferred from code:
 - **Plugin version** — default is the **latest** release from
   `github.com/ludeo-labs/unity-plugin-releases`; ask only whether they need a specific pinned version
   or were given a custom build (private tarball / `.unitypackage`).
-- **Editor tooling (Unity 6+ only)** — the Step 0c offer, in the words given in
+- **What the agent needs to run things itself** — only what the Step 0c readiness check couldn't fix
+  (an Editor install, closing the Editor during builds), in one message.
+- **Editor tooling (Unity 6+ only, optional)** — the Step 0c offer, in the words given in
   `agent-editor-tooling.md`.
 - **`apiKey`**, `gameName`, `gameVersion`.
 - **Auth mode** — implicit Steam (`runWithoutLauncher = false`, production; needs Steam initialized
@@ -269,7 +281,9 @@ Context files (read first; relative to this workflow file):
 - `ludeo-integration-docs/unity/UPM-INSTALL-AND-DEFINES.md` — install methods, `LudeoSettings`, defines.
 - `ludeo-integration-docs/00-CRITICAL-REQUIREMENTS.md` — CR-001 (disable is runtime), CR-005.
 - `ludeo-integration-docs/unity/READING-UNITY-LOGS.md` — reading Unity's logs (Step 4 smoke test).
-- `agent-editor-tooling.md` — the agent's Editor tooling (Step 0c) and the rules for using it.
+- `agent-automation.md` — what the agent runs itself and asks in each phase; the Step 0c readiness check.
+- `agent-test-harness.md` → *Building the dev player* — the Step 0d player build.
+- `agent-editor-tooling.md` — the optional Editor tooling (Step 0c) and the rules for using it.
 
 ## 6. Output Contract
 
@@ -341,7 +355,10 @@ The gate — satisfy all before advancing to phase 2.
 **Skill-specific additions:**
 - [ ] Integration branch created (`feature/ludeo-integration-#N`).
 - [ ] Unity version detected; install method chosen + confirmed.
-- [ ] _(Unity 6+)_ Editor-tooling offer made and answered. If accepted, the checks in
+- [ ] Readiness check done (Step 0c): headless compile works, a Development player built through the
+      studio's pipeline launches from its own folder, and the integrator was told in one message what
+      the agent still needs.
+- [ ] _(Unity 6+, optional)_ Editor-tooling offer made and answered. If accepted, the checks in
       `agent-editor-tooling.md` pass: `unity status` shows this project `ready`, `unity command` lists
       what the Editor exposes (whether `eval` is among them is recorded), and one harmless call returns
       **this** project's `Application.dataPath`.

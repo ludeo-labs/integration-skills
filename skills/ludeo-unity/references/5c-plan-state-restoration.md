@@ -464,7 +464,7 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 
 ## 7. ✅ Success Criteria
 
-**Guideline phase-5 criteria this task feeds** (verified downstream at the human gates):
+**Guideline phase-5 criteria this task feeds** (verified downstream at the orchestrator's gates):
 - [ ] The plan ensures the **reader does not assert on missing attributes** — every property states a
       `ReadData` → `false` fallback (keep default / error); only a missing **key** fails loud.
 - [ ] The plan makes **human restore-verification** reachable — every tracked entity has a spawn function +

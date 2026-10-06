@@ -45,20 +45,23 @@ task in isolated context (no bloat) and lets the user experience one continuous 
 | 3 | Plan the layer | `references/3c-plan-sdk-lifecycle.md` | the three above | `SDK_LIFECYCLE_PLAN_<Game>.md` |
 | 4 | Implement layer + hooks | `references/3d-implement-sdk-lifecycle.md` | TDD + plan | layer `.cs` files + edited game hooks |
 | 5 | **Compile + run gate** | `references/3e-compile-and-fix.md` | the edited project | clean compile + live capture overlay |
-| 6 | **Build the test harness** _(Editor tooling only)_ | `references/agent-test-harness.md` → *The pieces*, *Capturing a moment* | the layer + `CODE_MAP.json` | harness core + a **capture** scenario; one automated capture confirmed from the log |
+| 6 | **Build the test harness** | `references/agent-test-harness.md` → *The pieces*, *Building the dev player*, *Capturing a moment* | the layer + `CODE_MAP.json` | harness assembly + launch override + a **capture** scenario, built into the dev player; one automated capture confirmed from the log |
 
-**Tasks 1–4 run automatically as subagents.** The orchestrator runs task 5 itself, not as a subagent. How
-much of it needs the integrator depends on phase 1 Step 0c:
+**Tasks 1–4 run automatically as subagents.** The orchestrator runs task 5's compile itself, not as a
+subagent: headless with the Editor closed (`3e-compile-and-fix.md`), or through the open Editor with the
+optional Editor tooling. It then **dispatches task 6** to build the test harness into the dev player, and
+runs the **run half** of the gate through it:
 
-- **Without the Editor tooling:** the agent still compiles itself, headless with the Editor closed
-  (`3e-compile-and-fix.md`), and reads the log. Only playing the game to see the overlay needs the human:
-  surface that half and wait for their confirmation (or explicit skip). That is the single human
-  touch-point in phase 3. Task 6 is skipped.
-- **With it:** the agent compiles through the CLI and checks the overlay itself. It enters play mode, then
-  confirms the overlay's own log line (`LudeoSdkConfig received -- bindings rebuilt …`) and a screenshot.
-  It then **dispatches task 6** to build the test harness. The orchestrator runs task 6's gate itself:
-  one automated capture, confirmed by `Ludeo highlight taken!` and an `onCaptureVideoRequest` line in
-  the log. Nothing in phase 3 then needs the integrator except questions.
+- a `capture-run` job whose `result.json` shows every lifecycle call returning `Success` (`Activate`,
+  `OpenRoom`, `AddPlayer`, `RoomReady`, `BeginGameplay`, `EndGameplay`, `CloseRoom`), the pause and
+  non-ludeoable spans balanced, and the save untouched;
+- the **overlay check**: the launcher presses the highlight key read from the overlay's own log line
+  (`LudeoSdkConfig received -- bindings rebuilt …`), and the log shows the highlight taken and an
+  `onCaptureVideoRequest` line with a `highlightId`. A screenshot shows the overlay's saving toast.
+
+Nothing in phase 3 then needs the integrator except questions. **Only if the phase-1 readiness check
+found that the machine can't build or launch a player** does the run half go to the human: surface it,
+wait for their confirmation (or explicit skip), and skip task 6.
 
 **Non-Gameplay Handling is planned in this phase (emitted later).** The guideline folds non-gameplay
 handling into the lifecycle. In Unity it splits three ways — task 1 maps the sites, task 3 plans the
@@ -70,8 +73,8 @@ action names.
 The orchestrator relays whatever a subagent surfaces — it does not invent its own. Expected ones:
 - **In the TDD task:** studio/graphics details and game modes not inferable from code.
 - **In the plan task (open-world/streaming games):** which `start_sites[]` entry binds `OpenRoom`.
-- **The compile + run gate (task 5):** without the Editor tooling, the user confirms a clean recompile and a
-  live capture overlay. With it, nothing to ask.
+- **The compile + run gate (tasks 5–6):** nothing to ask, unless the machine can't build or launch a
+  player. Then the user confirms a clean recompile and a live capture overlay.
 - **Task 6 (harness):** how to get the game to a moment worth capturing, if the code shows no dev or cheat
   command that does it (a level-select, a debug spawn, a time skip).
 
@@ -135,8 +138,9 @@ Produced across the subagent tasks (each brief owns its own contract):
 - `ludeo-integration-plan/SDK_LIFECYCLE_PLAN_<Game>.md` (task 3) — includes the Non-Gameplay Handling plan
 - `LudeoController` layer `.cs` files + edited game hooks (task 4)
 - A clean compile and a live capture overlay (task 5)
-- _(Editor tooling only)_ the test harness core + capture scenario, and `ludeo-integration-plan/LUDEOS.md`
-  started with the first automated capture (task 6)
+- the test harness (assembly, job file, launch override, runner, result writer) and the capture scenario
+  in the dev player, and `ludeo-integration-plan/LUDEOS.md` started with the first automated capture
+  (task 6)
 
 ## 7. ✅ Success Criteria (the guideline phase-3 gate)
 
@@ -158,20 +162,21 @@ The orchestrator confirms **all** of these before advancing — they are produce
 - [ ] **No dangling non-ludeoable on `End`** — any open `StartNoneLudeable`/`PauseLudeo` span is closed
       before a Gameplay Session ends.
 - [ ] **Project compiles with/without the SDK** (task 5).
-- [ ] **Capture overlay appears at runtime** — the proof a Gameplay Session opened. The human confirms it,
-      or with the Editor tooling the agent does, from the overlay's bindings log line and a screenshot.
-- [ ] _(Editor tooling only)_ **The harness captures on its own** — one run of the capture scenario logged
-      `Ludeo highlight taken!` and an `onCaptureVideoRequest` line, and the moment is listed in `LUDEOS.md`
-      (task 6).
+- [ ] **The capture overlay works at runtime** — the proof a Gameplay Session opened. The agent shows it
+      from a harness capture run: the highlight key (read from the overlay's bindings log line) produced a
+      highlight and an `onCaptureVideoRequest` line, and the moment is listed in `LUDEOS.md` (task 6). The
+      human confirms it only when the machine can't build or launch a player.
 
 ## 8. Common Mistakes
 
 - **Running the tasks inline instead of dispatching subagents** — bloats the orchestrator's context and
   loses the one-phase feel. Dispatch; pass artifacts by file.
-- **Handing task 5 to a subagent** — the orchestrator runs it, with the human when there is no Editor
-  tooling and by itself when there is.
-- **Handing the integrator a gate the agent can run** — with the Editor tooling, compile, overlay and
-  capture checks are the agent's. Ask the integrator only for what needs them.
+- **Handing task 5 to a subagent** — the orchestrator runs the compile and the run gate itself.
+- **Handing the integrator a gate the agent can run** — compile, overlay and capture checks are the
+  agent's, through the headless compile and the harness. Ask the integrator only for what needs them
+  (`agent-automation.md`).
+- **Failing the overlay check because no idle overlay widget is visible** — it may never be drawn. The
+  proof is the highlight key producing a highlight in the log.
 - **Re-narrating prior output to the next task** instead of pointing it at the artifact file.
 - **Treating callback-driven ops as game call sites** (`AddPlayer`/`Begin`/`CloseRoom` — CR-009).
 - **Planning a config class / re-gathering auth** — config is `LudeoSettings.asset` (phase 1).

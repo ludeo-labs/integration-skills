@@ -1,11 +1,11 @@
 # Phase 3 · Task 5 — Compile & Run Gate (Unity)
 
-> **Run by the orchestrator — NOT a subagent.** Without the phase-1 Editor tooling, the orchestrator
-> (`3-lifecycle-orchestrator.md`) drives this directly **with the user**: the agent cannot see the Unity
-> Editor Console, and the gate needs the human to focus the Editor (recompile) and play the game
-> (overlay). That is the single human touch-point of phase 3. **With the tooling, the orchestrator runs it
-> alone:** it compiles through the CLI, enters play mode, and confirms the overlay from its log line and
-> a screenshot (§3).
+> **Run by the orchestrator — NOT a subagent, and by the agent alone.** The orchestrator
+> (`3-lifecycle-orchestrator.md`) compiles headlessly and reads the log (the Console's output is in it),
+> then proves the run half on the dev player through the test harness built in task 6: a capture run, and
+> the highlight key producing a highlight (§3). Only when the phase-1 readiness check found that the
+> machine can't build or launch a player does it drive this **with the user**: they focus the Editor
+> (recompile) and play the game (overlay).
 > **Entry: only via the orchestrator.** This is task 5 of 5 in phase 3 (SDK lifecycle), not a phase of
 > its own — never open or run it standalone.
 >
@@ -47,14 +47,15 @@ script compilation; errors land in `Editor.log`.
 **How "compile" works in Unity:** the Editor recompiles automatically when `.cs` changes and it
 regains focus (or on `AssetDatabase.Refresh`) — no `make`/`cmake`.
 
-**Editor open with the phase-1 Editor tooling (Unity 6+): compile through it yourself.** Trigger the
+**Editor open with the optional phase-1 Editor tooling (Unity 6+): compile through it yourself.** Trigger the
 refresh through the `unity` CLI, then read `Editor.log` for `error CS`. Judge the result by timestamps
 (your edit, then the `.dll` under `Library/ScriptAssemblies/`, then the log) and your type names in the
 `.dll`, not by zero errors alone: a failed compile leaves the previous `.dll` in place. Rules and pitfalls:
 [`agent-editor-tooling.md`](agent-editor-tooling.md). **Don't run `-batchmode` while an Editor holds
 the project.** It refuses the locked project.
 
-**No Editor open (or no tooling):** force a headless compile to a clean log:
+**Default — headless, with no Editor holding the project:** force a compile to a clean log, and judge it
+the same way (timestamps, then your type names in the `.dll`):
 ```bash
 Unity -batchmode -projectPath <ABS_PROJECT> -quit -logFile <ABS>\ludeo-compile.log
 ```
@@ -65,11 +66,13 @@ A non-zero exit + `error CS…` lines = compile errors. (Use the Editor path mat
 - **Step 2 — `LUDEO_SDK` off (only if that define is used).** Remove it from **Player → Scripting
   Define Symbols** (or `-define:`), recompile, fix the `#else` fallback types. Skip if relying on the
   runtime switch (the normal case) — CR-001 disable is runtime, not a compile mode.
-- **Step 3 — run.** Clean compile → have the user play and watch for the overlay (§7). **With the Editor
-  tooling, do it yourself:** enter play mode through the CLI and get into gameplay (a scenario step or the
-  game's own dev command). Confirm the overlay from its log line
-  (`LudeoSdkConfig received -- bindings rebuilt …`, which also names the live capture hotkey) and a
-  screenshot showing the overlay square. Leave play mode, then read the log for Ludeo errors.
+- **Step 3 — run, yourself.** Clean compile → rebuild the dev player with the harness (task 6) and run a
+  `capture-run` job into gameplay. Confirm the overlay from its log line
+  (`LudeoSdkConfig received -- bindings rebuilt …`, which also names the live capture hotkey), then have
+  the launcher press that key and find the highlight and its `onCaptureVideoRequest` line in the log
+  ([`agent-test-harness.md`](agent-test-harness.md) → *Capturing a moment*). Read the run's
+  `result.json` and the log for Ludeo errors. Only if the machine can't build or launch a player, have the
+  user play and watch for the overlay (§7).
 
 **Max 10 failed attempts**, then list remaining `error CS`, identify the pattern (same file/type?),
 and hand to the user for manual review.
@@ -84,13 +87,13 @@ and hand to the user for manual review.
 
 ## 4. Questions to ask the human
 
-This task **is** the human interaction:
-- **Without the Editor tooling:** ask the user to **focus the Editor** to recompile (or run the headless
-  command yourself with the Editor closed) and report/confirm. **With it:** compile yourself and skip this
-  question.
-- **Without the Editor tooling:** ask the user to **play the game, enter gameplay**, and confirm the
-  **capture overlay** appears. **With it:** check it yourself (Step 3); ask only if you can't get the game
-  into gameplay.
+Normally nothing: compile and run it yourself. Ask only when you can't:
+- **The Editor holds the project** and there is no Editor tooling: ask the user to close it for the
+  headless compile (or to focus it to recompile, and report).
+- **The machine can't build or launch a player:** ask the user to **play the game, enter gameplay**, and
+  confirm the **capture overlay** appears.
+- **No way into gameplay:** if the harness can't reach gameplay with the game's own entry points, ask how
+  (a dev command, a level select).
 - If the same error persists after fixes, share the exact `error CS…` line, the code section, and the
   doc-12 signature checked against, and ask for guidance.
 
@@ -119,11 +122,13 @@ Report to the orchestrator: (1) compile status (package-on ✅/❌, define-off �
 
 - [ ] Clean compile **with the package** — no `error CS` in the log (you read it).
 - [ ] *(Only if `LUDEO_SDK` is used)* clean compile with the define **off** (fallback types compile).
-- [ ] Game still **plays** — no new exceptions in `Editor.log` (Play mode); ideally a player build too.
-- [ ] **Ran the game, entered gameplay → the Ludeo capture overlay appears** (a small in-game square
-      prompting **`Shift+F4`**). This is the **primary visual confirmation a Gameplay Session opened** —
-      every other signal at this stage is in the logs. Log shows no Ludeo errors. With the Editor tooling,
-      the agent's screenshot and the overlay's bindings log line stand in for the human's look.
+- [ ] Game still **plays** — the dev player's capture run shows no new exceptions in its log.
+- [ ] **Ran the game, entered gameplay → the Ludeo capture overlay works.** The agent proves it: the
+      overlay's bindings log line names the highlight key, pressing that key produced a highlight
+      (`onCaptureVideoRequest … highlightId=…`), and a screenshot shows the saving toast. This is the
+      **primary confirmation a Gameplay Session opened**. An idle overlay square may never be drawn, so
+      its absence proves nothing. Log shows no Ludeo errors. (Without a player build, the human looks
+      for the overlay instead.)
 - [ ] No SDK tick wired; pause/notification names correct; no scattered raw `[SDK]` calls (spot-check).
 
 ## 8. Common Mistakes

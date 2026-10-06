@@ -3,8 +3,8 @@
 > **This is the phase-5 entry point.** Guideline phase 5 ("Tracking & restore (game objects)") is one
 > logical phase, run as an **iterative wave loop**: the census + wave plan from phase 4 is implemented
 > **one wave at a time**, each wave proven at its own restore gate before the next widens scope. With the
-> phase-1 Editor tooling and the phase-3 test harness the agent runs those gates itself; the integrator
-> supplies Ludeo ids and signs off once per wave (`agent-test-harness.md`).
+> phase-3 test harness the agent runs those gates itself; the integrator supplies Ludeo ids and signs off
+> once per wave (`agent-test-harness.md`).
 > Within a wave the work is single-task briefs: **deep-scope** (task 0) → **capture** (task 1) → **restore
 > plan** (task 2) → **restore flow** (task 3, **wave 1 only**) → **state reconstruction** (task 4). The
 > driving agent runs as an **orchestrator**: it dispatches one **subagent per task** (via the Agent tool),
@@ -44,7 +44,7 @@ for each widened wave.
 ## 3. Steps (the orchestration)
 
 The driving agent is the **orchestrator**. It does **not** do the task work inline — it dispatches a
-subagent per task, inspects the returned artifact, then **runs that task's human gate itself** before
+subagent per task, inspects the returned artifact, then **runs that task's gate itself** before
 dispatching the next. This keeps each task in isolated context (no bloat) and keeps the iteration state
 (what was tried, what the log showed, which wave we're on) in the **persistent orchestrator**, not in a
 subagent that's gone.
@@ -53,13 +53,13 @@ subagent that's gone.
 > Use the **Agent** tool (`subagent_type: general-purpose`). Prompt the subagent with: the **absolute
 > path to the task brief**, the **Unity project path**, the **input artifact paths** it needs, **and which
 > wave `N` (+ the `objectType`s in that wave)**. Tell it to follow the brief exactly, produce the brief's
-> Output-Contract artifact (code and/or a plan file), **not** to run the human-gated compile/play (the
+> Output-Contract artifact (code and/or a plan file), **not** to run the compile/play gate (the
 > orchestrator owns it), and to return a short summary + the files it created/edited + any human-questions.
 > On return, **verify the artifacts exist**, relay questions, then **run the gate** (below). Pass state
 > **by file**, never by re-narrating prior output.
 
 **Fix-loop pattern (per gate failure):**
-> When a human gate fails (compile error, missing log line, wrong replay behavior), the orchestrator
+> When a gate fails (compile error, missing log line, wrong replay behavior), the orchestrator
 > **re-dispatches a fix subagent** pointed at the **same brief**, with the **failing log text / the
 > human's report passed by file** plus the list of files the prior subagent touched. The orchestrator
 > holds the iteration state across as many human round-trips as it takes. Root-cause every fix
@@ -107,7 +107,7 @@ the tracked set, the capture writers, and the `ApplyRestoredState()` data read-b
 > (data-only, **skip task 3**), each ending in its own restore gate. The wave counter simply continues; a
 > fresh session is fine (state lives in the files, not the chat).
 
-| # | Task | Brief | Cadence | Produces | Human gate (orchestrator-run) |
+| # | Task | Brief | Cadence | Produces | Gate (orchestrator-run) |
 | --- | --- | --- | --- | --- | --- |
 | 0 | Deep-scope this wave | `references/5a-deep-scope-wave.md` | **per wave** | wave N's `## Entity` rows appended to `OBJECT_TRACKING.md` (+ `save_system.per_entity`) | **human reviews & approves wave N's rows** (no code/run) |
 | 1 | Implement object tracking (capture) | `references/5b-implement-object-tracking.md` | **per wave** (additive) | capture `.cs` for N's types (register + `OnStateDataUpdate` writers + keys) | **recompile clean + play + actually capture a session**, registration fires, no `LudeoResult` errors. **With the harness:** the agent captures (mid-run, including wave N's types), the integrator turns the moment into a Ludeo and sends its id |
@@ -116,17 +116,17 @@ the tracked set, the capture writers, and the `ApplyRestoredState()` data read-b
 | 4 | Implement state reconstruction | `references/5e-implement-state-reconstruction.md` | **per wave** (additive buckets) | wave N's buckets filled in `ApplyRestoredState()` (two-pass read-back) | **play a captured Ludeo**: wave N's cumulative set restores on first frame, non-zero two-pass counts, cross-ref resolved; **placement sanity — no restored entity sits in empty space / far from the geometry** (§ below); replay-twice shows the **second's** state |
 
 **Every task ends in a gate the orchestrator runs.** Dispatch task 0, run its gate, **only then** task 1,
-and so on; finish a wave before starting the next. **Who runs the capture and replay gates** (tasks 1, 3,
-4) depends on phase 1 Step 0c:
+and so on; finish a wave before starting the next. **The agent runs the capture and replay gates**
+(tasks 1, 3, 4) with the phase-3 test harness (`agent-test-harness.md`). It captures with the harness,
+asks the integrator to turn the captured moment into a Ludeo and send back the id, then replays that
+Ludeo with the harness and judges the result file, the screenshots and the restored-vs-recorded values.
+Task 3 adds the **replay** scenario and the stand-in Play click to the harness. The integrator's part is
+the Ludeo ids, the plan approvals (gates 0 and 2), and **one sign-off per wave** from the evidence bundle
+(`agent-test-harness.md` → *The wave sign-off*). Only if there is no harness (the machine can't build or
+launch a player) does the human capture and play each Ludeo at these gates, as described below.
 
-- **With the Editor tooling and the phase-3 test harness** (`agent-test-harness.md`): **the agent runs
-  them.** It captures with the harness. It asks the integrator to turn the captured moment into a Ludeo
-  and send back the id. It replays that Ludeo with the harness and judges the result file, the
-  screenshots and the restored-vs-recorded values. Task 3 adds the **replay** scenario and the stand-in
-  Play click to the harness. The integrator's part is the Ludeo ids, the plan approvals (gates 0 and 2),
-  and **one sign-off per wave** from the evidence bundle (`agent-test-harness.md` → *The wave sign-off*).
-- **Without it:** the agent cannot see the Console or play, so the human captures and plays each Ludeo
-  at these gates, as described below.
+While the integrator turns moments into Ludeos, don't wait idle: start the next task that doesn't need
+the Ludeo (the restore plan, the next wave's deep scope), or re-run the regression set.
 
 ### The capture-before-replay dependency (do not skip)
 
@@ -213,7 +213,7 @@ The orchestrator relays whatever a subagent surfaces — it does not invent its 
   state an already-confirmed wave should have carried, fix the **earlier** wave and re-verify its gate
   (guardrail escalation, §3). A gap belongs back in `phase 4`/task 0, not papered over downstream.
 - **Orchestrator / single-task-subagent dispatch** — each brief is written to be run by a subagent in
-  isolation; the orchestrator is thin and owns the human gates + the fix loop + the wave counter.
+  isolation; the orchestrator is thin and owns the gates + the fix loop + the wave counter.
 - **The mirror principle** — restoration (tasks 2/4) is the **row-for-row inverse** of capture (task 1)
   **for the wave's types**: same `objectType` buckets, same `LudeoKeys` constants, same stable keys. You
   cannot restore what tracking didn't capture.
@@ -285,7 +285,7 @@ green**, and is **fully complete when the last wave in the plan is green**.
 ## 8. Common Mistakes
 
 - **Implementing the whole plan in one pass** instead of wave-by-wave — loses the early round-trip proof
-  and the small, debuggable human gates that are the point of the loop.
+  and the small, debuggable gates that are the point of the loop.
 - **Re-running task 3 (flow) per wave** — it is **once, in Wave 1**. Waves ≥2 skip it; only capture +
   reconstruction grow.
 - **Editing a confirmed wave's writers/buckets when adding a later wave** — waves are **additive**; a later

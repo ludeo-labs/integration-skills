@@ -1,9 +1,11 @@
 # Phase 7 — Verification & Cloud (Unity)
 
-> **Single sequential phase — not orchestrated.** Verification and upload are one coupled, outward-facing,
-> human-gated procedure: a build that fails any gate must **never** be uploaded, so gating + validation +
-> upload belong together in one flow. The user makes the build; the agent verifies and (only on explicit
-> confirmation) uploads.
+> **Single sequential phase — not orchestrated.** Verification and upload are one coupled, outward-facing
+> procedure: a build that fails any gate must **never** be uploaded, so gating + validation + upload belong
+> together in one flow. The agent runs it: the regression replays, the cloud build through the studio's
+> own pipeline (after asking once), every check, the dry run, and, **only on explicit confirmation**, the
+> upload and the status poll. If the studio's build can only be started by a person, the user makes it and
+> the agent takes over from there.
 >
 > **Legend:** `[SDK]` = Ludeo package API · `[Layer]` = prescribed façade · `[Unity]` = engine API.
 
@@ -16,7 +18,7 @@
 
 ## 1. Goal / Purpose
 
-Take the **release player build** (the user triggers it in the Editor), **verify** it is upload-ready
+Take the **release player build** (built through the studio's pipeline as a cloud configuration), **verify** it is upload-ready
 (release settings gated — no Development/Debug build, no debug flags or cheats reachable; production auth
 gated; native layer self-contained; `validate-build` passing), then **publish** it to
 the Ludeo platform with the `ludeo` CLI and **poll** the build status to `ready`/`success`. This is the
@@ -36,10 +38,12 @@ final phase — when it passes, the build is live on the platform.
       a script launches each Ludeo the integrator confirmed on screen, collects the restore's post-settle checks
       and closes it; every Ludeo shows all its checks and none is `WRONG`. See
       `learnings/architecture/replay-every-confirmed-ludeo-as-a-regression-gate-before-upload.md`.
-- [ ] A **release player build folder** exists — **the user triggers the build in the Unity Editor**
-      (current platform; Ludeo capture is Windows-desktop). The agent does **not** drive the Editor build,
-      except through the studio's own build entry point with the Editor tooling, after asking (Step 1).
-- [ ] The **`validate-build`** user-level skill (the self-contained gate; also writes `run.bat`).
+- [ ] A **release player build folder** for the cloud (current platform; Ludeo capture is Windows-desktop),
+      built through the **studio's own pipeline** as a second, cloud configuration. The agent builds it
+      after asking once (Step 1); never through Unity's Build Settings dialog, `unity build`, or a
+      `BuildPlayer` call that bypasses the studio's configuration.
+- [ ] The **`validate-build`** user-level skill (the self-contained gate; also writes `run.bat`). If it
+      isn't installed, run its checks inline (Step 4) and say so.
 - [ ] The **`ludeo` CLI** reachable — verify with `ludeo --help`. If not installed/located, **ask the user**
       to install it or for the path to the binary; do **not** invent a download source.
 - [ ] A Ludeo **access token** and the game's **Game Version ID** (from the Ludeo studio/platform). Ask if
@@ -66,7 +70,7 @@ final phase — when it passes, the build is live on the platform.
 
 ## 3. Steps
 
-### Step 0.5: Replay the confirmed Ludeos in the Editor first _(only with the test harness)_
+### Step 0.5: Replay the confirmed Ludeos on the dev player first
 This is an early, cheap run of the Input Contract's **Confirmed Ludeos replayed on this build** check. It
 comes before Step 1, so a regression is caught before a long build rather than after. It does **not**
 replace that check, which still runs on the build you are about to upload (see
@@ -74,26 +78,41 @@ replace that check, which still runs on the build you are about to upload (see
 
 - **One list for both runs:** the Ludeos marked `confirmed` in `ludeo-integration-plan/LUDEOS.md` (their
   wave was signed off). That file is the plan's list of confirmed Ludeos that the lesson asks for.
-- Replay each one with the harness (`agent-test-harness.md` → *Replaying a Ludeo*) and judge it as its
-  wave's gate did. A Ludeo that restored at its wave and fails now is a regression from a later change:
-  fix it before building.
-- Then turn `autoStartInLudeo` off. The pre-run check turned it on, and a build must not carry it.
+- Run the whole regression set with the harness (`agent-test-harness.md` → *Regression sets and fresh
+  profiles*) and judge each run as its wave's gate did. A Ludeo that restored at its wave and fails now is
+  a regression from a later change: fix it before building. Check the environment first (a changed save,
+  a stray process) before blaming the code.
+- **Fresh profile:** run the key replays again on an empty profile (save folder moved aside and restored
+  afterwards), on a local build of the cloud configuration plus the harness if the cloud build changes
+  behaviour. First-time popups and tutorials show up only here, and every cloud viewer sees them.
+- The launch override changed `autoStartInLudeo` only in memory, so the asset still has it off; the
+  Step 2 gate confirms that on the baked build. With the Editor play-mode variant, turn it off yourself.
 
-### Step 1: Have the user make the release build
-**Prompt the user to make the release build themselves** in the Unity Editor (*File → Build Settings →
-Build*, or their usual pipeline) and tell them you'll take it from there. (Don't drive the Editor build
-yourself — the one exception is the next paragraph.) With the Step 2 hard-fail hook in place, even "Build And Run" aborts before producing an
-artifact when `runWithoutLauncher = true` — that's the gate firing, not a separate problem.
+### Step 1: Make the cloud build through the studio's pipeline
+**The agent builds it, through the studio's own pipeline, after asking once.** Find how the studio
+builds (phase 1 found it): a Build Profile asset, a build-configuration asset, a static build method its
+CI calls, a build window. Make the cloud build a **second configuration** of that pipeline, never an edit
+of the studio's own
+(`learnings/architecture/the-cloud-build-is-a-second-configuration-not-a-modified-one.md`). For example, a
+copy of their Build Profile without the store define and with a cloud define, built by a small
+`-executeMethod` that loads that profile, sets the release `BuildOptions`, flips the shared
+`LudeoSettings` dev flags (`runWithoutLauncher`, `autoStartInLudeo`) off for the build and restores them
+in a `finally`, and restores the active profile. Ask the integrator once: *"Shall I build the cloud
+version through a second <profile/configuration> next to yours?"* Then run it headlessly with the Editor
+closed (or through the CLI with the optional Editor tooling) and wait for it to finish.
 
-**With the Editor tooling, the agent may start the build itself, but only through the studio's own
-build entry point.** Find how the studio builds: a build window, a menu item, or a static build method
-its CI calls. If that entry point is callable (a static method, or a menu item run with
-`EditorApplication.ExecuteMenuItem`), ask the integrator once: *"Shall I start the release build through
-your <entry point>?"* Then call it through the CLI and wait for the build to finish. Never substitute
-`unity build`, Unity's Build Settings dialog or a hand-written `BuildPipeline.BuildPlayer` call; on one
-integration a build made outside the studio's pipeline broke launch, Addressables and audio at once. If
-the entry point is only a window with buttons, ask the integrator to press it. Either way, make sure the
-log and the build you then check are **from this build**: compare timestamps.
+Never substitute `unity build`, Unity's Build Settings dialog or a `BuildPipeline.BuildPlayer` call with
+your own options that bypasses the studio's configuration. On one integration a build made outside the
+studio's pipeline broke launch, Addressables and audio at once
+(`learnings/common-mistakes/build-players-only-through-the-studios-own-pipeline.md`). If the entry point
+is only a window with buttons, ask the integrator to press it. Either way, make sure the log and the build
+you then check are **from this build**: compare timestamps. With the Step 2 hard-fail hook in place, a
+build with `runWithoutLauncher = true` aborts before producing an artifact. That's the gate firing, not a
+separate problem.
+
+**Folders.** Keep the build folders the integrator agreed (for example `dev` for the harness build and
+`cloud` for the upload), next to the project, not inside it. The CLI names the uploaded root after the
+folder, and a later modification build must use a folder with the same name, so keep it stable.
 
 ### Step 2: Release-build gate — assert production + release settings from the build log
 **Layer the defense — no single check is sufficient.** A shipped/cloud build must (a) authenticate against
@@ -156,7 +175,13 @@ class LudeoBuildSettingsCheck : IPreprocessBuildWithReport {
 > (`NamedBuildTarget.FromBuildTargetGroup(group)`) — swap them if you hit a deprecation warning; behaviour
 > is identical. Verify any API here against the project's actual Unity version.
 
-After the user builds, grep the **latest** `Editor.log` for `[Ludeo] build gate:` and assert the release
+With a cloud build that is a second configuration, make the hook **throw only when the cloud define is
+being baked** and only log for the studio's own builds, so it can never break their builds; let it accept
+the cloud define together with the harness define for a local, not-for-upload test build
+(`agent-test-harness.md` → *Regression sets and fresh profiles*).
+
+After the build, grep its log (the `-logFile` you passed, or the **latest** `Editor.log`) for
+`[Ludeo] build gate:` and assert the release
 posture: `developmentBuild=False`, `connectProfiler=False`, `scriptDebugging=False`,
 `waitForManagedDebugger=False`, `il2cppConfig=Release` (or `Master`), `runWithoutLauncher=False`,
 `apiKeySet=True`, `autoStartInLudeo=False`. Any deviation ⇒ **stop**, have the user fix the setting
@@ -225,7 +250,12 @@ failing loud.
    - `<Game>_Data/boot.config` containing `player-connection-debug` or `wait-for-managed-debugger`
      ⇒ a Development Build slipped through.
    - `*_BurstDebugInformation_DoNotShip` / `*_BackUpThisFolder_ButDontShipItWithYourGame` folders, or loose
-     `.pdb` files ⇒ debug artifacts that must not ship — remove + rebuild release.
+     `.pdb` files ⇒ debug artifacts that must not ship — remove + rebuild release. (A Burst project writes
+     the `*_BurstDebugInformation_DoNotShip` folder on **every** build, release included: delete that
+     folder by its literal path before the dry run, and re-check the file count.)
+   - Any test-only assembly (the harness `.dll`) in `<Game>_Data/Managed/` ⇒ the wrong configuration was
+     built. Also grep the shipped game `.dll` for a type name your newest change added, to prove the
+     folder holds this build.
    - dev-only native dll variants present ⇒ wrong C++/config.
    This is a static scan of what's in the folder; `validate-build` (Step 4) complements it by launching the exe.
 
@@ -239,8 +269,15 @@ crash), and **ensures a `run.bat` exists** (creating one when you approve).
   rule, §5). If `validate-build` only `WARN`ed it's missing, create it now.
 - **Launch the exe with `-logFile -`** so Unity's `Debug.Log` goes to **stdout**, which the cloud runner
   collects. Without it Unity logs land in `Player.log` on the instance's disk and are gone when it
-  recycles, leaving a cloud run with SDK logs and no game logs. No game-side code is needed for this —
-  don't add a `Debug.Log`→`OutputDebugString` forwarder.
+  recycles. **On the Proton cloud runner even `-logFile -` was measured to collect nothing from Unity**,
+  so to see your own lines from a cloud run, add a small filtered `Debug.Log`→`OutputDebugString` mirror
+  (`learnings/engine-quirks/cloud-proton-drops-unity-stdout-so-logfile-dash-buys-nothing.md`).
+- **No `validate-build` skill on the machine?** Run its checks yourself and say so: the Step 3 folder
+  scan, then **launch `run.bat` from a different working directory** (it must `cd` to its own folder),
+  keep the game up about 30 seconds, close it with `CloseMainWindow` (only the process you started), and
+  read its log. Pass = still alive at 30 s, `Initialize`/`CreateSession` `Success`, `Activate` failing
+  only on auth (expected off the cloud), a clean shutdown, and no exceptions. In `run.bat`, call the exe
+  as `"%~dp0<Game>.exe"`: a bare exe name can fail where the current directory is not searched.
 
   ```bat
   @echo off
@@ -271,7 +308,12 @@ re-checked from Step 2.
 1. `ludeo --help` — confirm the CLI is reachable and learn the current command set (the CLI evolves;
    **trust `--help` over any commands quoted here**). If not found, ask the user to install it / give the path.
 2. `ludeo auth status` — if not authenticated, `ludeo auth set-token` (ask the user for the token) or pass
-   `--access-token` on each call. Tokens are stored in `~/.ludeo/config.json`.
+   `--access-token` on each call. Tokens are stored in `~/.ludeo/config.json`. **If the machine's login
+   belongs to another game or another session, never `set-token`**: keep this game's token in a file
+   outside the repository, pass it with `--access-token` on every command from a script, and replace it
+   with `<redacted>` in anything you log
+   (`learnings/common-mistakes/ludeo-cli-set-token-ignores-config.md`). `ludeo builds list --verbose`
+   shows which game the token belongs to.
 
 ### Step 6: Decide build type — minor by default, major only on the first build
 A **major** build stands alone; a **minor** build is a variant attached to an existing major
@@ -377,9 +419,13 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
 > processed the build and can run Ludeos from it) as the bar — there is **no discrete step that actually
 > runs/plays a Ludeo in the cloud** to confirm it. Leave this as an explicit gap to fill later (a CLI
 > command or platform action), per the team decision (2026-06-17). Do not fabricate a cloud-run step.
+> What the agent can do: once the build is `success`, ask the integrator to assign it to an environment
+> and play one Ludeo, with a short list of what to check (what this build changed, plus replay to replay,
+> which only the platform can trigger) and which cloud log to send back. Then read that log yourself.
 
 ## 4. Questions to ask the human
 
+- **Building the cloud version** through a second configuration of their pipeline — ask once (Step 1).
 - **Build folder path**, **Game Version ID**, **game version**, **access token** — if not provided.
 - **SDK version** — always **confirm with the user**; the package manifest can lie (builds use swapped SDKs).
 - **Changes description** — if it can't be inferred from context.
@@ -391,7 +437,8 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
 
 - 🛑 **Never upload without explicit user confirmation** (top banner) — present the final command after a
   clean dry-run, then wait; run only on an explicit go-ahead, or let the user run it.
-- **The user makes the build; the agent doesn't drive the Editor build** — prompt them, then take over.
+- **The agent makes the build through the studio's own pipeline, as a second configuration, after asking
+  once** — never through the Build Settings dialog, `unity build`, or its own `BuildPlayer` options (Step 1).
 - **Run path is the `run.bat`, not the `.exe` — always.** Register the `.bat` as `--exec-path`; it does
   `cd /d "%~dp0"` then starts the exe, so the build runs from its own folder regardless of the launcher's
   working directory (the property `validate-build` proves). A raw `.exe` exec-path can break path-relative assets.
@@ -442,10 +489,12 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
       directly (no `start`) with `-logFile -`.
 - [ ] `ludeo` CLI reachable (`--help`) and authenticated (`auth status`).
 - [ ] Build type correct: **major on the first build**, **minor otherwise** (with `--major-build-id`).
-- [ ] **Release build made by the user** in the Editor (or, with the Editor tooling, started by the agent
-      through the studio's own build entry point after asking — Step 1); the agent took over after.
-- [ ] **Confirmed Ludeos replayed on this build** before the upload (Step 4.5; preceded by the Editor run
-      in Step 0.5 when the harness exists).
+- [ ] **Cloud build made through the studio's own pipeline** as a second configuration, by the agent after
+      asking once (or by the user, if only a person can start that pipeline) — Step 1.
+- [ ] **Regression set and fresh-profile replays** passed on the dev player (Step 0.5), and the
+      **confirmed Ludeos replayed on this build** before the upload (Step 4.5).
+- [ ] `run.bat` launched from another working directory stayed up ~30 s with a clean log (Step 4), and no
+      test-only assembly or `*_DoNotShip` folder is in the upload folder (Step 3).
 - [ ] `--sdk-version` **confirmed with the user** (not trusted from the manifest).
 - [ ] `--changes-description` non-empty (inferred or user-supplied) — empty only if the user chose so.
 - [ ] `--dry-run` reviewed (file list + resolved flags) and confirmed with the user.
@@ -471,9 +520,12 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
 - **A `run.bat` that swallows the game's logs** — omitting `-logFile -`, or wrapping the exe in
   `start "" /wait` (new console ⇒ stdout never reaches the runner). Either way the cloud run comes back
   with SDK logs and no game logs, and `Player.log` is gone with the instance (Step 4).
-- **Driving the Editor build yourself** — the user makes the build; you verify + upload. The only
-  exception: with the Editor tooling, starting it through the studio's own entry point after asking
-  (Step 1) — never through `unity build`, the Build Settings dialog or your own `BuildPlayer` call.
+- **Building outside the studio's pipeline** — the Build Settings dialog, `unity build`, or your own
+  `BuildPlayer` options. Build through their pipeline, as a second configuration (Step 1).
+- **Changing the studio's own build configuration for the cloud** instead of adding a second one.
+- **Handing the integrator checks you can run** — the regression set, the fresh profile, the folder scan,
+  the launch test and the dry run are the agent's. Their part is the token, the SDK version, the upload
+  go-ahead and the cloud play.
 - **Hand-copying a missing dll into the build folder** — it's discarded next rebuild; fix durably (Step 3).
 
 ## Troubleshooting
