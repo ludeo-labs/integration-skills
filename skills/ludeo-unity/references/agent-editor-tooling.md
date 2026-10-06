@@ -55,8 +55,9 @@ Run the checks. Don't report a piece as set up because its install command exite
    package to `Packages/manifest.json`, in about a second, and the next Editor that opens the project
    resolves it. Quote the path.
 4. **Commit** `Packages/manifest.json` and `Packages/packages-lock.json` on the integration branch as their
-   own commit ("add Pipeline package for agent Editor access"). A package that lived only in one working
-   copy vanished on the first revert, along with everything that depended on it.
+   own commit ("add Pipeline package for agent Editor access"), within the integrator's commit rules (if
+   they approve each commit, ask for this one now). A package that lived only in one working copy
+   vanished on the first revert, along with everything that depended on it.
 5. **Check it works:** start a headless Editor (next section), then:
    - `unity command --project-path "<ABS_PROJECT>"` lists the commands (160 on 0.8.0-exp.1, including
      `eval`);
@@ -85,6 +86,27 @@ Facts that matter (checked):
 - **Stop a resident Editor with `eval`.** The `quit` command fails in the Editor (it is meant for players):
   `unity command eval --code 'UnityEditor.EditorApplication.delayCall += () => UnityEditor.EditorApplication.Exit(0); return "exiting";' --project-path "<ABS_PROJECT>"`.
   It's gone in about a second and the lock is released. Never kill an Editor you didn't start.
+
+**Starting and stopping it on Windows** (PowerShell, from a script file):
+
+```powershell
+$unity = '<the Editor matching ProjectVersion.txt>\Editor\Unity.exe'
+$p = Start-Process $unity -PassThru -WindowStyle Hidden -ArgumentList @(
+  '-batchmode','-nographics','-projectPath',"`"$proj`"",'-logFile',"`"$log`"")
+$p.Id | Set-Content "$plan\resident-editor.pid"         # this Editor is yours: remember its id
+$deadline = (Get-Date).AddMinutes(20)                     # a cold Library imports first: allow minutes
+do { Start-Sleep 3; $ok = (unity command --project-path $proj --format json 2>$null) -match '"success": true' }
+until ($ok -or $p.HasExited -or (Get-Date) -gt $deadline)
+```
+
+If it exited or timed out, read its log (usually compile errors, a missing editor version or a held lock).
+To stop it, send the `eval` exit above, then wait until the process with **that** id has exited, and only
+if it hangs past a minute stop that id, never another Unity process.
+
+**Keep it or stop it?** Keep it running while you read and iterate on code (phases 2 and 4, a wave's deep
+scope and its compile loop). Stop it before anything that needs the project lock: the dev-player build,
+the cloud build, a headless compile you prefer over `recompile`. Restart it when you need it again; a
+warm restart takes seconds.
 
 ## Reading commands (read-only)
 

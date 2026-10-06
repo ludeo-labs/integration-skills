@@ -77,7 +77,7 @@ closing the Editor during builds) and what it costs if it stays missing.
 - **Case B, not Force Text and Unity 6.0+:** offer the Unity CLI's **Pipeline** package (the wording,
   install, commit and checks are in [`agent-editor-tooling.md`](agent-editor-tooling.md)). Install it only
   on a yes, because it changes the game's package list. On a no, use case C.
-- **Case C, not Force Text and before Unity 6.0:** add the scene-dump script to the integration's Editor
+- **Case C, not Force Text and before Unity 6.0 (or case B declined, or the path is too deep for it):** add the scene-dump script ([`agent-project-reading.md`](agent-project-reading.md) → *Case C*) to the integration's Editor
   folder now and run it once, so phase 2 starts with the dump.
 - **Never switch the project to Force Text** to make it readable.
 
@@ -114,7 +114,12 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
   ([hand-author-ludeosettings-asset-write-every-field](../learnings/engine-quirks/hand-author-ludeosettings-asset-write-every-field.md)),
   or in case B run that menu item through the Unity CLI (`EditorApplication.ExecuteMenuItem`) and
   set the fields. Read the values back from the next run's log. The integrator supplies the `apiKey` and
-  the auth answers; don't ask them to click.
+  the auth answers; don't ask them to click. **With the Editor closed**, the package's own set-up
+  (StreamingAssets, settings asset) doesn't run on import: run
+  `-executeMethod LudeoSDKUnityEditor.LudeoUnityEditorHelpers.SetupLudeoAssets` headlessly, twice on a
+  fresh install, before writing the fields
+  ([headless-editor-setup-needs-executemethod](../learnings/engine-quirks/headless-editor-setup-needs-executemethod.md),
+  [sdk-setup-needs-two-headless-runs](../learnings/engine-quirks/sdk-setup-needs-two-headless-runs.md)).
 - Set `apiKey` (required), `gameName`, `gameVersion`.
 - **`runWithoutLauncher` is the implicit/explicit auth toggle** (the only auth switch — the plugin
   marshals the auth struct from it; no per-call `authDetails` like C++):
@@ -371,7 +376,7 @@ The gate — satisfy all before advancing to phase 2.
       - Case C: the dump ran and logged `[LudeoDump] done` with the expected scene count.
 - [ ] `LudeoSettings.asset` present with a real `apiKey`; dev flags appropriate for the build.
 - [ ] `LudeoManager.Initialize()` returns a `LudeoResult` (not `WrapperDllNotFound`), and
-      `SessionManager.CreateSession` succeeds, in the **Editor and a player build**.
+      `SessionManager.CreateSession` succeeds, in the **Editor (headless, `-executeMethod`) and a player build** (the dev player, launched by you).
 - [ ] _(Self-contained build + `validate-build` — **moved to phase 7**, `7-upload-build.md` Step 3–4.)_
 
 ## 8. Common Mistakes

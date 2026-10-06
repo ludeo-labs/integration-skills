@@ -87,6 +87,25 @@ public static void BuildDev()
   -executeMethod <Ns>.LudeoAgentBuild.BuildDev -ludeoBuildOut "<ABS_BUILDS>/dev/<Game>.exe" -logFile "<ABS_LOG>"
 ```
 
+**Without Build Profiles** (before Unity 6, or a project that doesn't use them), find what the studio's
+builds actually do first: a CI build method, a build-configuration asset, a build window's code. If one
+exists, call it and add only `BuildOptions.Development`. If the studio really builds from the Build
+Settings window, reproduce exactly that window's inputs and nothing else:
+
+```csharp
+var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
+    scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray(),
+    target = EditorUserBuildSettings.activeBuildTarget,
+    locationPathName = GetArg("-ludeoBuildOut") ?? "../<Game>-builds/dev/<Game>.exe",
+    options = BuildOptions.Development,
+});
+```
+
+Then check the output against one of their own builds: the same folders and files (Addressables content
+under `StreamingAssets/aa/`, the store's app-id file, native plugins). Anything their build has and yours
+lacks is a step their pipeline does that you skipped. (This snippet is simplified and was not compiled on
+its own.)
+
 - **Judge it from the log and the files:** `[LudeoBuild] result=Succeeded`, the exe and
   `<Game>_Data/Managed/*.dll` newer than your last edit, and your harness assembly present in
   `Managed/`. Exit code 0 alone proves nothing.
