@@ -1024,18 +1024,23 @@ ApiKey=
 ; BetaBranchName=
 ```
 
-**Ask the human for their Steam id and the beta version name they want**, and set both here: `SteamAuthID` and
+**Explicit auth: ask the human for their Steam id and a Beta Version Name**, and set both here: `SteamAuthID` and
 `BetaBranchName` (via the ini keys above or their `-SteamAuthID=` / `-LudeoBetaBranch=` equivalents).
 `BetaBranchName` is optional for activation — it defaults to production — so unlike Unity's required
 `launcherUserId`/`betaVersion` pair, a missing value here fails *later*, on the platform, rather than at
-`ActivateSession`. Ask for it anyway.
+`ActivateSession`. Ask for it anyway. **Implicit auth** reads neither — ask instead *"which Steam beta branch
+do you run it on?"*
 
-**Then set the same name on the Ludeo environment.** Despite the name, `BetaBranchName` is what **binds the
-build to a Ludeo environment** — the value here and the environment's have to match or the session routes
-somewhere else, silently. **Confirm which environment this build is for** — Step 10 recorded every environment, not one, and an integration often targets several (QA while iterating, production at ship). Name it in the confirmation; if `set_beta_version_name` is **in your tool list**, use it — a **write**: show `environment · old → new`
+**Then match the Beta Version Name on the Ludeo environment.** It is what routes a **local** run to its
+environment — explicit: `BetaBranchName`; implicit: the Steam client's selected beta branch — so a mismatch
+sends the session somewhere else, silently. A cloud run doesn't read it (the `-cloud` path below skips the
+auth block); phase 7 binds that one. **Confirm which environment this build is for** — Step 1 item 10 recorded
+every environment in `sdkSetup.ludeoEnvironments`, not one, and an integration often targets several (QA while
+iterating, production at ship). Name it in the confirmation; if `set_beta_version_name` is **in your tool
+list**, use it — a **write**: show `environment · old → new`, `old` from a fresh `list_game_environments` read,
 and wait for a go-ahead. **It is not deployed yet, so expect it to be absent even when the server is
-connected** — then ask the human to set it in Studio Labs. Re-assert whenever the value changes. See
-[`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
+connected** — then ask the human to set it in Studio Labs. Re-assert whenever the value or the target
+environment changes. See [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
 
 #### Configuration Reference
 
@@ -1197,7 +1202,7 @@ Present this checklist to the human:
 
 Ask these after completing the analysis checklist. Skip questions where code analysis already provides a clear answer.
 
-**Ask short, in the human's words.** For the §3.16 config values, open by saying they go into the Ludeo config for their project, then one line per item: the value you need and where to find it — **API Key** (Studio Labs → Developer Tools → Keys), **Steam ID** and **Beta Version Name** (ask for both together). **Game ID is not a §3.16 value** — it was captured at session-init Step 10; only ask if it is missing. Use those names, not `ApiKey`/`SteamAuthID`/`BetaBranchName`; mapping them onto ini keys is your job, not theirs. No rationale unless the item is a genuine decision — then one sentence and a default. A consequence belongs at the gate that catches it, not in the question.
+**Ask short, in the human's words.** For the §3.16 config values, open by saying they go into the Ludeo config for their project, then one line per item: the value you need and where to find it — **API Key** (Studio Labs → Developer Tools → Keys), **Steam ID** and **Beta Version Name** (explicit — ask for both together; implicit — which Steam beta branch they run). **Game ID is not a §3.16 value** — it was captured at Step 1 item 10; only ask if it is missing. Use those names, not `ApiKey`/`SteamAuthID`/`BetaBranchName`; mapping them onto ini keys is your job, not theirs. No rationale unless the item is a genuine decision — then one sentence and a default. A consequence belongs at the gate that catches it, not in the question.
 
 ### Required Questions
 
@@ -1653,9 +1658,9 @@ The trigger side has **two types**, configured in Studio Lab (**Global Triggers*
 | Non-Ludeoable Area | `StartNoneLudeable` | `StopNoneLudeable` | Creator Flow (irreproducible capture segments) |
 | Pause/Resume | `PauseLudeo` | `ResumeLudeo` | Player Flow (the objective timer must stop) |
 
-> **These names are a convention, not SDK constants.** `SendAction` takes an arbitrary string; the strings only acquire meaning once a matching trigger **exists** in **Studio Lab → the environment → Global Triggers** (which tracked events start and end each segment). You can't see or create them, so **tell the user to create both — Pause/Resume on `PauseLudeo`/`ResumeLudeo`, Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`.** A missing or misnamed trigger drops the action silently: no error, the action still logs, the objective timer keeps counting.
+> If a global-trigger tool has reached [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)'s table by the time you read this, use it (a **write** — confirm first) instead of the hand-off below.
 >
-> If a global-trigger tool has reached [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)'s table by the time you read this, use it (a **write** — confirm first) instead of handing the step over.
+> **These names are a convention, not SDK constants.** `SendAction` takes an arbitrary string; the strings only acquire meaning once a matching trigger **exists** in **Studio Lab → the environment → Global Triggers** (which tracked events start and end each segment). You can't see or create them, so **tell the user to create both — Pause/Resume on `PauseLudeo`/`ResumeLudeo`, Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`.** A missing or misnamed trigger drops the action silently: no error, the action still logs, the objective timer keeps counting.
 
 > **Time-dilation pausing: the component keeps ticking, but `DeltaTime` is scaled.** `bTickEvenWhenPaused` covers *engine* pause; a game that "pauses" by driving `TimeDilation` toward zero leaves the component ticking with `DeltaTime` scaled by the same factor. The transition detector is unaffected (it reads a boolean, not elapsed time), but any `DeltaTime` accumulator in the same component — a write-throttle, a debounce, a deferred-unpause timer — effectively stalls. Use unscaled time (`FApp::GetDeltaTime()` / real-time seconds) for anything that must advance while the game is "paused."
 

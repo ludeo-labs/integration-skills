@@ -32,14 +32,17 @@ Required artifacts from prior phases:
 - [ ] **Global Triggers created** in Studio Labs → the environment: Pause/Resume on
       `PauseLudeo`/`ResumeLudeo`, Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. Ask the user to
       confirm — without them the pause never stops the objective timer, and the failure is silent (phase 03 §5.9.1)
-- [ ] **The environment this build is being shipped to is named, and its Beta Version Name matches the beta branch the build will run on** — confirm *which* environment with the human if more than one is in play — that
-      pairing is what binds the build to a Ludeo environment, and a mismatch routes the cloud session
-      elsewhere with nothing in any log. **`[Ludeo] BetaBranchName` is not the source of truth for a cloud
-      run** — phase 03 §3.16's own sample wraps the whole auth block in `if (!FParse::Param(…, TEXT("cloud")))`
-      and only applies the branch when `SteamAuthID` is set, so on the run this phase certifies the ini value
-      is never read. Compare against the branch the build actually ships on. If it changed since phase 03
-      §3.16, re-assert it (`set_beta_version_name` if it is in your tool list →
-      [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md), otherwise ask the human). Not the game version
+- [ ] **The environment this build ships to is named, and the integrator is in it** — confirm *which* with the
+      human if more than one is in play, and re-read it with `list_game_environments` (if it is in your tool
+      list) rather than trusting `sdkSetup.ludeoEnvironments`. If that entry's `integratorIsMember` isn't true,
+      ask. **A cloud run is bound by assignment, not by the Beta Version Name** — phase 03 §3.16's sample wraps
+      the whole auth block in `if (!FParse::Param(…, TEXT("cloud")))`, so `[Ludeo] BetaBranchName` is never read
+      there; the cloud token selects the environment, and the cloud-run step below assigns the build to it. **The Beta
+      Version Name still routes creators who run the shipped build through Steam**: ask which Steam beta branch
+      they'll run it on — you can't verify this, so record the answer — and if the environment's differs,
+      re-assert it (`set_beta_version_name` if it is in your tool list, a **write**: show `environment · old →
+      new` and wait for a go-ahead; otherwise ask the human — [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)). Not
+      the game version
 - [ ] CLI installed: `npm install -g @ludeo/cli`
 - [ ] Test account + network for verification scenarios
 - [ ] Access token via env var / `ludeo auth set-token` — **never** in git or `ludeo.json`
@@ -84,7 +87,8 @@ Unreal specifics to hand the skill, gate by gate:
 
 Confirm the uploaded build actually runs on Ludeo cloud infrastructure — not just that files uploaded.
 
-1. *(Recommended)* Assign the build to the target environment:
+1. Assign the build to the environment named at the Input Contract gate — `ENV_ID` is that
+   environment's `envId` from that gate's fresh read (no tool → ask the human; Studio Labs → the environment); name it back and confirm before assigning:
    ```bash
    ludeo builds assign --game-id YOUR_GAME_ID --build-id BUILD_ID --env-id ENV_ID
    ```
@@ -103,7 +107,7 @@ Confirm the uploaded build actually runs on Ludeo cloud infrastructure — not j
 
 - Which Unreal packaging command / platform produces the Shipping build, and where does output land?
 - `new`, `sdkFree`, or `modification`? Versions (`--game-version`, `--sdk-version`)?
-- Game ID, token source (local vs CI), and target `--env-id` for cloud run?
+- Game ID and token source (local vs CI)? The cloud run's `--env-id` is the environment named at the Input Contract gate.
 - Can the agent drive the local packaged build for scenarios, or walk through manual steps?
 - Who confirms the Studio Labs cloud session — agent or human?
 

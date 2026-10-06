@@ -49,13 +49,15 @@ final phase — when it passes, the build is live on the platform.
       The failure is silent (phase 6 · task 2 Step 6). If they aren't there yet, or new actions arrived since,
       **offer to create them (and the goals and scores) with browser control — recommended**
       (`learnings/architecture/offer-to-set-up-studio-lab-with-browser-control.md`).
-- [ ] **The environment this build is being shipped to is named, and its Beta Version Name matches the beta branch the build will run on** — confirm *which* environment with the user if more than one is in play — that
-      pairing is what binds the build to a Ludeo environment, and a mismatch routes the cloud session
-      elsewhere with nothing in any log. **On a shipped build (`runWithoutLauncher = false`) the local
-      `LudeoSettings.betaVersion` is not the source of truth** — the SDK takes the branch from the live Steam
-      client, so compare against the branch the build actually ships on, not the settings field. If it changed
-      since phase 1, re-assert it (`ludeo-mcp` server → [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md), or ask
-      the user). Not `--game-version`.
+- [ ] **The environment this build ships to is named, and the integrator is in it** — confirm *which* with the
+      user if more than one is in play, and re-read it with `list_game_environments` (if it is in your tool
+      list) rather than trusting `KYG.md` → **Ludeo platform**. If membership isn't recorded as yes for *this*
+      environment, ask. **A cloud run is bound by assignment, not by the Beta Version Name** — the cloud token
+      selects the environment — so Step 11 assigns the build to that environment after the upload. **The Beta Version Name still routes creators who run the shipped build through Steam**: ask which
+      Steam beta branch they'll run it on — you can't verify this, so record the answer — and if the
+      environment's differs, re-assert it (`set_beta_version_name` if it is in your tool list, a **write**: show
+      `environment · old → new` and wait for a go-ahead; otherwise ask the user —
+      [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)). Not `--game-version`.
 - [ ] [`ludeo-integration-docs/unity/READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md)
       — the agent can't see the Console; the release-build gate (Step 2) reads `Editor.log`.
 
@@ -350,6 +352,19 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
 > processed the build and can run Ludeos from it) as the bar — there is **no discrete step that actually
 > runs/plays a Ludeo in the cloud** to confirm it. Leave this as an explicit gap to fill later (a CLI
 > command or platform action), per the team decision (2026-06-17). Do not fabricate a cloud-run step.
+
+### Step 11: Assign the build to the target environment
+
+The cloud run is bound by assignment, not by the Beta Version Name. Name the environment from the Input
+Contract gate back to the user and wait for a go-ahead, then:
+
+```bash
+ludeo builds assign --game-id <GAME_ID> --build-id <BUILD_ID> --env-id <ENV_ID>
+```
+
+`<ENV_ID>` is that environment's `envId` — from a fresh `list_game_environments` read if it is in your tool
+list, otherwise ask the user for it (Studio Lab → the environment). Or have the user assign it in Studio Lab
+→ Game Builds.
 
 ## 4. Questions to ask the human
 
