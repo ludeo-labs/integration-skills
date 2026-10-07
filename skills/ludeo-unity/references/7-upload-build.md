@@ -19,8 +19,8 @@
 Take the **release player build** (the user triggers it in the Editor), **verify** it is upload-ready
 (release settings gated — no Development/Debug build, no debug flags or cheats reachable; production auth
 gated; native layer self-contained; `validate-build` passing), then **publish** it to
-the Ludeo platform with the `ludeo` CLI and **poll** the build status to `ready`/`success`. This is the
-final phase — when it passes, the build is live on the platform.
+the Ludeo platform with the `ludeo` CLI, **poll** the build status to `ready`/`success`, and **assign** it to
+the target environment. This is the final phase — when it passes, the build is live in that environment.
 
 ## 2. Inputs (Input Contract)
 
@@ -43,21 +43,23 @@ final phase — when it passes, the build is live on the platform.
       to install it or for the path to the binary; do **not** invent a download source.
 - [ ] A Ludeo **access token** and the game's **Game ID** (Studio Lab → **Game Options → Info**). Ask if
       not provided.
-- [ ] **Global Triggers created** in Studio Lab → the environment: Pause/Resume on `PauseLudeo`/`ResumeLudeo`,
+- [ ] **The environment this build ships to is named, and the integrator is in it** — confirm *which* with the
+      user if more than one is in play, and re-read it with `list_game_environments` (if it is in your tool
+      list) rather than trusting `KYG.md` → **Ludeo platform**. If membership isn't recorded as yes for *this*
+      environment, ask; if they don't know, have them check Studio Lab → Environments → Users management. Not knowing doesn't block the upload, but say plainly that their captures there fail silently until it's confirmed. Then ask whether anyone else needs to capture in *this* environment, and invite them per
+      [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md). **A cloud run is bound by assignment, not by the Beta Version Name** — the cloud token
+      selects the environment — so Step 11 assigns the build to that environment after the upload. **The Beta Version Name still routes creators who run the shipped build through Steam**: ask which
+      Steam beta branch they'll run it on — you can't verify this, so record it as that environment's **Steam branch**
+      in `KYG.md` → **Ludeo platform**. Steam's default branch reports **no** branch, which matches an environment whose Beta Version Name is **not set** — never write `public`. If the
+      environment's differs, re-assert it (`set_beta_version_name` if it is in your tool list, a **write**: show
+      `environment · old → new` and wait for a go-ahead; otherwise ask the user —
+      [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)). Not `--game-version`.
+- [ ] **Global Triggers created** in Studio Lab → **the environment named above** (triggers are per environment): Pause/Resume on `PauseLudeo`/`ResumeLudeo`,
       Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. **Ask the user to confirm** — the cloud run
       is the first place the overlay pause happens, and without the trigger it won't stop the objective timer.
       The failure is silent (phase 6 · task 2 Step 6). If they aren't there yet, or new actions arrived since,
       **offer to create them (and the goals and scores) with browser control — recommended**
       (`learnings/architecture/offer-to-set-up-studio-lab-with-browser-control.md`).
-- [ ] **The environment this build ships to is named, and the integrator is in it** — confirm *which* with the
-      user if more than one is in play, and re-read it with `list_game_environments` (if it is in your tool
-      list) rather than trusting `KYG.md` → **Ludeo platform**. If membership isn't recorded as yes for *this*
-      environment, ask. **A cloud run is bound by assignment, not by the Beta Version Name** — the cloud token
-      selects the environment — so Step 11 assigns the build to that environment after the upload. **The Beta Version Name still routes creators who run the shipped build through Steam**: ask which
-      Steam beta branch they'll run it on — you can't verify this, so record the answer — and if the
-      environment's differs, re-assert it (`set_beta_version_name` if it is in your tool list, a **write**: show
-      `environment · old → new` and wait for a go-ahead; otherwise ask the user —
-      [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)). Not `--game-version`.
 - [ ] [`ludeo-integration-docs/unity/READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md)
       — the agent can't see the Console; the release-build gate (Step 2) reads `Editor.log`.
 
@@ -355,11 +357,13 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
 
 ### Step 11: Assign the build to the target environment
 
-The cloud run is bound by assignment, not by the Beta Version Name. Name the environment from the Input
-Contract gate back to the user and wait for a go-ahead, then:
+The cloud run is bound by assignment, not by the Beta Version Name, and only a build at `success` (Step 9)
+can be assigned. Assigning changes what that environment serves — it may replace the build there now — so
+treat it like the upload (Step 8): show `environment · <NEW_BUILD_ID>` and the exact resolved command, then
+wait for an explicit go-ahead. One confirmed assign per environment.
 
 ```bash
-ludeo builds assign --game-id <GAME_ID> --build-id <BUILD_ID> --env-id <ENV_ID>
+ludeo builds assign --game-id <GAME_ID> --build-id <NEW_BUILD_ID> --env-id <ENV_ID>
 ```
 
 `<ENV_ID>` is that environment's `envId` — from a fresh `list_game_environments` read if it is in your tool
@@ -369,6 +373,7 @@ list, otherwise ask the user for it (Studio Lab → the environment). Or have th
 ## 4. Questions to ask the human
 
 - **Build folder path**, **Game ID**, **game version**, **access token** — if not provided.
+- **Target environment** (→ `<ENV_ID>`) — the one named at the Input Contract gate.
 - **SDK version** — always **confirm with the user**; the package manifest can lie (builds use swapped SDKs).
 - **Changes description** — if it can't be inferred from context.
 - **Which major** a minor build attaches to — if ambiguous.
@@ -406,6 +411,8 @@ list, otherwise ask the user for it (Studio Lab → the environment). Or have th
   what was audited/disabled recorded in the verification notes. CI-headless build flagged as the durable fix.
 - `run.bat` at the build root (used as the relative `--exec-path`), launching the exe directly with
   `-logFile -` so game logs reach the cloud runner's stdout collection.
+- The build **assigned** to the environment named at the Input Contract gate (Step 11), after an explicit
+  go-ahead — or assigned by the user in Studio Lab → Game Builds.
 
 ## 7. ✅ Success Criteria
 
@@ -436,6 +443,8 @@ list, otherwise ask the user for it (Studio Lab → the environment). Or have th
 - [ ] `--dry-run` reviewed (file list + resolved flags) and confirmed with the user.
 - [ ] **Final upload ran ONLY after explicit user confirmation** (or the user ran it themselves) — never autonomously.
 - [ ] Final `builds get` confirms status `success` + correct `game-version`/`sdk-version`/build type/`exec-path`.
+- [ ] **Build assigned** to the environment named at the Input Contract gate (`builds assign … --env-id`, after an
+      explicit go-ahead), or by the user in Studio Lab → Game Builds.
 
 ## 8. Common Mistakes
 

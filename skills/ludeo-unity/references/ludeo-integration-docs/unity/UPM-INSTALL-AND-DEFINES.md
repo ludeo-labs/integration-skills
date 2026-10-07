@@ -115,9 +115,9 @@ init.
   Activate on Steam-ready" and [`../05-LIFECYCLE-MANAGEMENT.md`](../05-LIFECYCLE-MANAGEMENT.md)
   "Startup sequence"). In implicit mode, `betaVersion` in `LudeoSettings` is not read — the SDK picks
   up the active beta branch from the live Steam client automatically.
-- **`true` = explicit auth — testing / CI / no-Steam.** You supply `launcherUserId` (a Steam user
-  id) and the SDK authenticates as that user **without Steam running**. Optionally set `betaVersion`
-  to match your Studio Lab environment.
+- **`true` = explicit auth — debugging without Steam; replaced before shipping.** You supply `launcherUserId` (a Steam user
+  id) and the SDK authenticates as that user **without Steam running**. Set `betaVersion` with it —
+  the two are a required pair — matching the Beta Version Name of your Studio Lab environment.
 
 **Don't confuse the two:** enabling `runWithoutLauncher` for a Steam build switches it *out* of
 implicit mode and makes it send a supplied-id auth struct — leave it **off** (and `launcherUserId`

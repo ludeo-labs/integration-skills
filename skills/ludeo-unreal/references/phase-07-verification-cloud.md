@@ -28,21 +28,26 @@ Required artifacts from prior phases:
 - [ ] Ludeo SDK integrated. If not, stop — resume an earlier integration phase
 - [ ] `.ludeo/cloud-upload.json` initialized (by the `cloud-upload` skill)
 - [ ] Shipping build configuration and output path known (or captured in Step 1)
-- [ ] **Game ID** + **Access Token** from [Studio Labs](https://studio.ludeo.com) → **Game Options → Info** (the game **version** uuid — not the backend `gameId`; the Environments page still shows a copy, now being retired)
-- [ ] **Global Triggers created** in Studio Labs → the environment: Pause/Resume on
-      `PauseLudeo`/`ResumeLudeo`, Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. Ask the user to
-      confirm — without them the pause never stops the objective timer, and the failure is silent (phase 03 §5.9.1)
+- [ ] **Game ID** (already in `sdkSetup.ludeoGameId` — ask only if missing) + **Access Token** from [Studio Labs](https://studio.ludeo.com) → **Game Options → Info** (the game **version** uuid — not the backend `gameId`; the Environments page still shows a copy, now being retired)
 - [ ] **The environment this build ships to is named, and the integrator is in it** — confirm *which* with the
       human if more than one is in play, and re-read it with `list_game_environments` (if it is in your tool
       list) rather than trusting `sdkSetup.ludeoEnvironments`. If that entry's `integratorIsMember` isn't true,
-      ask. **A cloud run is bound by assignment, not by the Beta Version Name** — phase 03 §3.16's sample wraps
+      ask; if they don't know, have them check Studio Lab → Environments → Users management. Not knowing doesn't block the upload, but say plainly that their captures there fail silently until it's confirmed. Then ask whether anyone else needs to capture in *this* environment, and invite them per
+      [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md). **A cloud run is bound by assignment, not by the Beta Version Name** — phase 03 §3.16's sample wraps
       the whole auth block in `if (!FParse::Param(…, TEXT("cloud")))`, so `[Ludeo] BetaBranchName` is never read
       there; the cloud token selects the environment, and the cloud-run step below assigns the build to it. **The Beta
       Version Name still routes creators who run the shipped build through Steam**: ask which Steam beta branch
-      they'll run it on — you can't verify this, so record the answer — and if the environment's differs,
+      they'll run it on — you can't verify this, so record it as that entry's `steamBranch`. Steam's default branch reports **no** branch, which matches an environment whose Beta Version Name is **not set** — never write `public`. If the environment's differs,
       re-assert it (`set_beta_version_name` if it is in your tool list, a **write**: show `environment · old →
       new` and wait for a go-ahead; otherwise ask the human — [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)). Not
       the game version
+- [ ] **Global Triggers created** in Studio Labs → **the environment named above** (triggers are per environment): Pause/Resume on
+      `PauseLudeo`/`ResumeLudeo`, Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. Ask the user to
+      confirm — without them the pause never stops the objective timer, and the failure is silent (phase 03 §5.9.1)
+- [ ] **Explicit auth removed before shipping** — `[Ludeo] SteamAuthID` empty in `Config/DefaultGame.ini` (it is
+      packaged), and no `-SteamAuthID=` / `STEAM_AUTH_ID` in `run.bat` or the shipped environment. Explicit auth is
+      a debugging convenience (phase 03 §3.16); left in, every creator who runs the shipped build through Steam
+      authenticates as that one Steam id. The cloud run won't catch it — the `-cloud` path skips auth
 - [ ] CLI installed: `npm install -g @ludeo/cli`
 - [ ] Test account + network for verification scenarios
 - [ ] Access token via env var / `ludeo auth set-token` — **never** in git or `ludeo.json`
@@ -87,8 +92,11 @@ Unreal specifics to hand the skill, gate by gate:
 
 Confirm the uploaded build actually runs on Ludeo cloud infrastructure — not just that files uploaded.
 
-1. Assign the build to the environment named at the Input Contract gate — `ENV_ID` is that
-   environment's `envId` from that gate's fresh read (no tool → ask the human; Studio Labs → the environment); name it back and confirm before assigning:
+1. Assign the build to the environment named at the Input Contract gate. Only a build at `artifacts-created`
+   can be assigned, and assigning changes what that environment serves — it may replace the build there now —
+   so treat it like the upload: show `environment · BUILD_ID` and the exact resolved command, then wait for an
+   explicit go-ahead. One confirmed assign per environment. `ENV_ID` is that environment's `envId` from the
+   gate's fresh read (no tool → ask the human; Studio Labs → the environment):
    ```bash
    ludeo builds assign --game-id YOUR_GAME_ID --build-id BUILD_ID --env-id ENV_ID
    ```

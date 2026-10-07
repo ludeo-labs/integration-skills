@@ -63,7 +63,11 @@ Full reference for the state file the skill creates in the target game repo. SKI
     "cSdk": {
       "method": "bundled-in-plugin-zip|submodule|existing",
       "path": "Plugins/LudeoUESDK/Source/LudeoSDK/SDK"
-    }
+    },
+    "ludeoGameId": "<Studio Labs Game ID — the game version uuid>",
+    "ludeoEnvironments": [
+      { "envId": "<id>", "name": "QA", "betaVersionName": "qa-ludeo", "integratorIsMember": true, "steamBranch": null }
+    ]
   },
   "phases": {
     "1": { "status": "completed", "completedAt": "2026-03-19" },
