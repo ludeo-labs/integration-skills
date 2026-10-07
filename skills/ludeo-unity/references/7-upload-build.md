@@ -41,20 +41,21 @@ the target environment. This is the final phase — when it passes, the build is
 - [ ] The **`validate-build`** user-level skill (the self-contained gate; also writes `run.bat`).
 - [ ] The **`ludeo` CLI** reachable — verify with `ludeo --help`. If not installed/located, **ask the user**
       to install it or for the path to the binary; do **not** invent a download source.
-- [ ] A Ludeo **access token** and the game's **Game ID** (Studio Lab → **Game Options → Info**). Ask if
-      not provided.
-- [ ] **The environment this build ships to is named, and the integrator is in it** — confirm *which* with the
-      user if more than one is in play, and re-read it with `list_game_environments` (if it is in your tool
-      list) rather than trusting `KYG.md` → **Ludeo platform**. If membership isn't recorded as yes for *this*
-      environment, ask; if they don't know, have them check Studio Lab → Environments → Users management. Not knowing doesn't block the upload, but say plainly that their captures there fail silently until it's confirmed. Then ask whether anyone else needs to capture in *this* environment, and invite them per
-      [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md). **A cloud run is bound by assignment, not by the Beta Version Name** — the cloud token
-      selects the environment — so Step 11 assigns the build to that environment after the upload. **The Beta Version Name still routes creators who run the shipped build through Steam**: ask which
-      Steam beta branch they'll run it on — you can't verify this, so record it as that environment's **Steam branch**
-      in `KYG.md` → **Ludeo platform**. Steam's default branch sends no name and reaches one environment, normally Production: confirm which before naming any environment that reads `null`, never put a name on it, never write `public`, and never clear a name with the tool (**The default branch** in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)). On the default branch, the
-      target must be the default environment — compare nothing and write nothing. On a named branch, if the
-      environment's name differs, re-assert it (`set_beta_version_name` if it is in your tool list, a **write**: show
-      `environment · old → new` and wait for a go-ahead; otherwise ask the user —
-      [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)). Not `--game-version`.
+- [ ] A Ludeo **access token**, and the game's **Game ID** (Studio Lab → **Game Options → Info**; already in
+      `KYG.md` → **Ludeo platform** — ask only if missing).
+- [ ] **The environment this build ships to** — each of these, for *that* environment:
+      - **Named.** Confirm *which* with the user if more than one is in play, and re-read it with
+        `list_game_environments` (if it is in your tool list) rather than trusting `KYG.md` → **Ludeo platform**.
+      - **The integrator is in it.** If membership isn't recorded as yes, ask; if they don't know or it's no, have
+        them check or add themselves in Studio Lab → Environments → Users management. That doesn't block the
+        upload, but say plainly that their captures there fail silently until it's done.
+      - **Anyone else who needs to capture there** is invited, per [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
+      - **The branch creators run matches.** Ask which Steam beta branch they'll run the shipped build on — you
+        can't verify this, so record it as that environment's **Steam branch** — then apply
+        **Matching a branch to an environment** in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md); it decides whether anything is written.
+        Not `--game-version`.
+      - **The cloud binding is Step 11.** A cloud run is bound by assignment, not by the Beta Version Name — the
+        cloud token selects the environment.
 - [ ] **Global Triggers created** in Studio Lab → **the environment named above** (triggers are per environment): Pause/Resume on `PauseLudeo`/`ResumeLudeo`,
       Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. **Ask the user to confirm** — the cloud run
       is the first place the overlay pause happens, and without the trigger it won't stop the objective timer.
@@ -358,8 +359,8 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
 
 ### Step 11: Assign the build to the target environment
 
-The cloud run is bound by assignment, not by the Beta Version Name, and only a build at `success` (Step 9)
-can be assigned. Assigning changes what that environment serves — it may replace the build there now — so
+The cloud run is bound by assignment, not by the Beta Version Name, and only a build that `ludeo builds get` reports as
+`success` — not just `ready` — can be assigned. Assigning changes what that environment serves — it may replace the build there now — so
 treat it like the upload (Step 8): show `environment · <NEW_BUILD_ID>` and the exact resolved command, then
 wait for an explicit go-ahead. One confirmed assign per environment.
 

@@ -41,7 +41,7 @@ Required artifacts / pre-flight:
 > **If `list_game_environments` is in your tool list:** ask the user for the Studio Lab **Game ID** — it's in Studio Lab under
 > **Game Options → Info**, and nothing in the repo has it. It is the game **version** uuid — the same value
 > phase 7 passes as `--game-id`, and **not** the backend `gameId`. Then list the game’s environments with
-> `list_game_environments` rather than asking what exists. **Otherwise:** skip the Game ID and ask which
+> `list_game_environments` rather than asking what exists. **Otherwise:** still ask for the Game ID (phase 7 needs it), and ask which
 > environments exist and what Beta Version Name each carries. **Either way, record all of them** (name, id,
 > Beta Version Name) in `KYG.md` → **Ludeo platform** — write it once Step 0a has created the branch, from the §6
 > template; Step 3.5 fills the rest around that block. Which one a given build targets is asked at Step 2, not
@@ -109,18 +109,14 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
   Steam id and `betaVersion` = **that environment's current Beta Version Name** from `KYG.md` — copy it, don't
   ask for a new one. They are a **required pair** — `Activate` rejects if either is missing (`phase 3 · task 5`),
   so explicit auth needs a named environment (QA, never Production). Only if that environment has no name
-  yet, propose one and set it as below. In implicit auth neither is read (see the
+  yet, propose one — the next bullet decides whether that's allowed. In implicit auth neither is read (see the
   `runWithoutLauncher` bullet below).
-- **Match the Beta Version Name on the Ludeo environment** — it is what routes a **local** run to its
-  environment, so a mismatch sends the session somewhere else, silently. The value to match: explicit →
-  `betaVersion`; implicit → the Steam beta branch their Steam client has selected (ask *"which Steam beta
-  branch do you run it on?"*, and record it as the **Steam branch** of the environment confirmed next, in `KYG.md`). Steam's default branch sends no name and reaches one environment, normally Production: confirm which before naming any environment that reads `null`, never put a name on it, never write `public`, and never clear a name with the tool (**The default branch** in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)). **Confirm which environment this build is for** — `KYG.md` → **Ludeo platform**
-  holds every environment, not one, and an integration often targets several (QA while iterating, production
-  at ship). Name it in the confirmation; if `set_beta_version_name` is **in your tool list**, use it (a
-  **write** — show `environment · old → new`, `old` from a fresh `list_game_environments` read, and wait for a
-  go-ahead). **It isn't on production yet, so it may be absent even when the server is connected** — then
-  ask the user to set it in Studio Lab. Re-assert whenever the value or the target environment changes. A
-  cloud run doesn't read it; phase 7 binds that one. See [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
+- **Match the branch to the environment.** Confirm which environment this build is for — `KYG.md` → **Ludeo
+  platform** holds every environment, and an integration often targets several (QA while iterating,
+  production at ship). For implicit auth ask *"which Steam beta branch do you run it on?"* and record it as that
+  environment's **Steam branch**. Then follow **Matching a branch to an environment** in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md) — it
+  decides whether anything is written, and its write rules apply. `set_beta_version_name` isn't on production
+  yet, so expect to hand a write to the user in Studio Lab. A cloud run reads none of this; phase 7 binds it.
 - **`runWithoutLauncher` is the implicit/explicit auth toggle** (the only auth switch — the plugin
   marshals the auth struct from it; no per-call `authDetails` like C++):
   - **Production + creator flows → `false` (implicit).** What the platform and creators run on, and a viable mode for the **whole** integration — you never have to use explicit. Supply **no** id (leave `launcherUserId` empty); the
@@ -265,6 +261,7 @@ Only what can't be inferred from code:
   *"has your Steam account been added to <environment> for this game?"* Creation silently fails without it:
   highlights record but never convert to Ludeos, `canCreateLudeo` still reads true (it is a consent flag, not
   membership), and nothing in any log says why. No tool can answer this — `list_game_environments` returns no membership — so it is always a question.
+  If they don't know, or the answer is no, point them at Studio Lab → Environments → Users management.
   Record the answer per environment in `KYG.md` → **Ludeo platform**, and ask again whenever the target
   environment changes (phase 7's gate does).
 - **Anyone else who needs to make Ludeos** — until the game is live on Ludeo, only people invited to the

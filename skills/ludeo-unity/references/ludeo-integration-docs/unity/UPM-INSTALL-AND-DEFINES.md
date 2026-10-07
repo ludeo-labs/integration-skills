@@ -195,8 +195,9 @@ gated so it can never affect a production build:**
    LudeoManager.SessionManager.CreateSession(out var session);
    ```
 4. **Author `ludeo-dev.ini` with the *actual* QA values — do not ship placeholders.** Ask the user for
-   the tester Steam id, the target environment's Beta Version Name (`betaVersion` — required alongside the
-   Steam id in no-launcher mode; a named QA environment, never Production), whether to skip the launcher, and any Ludeo id to auto-replay, and write them in:
+   the tester Steam id and which environment to debug against, and copy that environment's Beta Version Name
+   from `KYG.md` → Ludeo platform into `betaVersion` (required alongside the Steam id in no-launcher mode; a
+   named QA environment, never Production), whether to skip the launcher, and any Ludeo id to auto-replay, and write them in:
    ```ini
    # Ludeo DEV/QA overrides — applied ONLY in LUDEO_DEV builds, never production. key = value; '#' = comment.
    runWithoutLauncher = true          # true = skip Steam/launcher auth for local QA

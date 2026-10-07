@@ -986,7 +986,7 @@ class GAMENAME_API AMyGameState : public AGameState
 
 ### 3.16 Implementation — Config Setup
 
-**Environment variable helper:** A `SetupLudeoEnv.ps1` script is available in `.ludeo/tools/`. Tell the human: "Before testing, run `. .ludeo/tools/SetupLudeoEnv.ps1` in PowerShell to set the required environment variables interactively. Use `. .ludeo/tools/SetupLudeoEnv.ps1 check` to verify they're set."
+**Environment variable helper:** A `SetupLudeoEnv.ps1` script is available in `.ludeo/tools/`. Tell the human: "Before testing, run `. .ludeo/tools/SetupLudeoEnv.ps1` in PowerShell to set the environment variables interactively — the API key always; the Steam ID and Beta Version Name only for explicit-auth debugging, with the name copied from `sdkSetup.ludeoEnvironments`. Use `. .ludeo/tools/SetupLudeoEnv.ps1 check` to verify they're set."
 
 Add to the **project's** `DefaultGame.ini` (NOT a plugin-specific ini file):
 
@@ -1029,19 +1029,16 @@ here: `SteamAuthID`, and `BetaBranchName` = **that environment's current Beta Ve
 `sdkSetup.ludeoEnvironments` — copy it, don't ask for a new one (via the ini keys above or their
 `-SteamAuthID=` / `-LudeoBetaBranch=` equivalents). An empty `BetaBranchName` sends no name, which reaches the
 default environment (normally Production), the same as Steam's default branch — so never ask for a name *for*
-Production, and prefer debugging against a named QA environment. **Implicit auth** reads neither — ask instead *"which Steam beta branch
-do you run it on?"* and record it as `steamBranch` on the environment confirmed below. Steam's default branch sends no name and reaches one environment, normally Production: confirm which before naming any environment that reads `null`, never put a name on it, never write `public`, and never clear a name with the tool (**The default branch** in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)).
+Production, and prefer debugging against a named QA environment. Only if that environment has no name yet, propose one — the next
+paragraph decides whether that's allowed. **Implicit auth** reads neither — ask instead *"which Steam beta branch
+do you run it on?"* and record it as `steamBranch` on the environment confirmed below.
 
-**Then match the Beta Version Name on the Ludeo environment.** It is what routes a **local** run to its
-environment — explicit: `BetaBranchName`; implicit: the Steam client's selected beta branch — so a mismatch
-sends the session somewhere else, silently. A cloud run doesn't read it (the `-cloud` path in §5.3 skips the
-auth block); phase 7 binds that one. **Confirm which environment this build is for** — Step 1 item 10 recorded
-every environment in `sdkSetup.ludeoEnvironments`, not one, and an integration often targets several (QA while
-iterating, production at ship). Name it in the confirmation; if `set_beta_version_name` is **in your tool
-list**, use it — a **write**: show `environment · old → new`, `old` from a fresh `list_game_environments` read,
-and wait for a go-ahead. **It isn't on production yet, so it may be absent even when the server is
-connected** — then ask the human to set it in Studio Labs. Re-assert whenever the value or the target
-environment changes. See [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
+**Then match the branch to the environment.** Confirm which environment this build is for — Step 1 item 10
+recorded every environment in `sdkSetup.ludeoEnvironments`, and an integration often targets several (QA while
+iterating, production at ship). Then follow **Matching a branch to an environment** in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md) — it
+decides whether anything is written, and its write rules apply. `set_beta_version_name` isn't on production yet,
+so expect to hand a write to the human in Studio Labs. A cloud run reads none of this (the `-cloud` path in §5.3
+skips the auth block); phase 7 binds it.
 
 #### Configuration Reference
 

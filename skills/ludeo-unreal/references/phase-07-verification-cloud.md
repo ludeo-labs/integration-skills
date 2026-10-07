@@ -28,20 +28,22 @@ Required artifacts from prior phases:
 - [ ] Ludeo SDK integrated. If not, stop — resume an earlier integration phase
 - [ ] `.ludeo/cloud-upload.json` initialized (by the `cloud-upload` skill)
 - [ ] Shipping build configuration and output path known (or captured in Step 1)
-- [ ] **Game ID** (already in `sdkSetup.ludeoGameId` — ask only if missing) + **Access Token** from [Studio Labs](https://studio.ludeo.com) → **Game Options → Info** (the game **version** uuid — not the backend `gameId`; the Environments page still shows a copy, now being retired)
-- [ ] **The environment this build ships to is named, and the integrator is in it** — confirm *which* with the
-      human if more than one is in play, and re-read it with `list_game_environments` (if it is in your tool
-      list) rather than trusting `sdkSetup.ludeoEnvironments`. If that entry's `integratorIsMember` isn't true,
-      ask; if they don't know, have them check Studio Labs → Environments → Users management. Not knowing doesn't block the upload, but say plainly that their captures there fail silently until it's confirmed. Then ask whether anyone else needs to capture in *this* environment, and invite them per
-      [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md). **A cloud run is bound by assignment, not by the Beta Version Name** — phase 03 §5.3's `ActivateSession` wraps
-      the whole auth block in `if (!FParse::Param(…, TEXT("cloud")))`, so `[Ludeo] BetaBranchName` is never read
-      there; the cloud token selects the environment, and the cloud-run step below assigns the build to it. **The Beta
-      Version Name still routes creators who run the shipped build through Steam**: ask which Steam beta branch
-      they'll run it on — you can't verify this, so record it as that entry's `steamBranch`. Steam's default branch sends no name and reaches one environment, normally Production: confirm which before naming any environment that reads `null`, never put a name on it, never write `public`, and never clear a name with the tool (**The default branch** in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)). On the default branch, the target must be
-      the default environment — compare nothing and write nothing. On a named branch, if the environment's name
-      differs, re-assert it (`set_beta_version_name` if it is in your tool list, a **write**: show `environment · old →
-      new` and wait for a go-ahead; otherwise ask the human — [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)). Not
-      the game version
+- [ ] **Game ID** (already in `sdkSetup.ludeoGameId` — ask only if missing) from [Studio Labs](https://studio.ludeo.com) → **Game Options → Info** (the game **version** uuid — not the backend `gameId`; the Environments page still shows a copy, now being retired)
+- [ ] **The environment this build ships to** — each of these, for *that* environment:
+      - **Named.** Confirm *which* with the human if more than one is in play, and re-read it with
+        `list_game_environments` (if it is in your tool list) rather than trusting `sdkSetup.ludeoEnvironments`.
+      - **The integrator is in it.** If that entry's `integratorIsMember` isn't true, ask; if they don't know or
+        it's no, have them check or add themselves in Studio Labs → Environments → Users management. That doesn't
+        block the upload, but say plainly that their captures there fail silently until it's done.
+      - **Anyone else who needs to capture there** is invited, per [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
+      - **The branch creators run matches.** Ask which Steam beta branch they'll run the shipped build on — you
+        can't verify this, so record it as that entry's `steamBranch` — then apply
+        **Matching a branch to an environment** in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md); it decides whether anything is written.
+        Not the game version.
+      - **The cloud binding is the cloud-run step below.** A cloud run is bound by assignment, not by the Beta
+        Version Name: phase 03 §5.3's `ActivateSession` wraps the whole auth block in
+        `if (!FParse::Param(…, TEXT("cloud")))`, so `[Ludeo] BetaBranchName` is never read there, and the cloud
+        token selects the environment.
 - [ ] **Global Triggers created** in Studio Labs → **the environment named above** (triggers are per environment): Pause/Resume on
       `PauseLudeo`/`ResumeLudeo`, Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. Ask the user to
       confirm — without them the pause never stops the objective timer, and the failure is silent (phase 03 §5.9.1)
@@ -77,7 +79,7 @@ instead of re-typing its commands here — it owns gates 1–4 and records them 
    (If it cannot be installed in this environment, record the gap and proceed manually with the gate-by-gate
    notes below — see the Stub note above.)
 2. **Invoke the skill** and let it walk gates 1–4 in order, feeding it the Unreal specifics below. Stop at
-   the first gate it fails — do not move on to the cloud-run step until gate 4 reaches `artifacts-created`.
+   the first gate it fails — do not move on to the cloud-run step until gate 4 reaches `artifacts-created` and `ludeo builds get` reports `success`.
 
 Unreal specifics to hand the skill, gate by gate:
 
@@ -85,12 +87,13 @@ Unreal specifics to hand the skill, gate by gate:
   the Ludeo plugin is enabled for Shipping and its module is in packaged `Binaries/` (unless `sdkFree`).
 - **Gate 2 — scenarios:** run applicable scenarios against the **packaged Shipping build** (not
   PIE/editor), adapted from this game's integration code (`new` → full suite, `sdkFree` → `s01` only).
-  The ship gate has already taken `SteamAuthID` out of the ini, so these local runs go implicit — to the
-  default environment, where the integrator may not be a member. Pass `-SteamAuthID=<id>
+  The ship gate has already taken `SteamAuthID` out of the ini, so these local runs go implicit: with no Steam
+  client they fail, and with one they reach whatever environment that branch routes to. Pass `-SteamAuthID=<id>
   -LudeoBetaBranch=<debug environment's name>` on the command line for them (never in `run.bat`).
 - **Gate 3 — build folder:** exec-path is the root `run.bat` that `tools/BuildAndPackage.bat` emits (from
   `tools/run.bat.template`); expect it, `Engine/`, `<Game>/Content/Paks/*.pak`, and the Shipping exe under
-  `<Game>/Binaries/Win64/`. (cloud-upload delegates this to the `validate-build` skill.)
+  `<Game>/Binaries/Win64/`. Check that `run.bat` contains `-cloud` — a `run.bat` generated any other way may not.
+  (cloud-upload delegates this to the `validate-build` skill.)
 - **Gate 4 — upload:** `--exec-path` is the root `run.bat`, **never** the bare game exe — only `run.bat` passes `-cloud`, and
   without it the auth block runs on a machine with no Steam and activation fails;
   `--build-creation-type` matches the compile gate; dry-run before the real upload; let the poll reach
@@ -144,7 +147,7 @@ Confirm the uploaded build actually runs on Ludeo cloud infrastructure — not j
 | Shipping build | Clean package at a known path |
 | `.ludeo/cloud-upload.json` | All gates `pass` including `cloudRun`; `buildId` captured |
 | `.ludeo/integration.json` | `currentPhase: 6` (slice cloud-validated; NOT marked complete) |
-| Ludeo cloud | Build at `artifacts-created` / ready; cloud session confirmed |
+| Ludeo cloud | Build at `success`, assigned to the gate's environment; cloud session confirmed |
 
 ```json
 {
@@ -166,7 +169,8 @@ The agent MUST satisfy **all** of these before marking phase 7 complete:
 - [ ] Pass all verification tests
 - [ ] validate-build passes
 - [ ] Build uploaded via the Ludeo CLI
-- [ ] Platform status polled to ready
+- [ ] Platform status polled to `success`
+- [ ] Build assigned to the environment named at the Input Contract gate, after an explicit go-ahead
 - [ ] Ludeo run in cloud
 - [ ] Access token never printed, logged, or committed
 - [ ] `.ludeo/integration.json` updated — `currentPhase: 6` (slice cloud-validated; integration NOT yet complete — Expansion/Polish follow)
