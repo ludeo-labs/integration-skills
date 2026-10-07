@@ -28,7 +28,8 @@ Required artifacts / pre-flight:
       **Install any that are missing** from `<skill-base-dir>/config/mcp_config.template.json` (SKILL.md →
       *MCP configuration*) — they only connect in a fresh session, so do this before the phase work, not
       after. `ludeo-mcp` **may** carry a deployment suffix; match the prefix, or look for
-      `list_game_environments` in your tool list. If a server can't be connected, say which fallback you're
+      `list_game_environments` in your tool list — but if only `ludeo-mcp-staging` is connected, that doesn't count:
+      ask which platform the game lives on, and for production add the production entry. If a server can't be connected, say which fallback you're
       on and continue. `ludeo-mcp` signs in with OAuth — the user logs in with their Studio Lab account when the
       client prompts; no token goes in the file. A `ludeo-mcp*` server listed without `list_game_environments`
       isn't signed in yet — ask the user to sign in (Claude Code: `/mcp` → Authenticate) before any fallback.
@@ -104,14 +105,16 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
 - Open via **Ludeo → Setup and Show LudeoSettings** (creates/pings `LudeoSettings.asset` under
   `Assets/LudeoSDK/Resources/`).
 - Set `apiKey` (required — Studio Lab → **Developer Tools → Keys**), `gameName`, `gameVersion`.
-- **Explicit auth only** (the `runWithoutLauncher` bullet below picks the mode — settle it first) — **ask for their Steam id and a Beta Version Name**, then set `launcherUserId` = the
-  Steam id and `betaVersion` = that name. They are a **required pair** — `Activate` rejects if either is
-  missing (`phase 3 · task 5`) — so ask for both together. In implicit auth neither is read (see the
+- **Explicit auth only** (the `runWithoutLauncher` bullet below picks the mode — settle it first) — **ask for their Steam id and which environment they'll debug against**, then set `launcherUserId` = the
+  Steam id and `betaVersion` = **that environment's current Beta Version Name** from `KYG.md` — copy it, don't
+  ask for a new one. They are a **required pair** — `Activate` rejects if either is missing (`phase 3 · task 5`),
+  so explicit auth needs a named environment (QA, never Production). Only if that environment has no name
+  yet, propose one and set it as below. In implicit auth neither is read (see the
   `runWithoutLauncher` bullet below).
 - **Match the Beta Version Name on the Ludeo environment** — it is what routes a **local** run to its
   environment, so a mismatch sends the session somewhere else, silently. The value to match: explicit →
   `betaVersion`; implicit → the Steam beta branch their Steam client has selected (ask *"which Steam beta
-  branch do you run it on?"*, and record it as the **Steam branch** of the environment confirmed next, in `KYG.md`; Steam's default branch reports **no** branch, which matches an environment whose Beta Version Name is **not set** — never write `public`.). **Confirm which environment this build is for** — `KYG.md` → **Ludeo platform**
+  branch do you run it on?"*, and record it as the **Steam branch** of the environment confirmed next, in `KYG.md`). Steam's default branch sends no name and reaches one environment, normally Production: confirm which before naming any environment that reads `null`, never put a name on it, never write `public`, and never clear a name with the tool (**The default branch** in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)). **Confirm which environment this build is for** — `KYG.md` → **Ludeo platform**
   holds every environment, not one, and an integration often targets several (QA while iterating, production
   at ship). Name it in the confirmation; if `set_beta_version_name` is **in your tool list**, use it (a
   **write** — show `environment · old → new`, `old` from a fresh `list_game_environments` read, and wait for a
@@ -246,7 +249,7 @@ private static void LudeoSmokeTest()
 **Ask short, in the integrator's words.** Open by telling them these values go into the **Ludeo settings
 asset** in their project — otherwise the list reads as trivia. Then one line per item: the value you need
 and where to find it. Use the names they see, not the field names — **API Key**, **Game Name**, **Game
-Version**, **Steam ID** and **Beta Version Name** (explicit auth; implicit → which Steam beta branch they run); mapping those onto `apiKey`/`launcherUserId`/`betaVersion`
+Version**, **Steam ID** and the environment to debug against (explicit auth; implicit → which Steam beta branch they run); mapping those onto `apiKey`/`launcherUserId`/`betaVersion`
 is your job in Step 2, not theirs. No rationale unless the item is a genuine decision — then one sentence
 and a default. A consequence belongs at the gate that catches it, not in the question.
 
@@ -255,8 +258,8 @@ Only what can't be inferred from code:
   `github.com/ludeo-labs/unity-plugin-releases`; ask only whether they need a specific pinned version
   or were given a custom build (private tarball / `.unitypackage`).
 - **API Key** (→ `apiKey`) — Studio Lab → **Developer Tools → Keys**; **Game Name**, **Game Version**.
-- **Beta branch** — depends on the auth mode (below). Explicit: **Steam ID** + **Beta Version Name**
-  (→ `launcherUserId`, `betaVersion`), asked together — they're a pair. Implicit: *"which Steam beta branch do
+- **Beta branch** — depends on the auth mode (below). Explicit: **Steam ID** + **which environment** to debug
+  against (→ `launcherUserId`, and `betaVersion` copied from that environment's name). Implicit: *"which Steam beta branch do
   you run it on?"* Either way it has to match the Beta Version Name on the environment this build targets.
 - **Is the integrator's own Steam user in each recorded environment?** Name the environment —
   *"has your Steam account been added to <environment> for this game?"* Creation silently fails without it:
@@ -335,8 +338,9 @@ Context files (read first; relative to this workflow file):
 
 ## Ludeo platform
 - Game ID (Studio Lab → Game Options → Info; the game version uuid):
+- Studio MCP server in use (e.g. `ludeo-mcp`):
 - Environments (a cache — re-read with `list_game_environments` before any write):
-  - <name> · <envId> · Beta Version Name: <name | null | ""> · Steam branch (implicit): <name | ?> · integrator in it? <yes/no/?> · invited: <names>
+  - <name> · <envId> · Beta Version Name: <name | null | ""> · Steam branch: <name | default (a user saying "public" means this) | ?> · integrator in it? <yes/no/?> · invited: <names>
 
 ## Launch model
 - Creator launch: menu-gated | boot-straight-to-gameplay

@@ -19,7 +19,7 @@
     },
     "ludeo-mcp": {
       "_purpose": "Automates Studio Lab platform work the agent otherwise hands to the user (environments, beta version, ...). Touchpoints, cadence, and the read/write policy: references/ludeo-studio-mcp.md. Fallback: ask the user to do the step in Studio Lab.",
-      "_auth_note": "No token to paste — the server signs in with OAuth. The client prompts the user to log in with their Studio Lab account (Claude Code: /mcp → Authenticate). A staging deployment may appear as ludeo-mcp-staging; identify the server by its tools (list_game_environments, ping).",
+      "_auth_note": "No token to paste — the server signs in with OAuth. The client prompts the user to log in with their Studio Lab account (Claude Code: /mcp → Authenticate). A staging deployment may appear as ludeo-mcp-staging; identify the server by its tools (list_game_environments, ping). A staging-only connection doesn't count for a studio's game: add this production entry.",
       "type": "http",
       "url": "https://mcp.ludeo.com/mcp"
     }

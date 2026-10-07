@@ -1020,20 +1020,21 @@ ApiKey=
 ; also: -SteamAuthID= or STEAM_AUTH_ID
 ; SteamAuthID=
 
-; Beta branch name (optional — for staging environments) — also: -LudeoBetaBranch= or LUDEO_STEAM_BETA_BRANCH
+; Target environment's Beta Version Name — explicit auth only; empty reaches the default environment — also: -LudeoBetaBranch= or LUDEO_STEAM_BETA_BRANCH
 ; BetaBranchName=
 ```
 
-**Explicit auth: ask the human for their Steam id and a Beta Version Name**, and set both here: `SteamAuthID` and
-`BetaBranchName` (via the ini keys above or their `-SteamAuthID=` / `-LudeoBetaBranch=` equivalents).
-`BetaBranchName` is optional for activation — it defaults to production — so unlike Unity's required
-`launcherUserId`/`betaVersion` pair, a missing value here fails *later*, on the platform, rather than at
-`ActivateSession`. Ask for it anyway. **Implicit auth** reads neither — ask instead *"which Steam beta branch
-do you run it on?"* and record it as `steamBranch` on the environment confirmed below. Steam's default branch reports **no** branch, which matches an environment whose Beta Version Name is **not set** — never write `public`.
+**Explicit auth: ask the human for their Steam id and which environment they'll debug against**, and set them
+here: `SteamAuthID`, and `BetaBranchName` = **that environment's current Beta Version Name** from
+`sdkSetup.ludeoEnvironments` — copy it, don't ask for a new one (via the ini keys above or their
+`-SteamAuthID=` / `-LudeoBetaBranch=` equivalents). An empty `BetaBranchName` sends no name, which reaches the
+default environment (normally Production), the same as Steam's default branch — so never ask for a name *for*
+Production, and prefer debugging against a named QA environment. **Implicit auth** reads neither — ask instead *"which Steam beta branch
+do you run it on?"* and record it as `steamBranch` on the environment confirmed below. Steam's default branch sends no name and reaches one environment, normally Production: confirm which before naming any environment that reads `null`, never put a name on it, never write `public`, and never clear a name with the tool (**The default branch** in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)).
 
 **Then match the Beta Version Name on the Ludeo environment.** It is what routes a **local** run to its
 environment — explicit: `BetaBranchName`; implicit: the Steam client's selected beta branch — so a mismatch
-sends the session somewhere else, silently. A cloud run doesn't read it (the `-cloud` path below skips the
+sends the session somewhere else, silently. A cloud run doesn't read it (the `-cloud` path in §5.3 skips the
 auth block); phase 7 binds that one. **Confirm which environment this build is for** — Step 1 item 10 recorded
 every environment in `sdkSetup.ludeoEnvironments`, not one, and an integration often targets several (QA while
 iterating, production at ship). Name it in the confirmation; if `set_beta_version_name` is **in your tool
@@ -1050,7 +1051,7 @@ environment changes. See [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
 | GameVersion | — | — | `[Ludeo] GameVersion` | `FApp::GetBuildVersion()` |
 | PlatformUrl | `-LudeoPlatformUrl=` | `LUDEO_PLATFORM_URL` | `[Ludeo] PlatformUrl` | production default |
 | SteamAuthID | `-SteamAuthID=` | `STEAM_AUTH_ID` | `[Ludeo] SteamAuthID` | implicit auth |
-| BetaBranch | `-LudeoBetaBranch=` | `LUDEO_STEAM_BETA_BRANCH` | `[Ludeo] BetaBranchName` | production |
+| BetaBranch | `-LudeoBetaBranch=` | `LUDEO_STEAM_BETA_BRANCH` | `[Ludeo] BetaBranchName` | none — reaches the default environment (normally Production) |
 
 ### 3.17 Implementation — Compile-Fix Loop
 
@@ -1202,7 +1203,7 @@ Present this checklist to the human:
 
 Ask these after completing the analysis checklist. Skip questions where code analysis already provides a clear answer.
 
-**Ask short, in the human's words.** For the §3.16 config values, open by saying they go into the Ludeo config for their project, then one line per item: the value you need and where to find it — **API Key** (Studio Labs → Developer Tools → Keys), **Steam ID** and **Beta Version Name** (explicit — ask for both together; implicit — which Steam beta branch they run). **Game ID is not a §3.16 value** — it was recorded at Step 1 item 10 as `sdkSetup.ludeoGameId`; only ask if it is missing. Use those names, not `ApiKey`/`SteamAuthID`/`BetaBranchName`; mapping them onto ini keys is your job, not theirs. No rationale unless the item is a genuine decision — then one sentence and a default. A consequence belongs at the gate that catches it, not in the question.
+**Ask short, in the human's words.** For the §3.16 config values, open by saying they go into the Ludeo config for their project, then one line per item: the value you need and where to find it — **API Key** (Studio Labs → Developer Tools → Keys), **Steam ID** and the environment to debug against (explicit — its Beta Version Name is copied from `sdkSetup.ludeoEnvironments`, not asked for; implicit — which Steam beta branch they run). **Game ID is not a §3.16 value** — it was recorded at Step 1 item 10 as `sdkSetup.ludeoGameId`; only ask if it is missing. Use those names, not `ApiKey`/`SteamAuthID`/`BetaBranchName`; mapping them onto ini keys is your job, not theirs. No rationale unless the item is a genuine decision — then one sentence and a default. A consequence belongs at the gate that catches it, not in the question.
 
 ### Required Questions
 
@@ -1356,7 +1357,8 @@ void ULudeoSessionSubsystem::ActivateSession()
     //   - Implicit: Steam is initialized (SteamAPI_Init called). SDK reads Steam user automatically.
     //     Works in shipping builds where Steam launches the game.
     //   - Explicit: SteamAuthID provided via CLI/env/config. Required when Steam is NOT
-    //     initialized (editor, sample projects, non-Steam games). A -cloud run skips this
+    //     initialized (editor, sample projects, non-Steam games) — debugging only, never shipped
+    //     (phase 07 gate). A -cloud run skips this
     //     block entirely; the cloud token authenticates.
     //
     // The code below resolves explicit auth from CLI → env → config. If found, it's used.
@@ -1364,7 +1366,7 @@ void ULudeoSessionSubsystem::ActivateSession()
     // activation will fail with InvalidParameters.
     //
     // DO NOT SKIP THIS BLOCK because "this game doesn't use Steam." Every Ludeo-integrated
-    // game needs auth. "Doesn't use Steam" = USE EXPLICIT AUTH, not "skip auth."
+    // game needs auth. "Doesn't use Steam" = explicit auth while debugging, not "skip auth."
     //
     // NOTE: Verify field names against current SDK headers (FLudeoSessionTypes.h).
     // Steam auth is NESTED inside FLudeoSessionSteamAuthenticationData.

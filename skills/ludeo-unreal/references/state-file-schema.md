@@ -64,9 +64,11 @@ Full reference for the state file the skill creates in the target game repo. SKI
       "method": "bundled-in-plugin-zip|submodule|existing",
       "path": "Plugins/LudeoUESDK/Source/LudeoSDK/SDK"
     },
+    "ludeoMcpServer": "ludeo-mcp",
     "ludeoGameId": "<Studio Labs Game ID — the game version uuid>",
     "ludeoEnvironments": [
-      { "envId": "<id>", "name": "QA", "betaVersionName": "qa-ludeo", "integratorIsMember": true, "steamBranch": null }
+      { "envId": "<id>", "name": "QA", "betaVersionName": "qa-ludeo", "integratorIsMember": true, "steamBranch": "qa-ludeo", "invited": ["Alice"] },
+      { "envId": "<id>", "name": "Production", "betaVersionName": null, "integratorIsMember": null, "steamBranch": "", "invited": [] }
     ]
   },
   "phases": {
@@ -109,4 +111,5 @@ Full reference for the state file the skill creates in the target game repo. SKI
 - `curatedSlice`: Set during Phase 2 — defines the gameplay moment that Phases 4-6 are scoped to. Entities and actions are populated during analysis and confirmed by the human.
 - `curatedSlice.restorationApproach`: Set during Phase 2 — `"reconciliation"` (use SaveWorld + property filters, like FPSGameStarterKit) or `"manual"` (read each property from DataReader, apply to spawned entities). Drives Phase 5 Player Flow implementation.
 - `stateApproach`: Set during Phase 5 — `"SaveWorld"` or `"Manual"` (may differ from restoration approach for full game coverage in Phase 8).
+- `ludeoEnvironments[]`: `integratorIsMember: null` = unknown; `steamBranch: ""` = Steam's default branch (what a human means by "public"), `null` = not asked yet; `invited` holds names, never emails.
 - Phases also accumulate fields not shown in the template above as the integration progresses (e.g. `tools`, `intake`, `pauseMechanism`, `skillImprovementNotes`) — preserve unknown fields when updating, never rewrite the file from this template.

@@ -50,8 +50,9 @@ the target environment. This is the final phase — when it passes, the build is
       [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md). **A cloud run is bound by assignment, not by the Beta Version Name** — the cloud token
       selects the environment — so Step 11 assigns the build to that environment after the upload. **The Beta Version Name still routes creators who run the shipped build through Steam**: ask which
       Steam beta branch they'll run it on — you can't verify this, so record it as that environment's **Steam branch**
-      in `KYG.md` → **Ludeo platform**. Steam's default branch reports **no** branch, which matches an environment whose Beta Version Name is **not set** — never write `public`. If the
-      environment's differs, re-assert it (`set_beta_version_name` if it is in your tool list, a **write**: show
+      in `KYG.md` → **Ludeo platform**. Steam's default branch sends no name and reaches one environment, normally Production: confirm which before naming any environment that reads `null`, never put a name on it, never write `public`, and never clear a name with the tool (**The default branch** in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)). On the default branch, the
+      target must be the default environment — compare nothing and write nothing. On a named branch, if the
+      environment's name differs, re-assert it (`set_beta_version_name` if it is in your tool list, a **write**: show
       `environment · old → new` and wait for a go-ahead; otherwise ask the user —
       [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)). Not `--game-version`.
 - [ ] **Global Triggers created** in Studio Lab → **the environment named above** (triggers are per environment): Pause/Resume on `PauseLudeo`/`ResumeLudeo`,
