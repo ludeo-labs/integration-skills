@@ -22,8 +22,31 @@ Required artifacts / pre-flight:
       latest release is a single `.zip` containing the UPM package `com.ludeosdk.unity` (see Step 0b).
       Use a different source **only** if Ludeo explicitly hands you a specific build (a pinned tag, a
       private tarball, or a `.unitypackage`).
-- [ ] **`apiKey`** obtained from the user (required for `LudeoSettings`).
+- [ ] **`apiKey`** obtained from the user (required for `LudeoSettings`) — it's in Studio Lab under
+      **Developer Tools → Keys**; say so when you ask, rather than leaving them to hunt for it.
+- [ ] **MCP servers connected** — `sdk-docs` (SDK detail) and **`ludeo-mcp`** (Studio Lab automation).
+      **Install any that are missing** from `<skill-base-dir>/config/mcp_config.template.json` (SKILL.md →
+      *MCP configuration*) — they only connect in a fresh session, so do this before the phase work, not
+      after. `ludeo-mcp` **may** carry a deployment suffix; match the prefix, or look for
+      `list_game_environments` in your tool list — but if only `ludeo-mcp-staging` is connected, that doesn't count:
+      ask which platform the game lives on, and for production add the production entry. If a server can't be connected, say which fallback you're
+      on and continue. `ludeo-mcp` signs in with OAuth — the user logs in with their Studio Lab account when the
+      client prompts; no token goes in the file. A `ludeo-mcp*` server listed without `list_game_environments`
+      isn't signed in yet — ask the user to sign in (Claude Code: `/mcp` → Authenticate) before any fallback.
+      If one has to be added, say so
+      and ask the user to restart the session and resume phase 1; that restart is expected, not the
+      prior-context STOP above.
 - [ ] Context files read (§5).
+
+> **If `list_game_environments` is in your tool list:** ask the user for the Studio Lab **Game ID** — it's in Studio Lab under
+> **Game Options → Info**, and nothing in the repo has it. It is the game **version** uuid — the same value
+> phase 7 passes as `--game-id`, and **not** the backend `gameId`. Then list the game’s environments with
+> `list_game_environments` rather than asking what exists. **Otherwise:** still ask for the Game ID (phase 7 needs it), and ask which
+> environments exist and what Beta Version Name each carries. **Either way, record all of them** (name, id,
+> Beta Version Name) in `KYG.md` → **Ludeo platform** — write it once Step 0a has created the branch, from the §6
+> template; Step 3.5 fills the rest around that block. Which one a given build targets is asked at Step 2, not
+> here. **Resuming an integration whose `KYG.md` has no Ludeo platform block?** Run this once, plus the
+> membership question (§4). Touchpoints + read/write policy: [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
 
 ## 3. Steps
 
@@ -81,15 +104,27 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
 ### Step 2 — Configure `LudeoSettings`
 - Open via **Ludeo → Setup and Show LudeoSettings** (creates/pings `LudeoSettings.asset` under
   `Assets/LudeoSDK/Resources/`).
-- Set `apiKey` (required), `gameName`, `gameVersion`.
+- Set `apiKey` (required — Studio Lab → **Developer Tools → Keys**), `gameName`, `gameVersion`.
+- **Explicit auth only** (the `runWithoutLauncher` bullet below picks the mode — settle it first) — **ask for their Steam id and which environment they'll debug against**, then set `launcherUserId` = the
+  Steam id and `betaVersion` = **that environment's current Beta Version Name** from `KYG.md` — copy it, don't
+  ask for a new one. They are a **required pair** — `Activate` rejects if either is missing (`phase 3 · task 5`),
+  so explicit auth needs a named environment (QA, never Production). Only if that environment has no name
+  yet, propose one — the next bullet decides whether that's allowed. In implicit auth neither is read (see the
+  `runWithoutLauncher` bullet below).
+- **Match the branch to the environment.** Confirm which environment this build is for — `KYG.md` → **Ludeo
+  platform** holds every environment, and an integration often targets several (QA while iterating,
+  production at ship). For implicit auth ask *"which Steam beta branch do you run it on?"* and record it as that
+  environment's **Steam branch**. Then follow **Matching a branch to an environment** in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md) — it
+  decides whether anything is written, and its write rules apply. `set_beta_version_name` isn't on production
+  yet, so expect to hand a write to the user in Studio Lab. A cloud run reads none of this; phase 7 binds it.
 - **`runWithoutLauncher` is the implicit/explicit auth toggle** (the only auth switch — the plugin
   marshals the auth struct from it; no per-call `authDetails` like C++):
-  - **Production (Steam) → `false` (implicit).** Supply **no** id (leave `launcherUserId` empty); the
+  - **Production + creator flows → `false` (implicit).** What the platform and creators run on, and a viable mode for the **whole** integration — you never have to use explicit. Supply **no** id (leave `launcherUserId` empty); the
     SDK auto-detects Steam but **does not init it** — Steam must be up before `Activate` or it returns
     `InvalidAuth`. Set the real Steam **app id** (not `0`). **Dev flags off.** Implicit auth is a
     code-ordering concern (gate `Activate`) and can't be validated from a cloud build — detail in
     `unity/UPM-INSTALL-AND-DEFINES.md §3-4`.
-  - **Testing / CI without Steam → `true` (explicit).** Set `launcherUserId` (a Steam id); no Steam
+  - **Debugging without Steam → `true` (explicit).** A convenience, and it **must be replaced before shipping** — phase 7 gates it before the upload. Set `launcherUserId` (a Steam id); no Steam
     needed. Optionally `autoStartInLudeo` + `ludeoToAutoStart` to force the replay flow on launch.
 - **⚠️ A shipped/cloud build MUST have `runWithoutLauncher = false`.** Left `true`, the build still
   runs locally but **fails to authenticate on the Ludeo cloud** (the platform is the launcher) — an
@@ -108,7 +143,7 @@ The project still **compiles** and the game still **plays** (package present, un
 package didn't break the baseline.
 
 ### Step 3.5 — Run the KYG (know your game) questionnaire ⭐
-Fill `ludeo-integration-plan/KYG.md` (template in §6) with the user. Answer with `file:line`
+Fill `ludeo-integration-plan/KYG.md` (template in §6) with the user, keeping the **Ludeo platform** block §2 wrote. Answer with `file:line`
 evidence where it comes from code; mark unknowns `?`; **ask** the human-only items (§4). Three parts:
 
 1. **Game + Ludeo profile** — identity, genre (→ a `game-patterns/*.md` match), engine/render
@@ -207,14 +242,41 @@ private static void LudeoSmokeTest()
 
 ## 4. Questions to ask the human
 
+**Ask short, in the integrator's words.** Open by telling them these values go into the **Ludeo settings
+asset** in their project — otherwise the list reads as trivia. Then one line per item: the value you need
+and where to find it. Use the names they see, not the field names — **API Key**, **Game Name**, **Game
+Version**, **Steam ID** and the environment to debug against (explicit auth; implicit → which Steam beta branch they run); mapping those onto `apiKey`/`launcherUserId`/`betaVersion`
+is your job in Step 2, not theirs. No rationale unless the item is a genuine decision — then one sentence
+and a default. A consequence belongs at the gate that catches it, not in the question.
+
 Only what can't be inferred from code:
 - **Plugin version** — default is the **latest** release from
   `github.com/ludeo-labs/unity-plugin-releases`; ask only whether they need a specific pinned version
   or were given a custom build (private tarball / `.unitypackage`).
-- **`apiKey`**, `gameName`, `gameVersion`.
-- **Auth mode** — implicit Steam (`runWithoutLauncher = false`, production; needs Steam initialized
-  before `Activate`) vs explicit no-Steam (`runWithoutLauncher = true` + `launcherUserId`, testing/CI).
-  Steam appId if applicable.
+- **API Key** (→ `apiKey`) — Studio Lab → **Developer Tools → Keys**; **Game Name**, **Game Version**.
+- **Beta branch** — depends on the auth mode (below). Explicit: **Steam ID** + **which environment** to debug
+  against (→ `launcherUserId`, and `betaVersion` copied from that environment's name). Implicit: *"which Steam beta branch do
+  you run it on?"* Either way it has to match the Beta Version Name on the environment this build targets.
+- **Is the integrator's own Steam user in each recorded environment?** Name the environment —
+  *"has your Steam account been added to <environment> for this game?"* Creation silently fails without it:
+  highlights record but never convert to Ludeos, `canCreateLudeo` still reads true (it is a consent flag, not
+  membership), and nothing in any log says why. No tool can answer this — `list_game_environments` returns no membership — so it is always a question.
+  If they don't know, or the answer is no, point them at Studio Lab → Environments → Users management.
+  Record the answer per environment in `KYG.md` → **Ludeo platform**, and ask again whenever the target
+  environment changes (phase 7's gate does).
+- **Anyone else who needs to make Ludeos** — until the game is live on Ludeo, only people invited to the
+  environment can capture; for everyone else it just doesn't work, with nothing to say why. Ask here, and
+  again when the target environment changes, in those terms — not as an access-control question ("who should have project access?" means nothing
+  to them; "who else on your team needs to capture?" does. Teammates, QA, a producer who wants to try it).
+  Then invite whoever they name, by email, into the environment(s) they'll capture in — **`invite_user_to_env` is a
+  write that reaches real people: show `environment · every invitee's email` and wait for a go-ahead before
+  calling it, once per batch, not once per name** (it isn't on production yet, so it may be absent from your tool
+  list; then fall back to asking them to invite in Studio Lab; see [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)).
+  Default: just them.
+- **Auth mode** — **implicit** (`runWithoutLauncher = false`) is what production and creators run on, and an
+  integration can run on it **start to finish**; say that, so they know explicit is optional. **Explicit**
+  (`true` + `launcherUserId`) is a debugging convenience — no Steam client needed — that **must be replaced
+  before shipping** (gated at phase 7, before the upload). Steam appId if applicable.
 - **Ludeo concept** (KYG §) — what makes a good highlight moment in this game; what the player
   should experience when launching a Ludeo; typical Ludeo length; which player actions matter most.
 - **Bosses** — does the game have boss / named / scripted-encounter enemies? If a boss fight is a likely
@@ -264,12 +326,18 @@ Context files (read first; relative to this workflow file):
 - Core loop (1–2 sentences):
 - Unity version / render pipeline / scripting backend (Mono | IL2CPP):
 - Target platform (Ludeo capture = Windows desktop):
-- Auth: apiKey set? · gameName/gameVersion · Steam appId? · runWithoutLauncher: false=implicit/Steam (prod) | true+launcherUserId=explicit (testing/CI)
+- Auth: apiKey set? · gameName/gameVersion · Steam appId? · runWithoutLauncher: false=implicit/Steam (prod) | true+launcherUserId=explicit (debugging only — replaced before shipping)
 - Ludeo concept:
   - What is a good highlight moment in this game?
   - What should the player experience when launching a Ludeo (the restored moment)?
   - Typical Ludeo length (seconds):
   - Which player actions matter most (early action candidates)?
+
+## Ludeo platform
+- Game ID (Studio Lab → Game Options → Info; the game version uuid):
+- Studio MCP server in use (e.g. `ludeo-mcp`):
+- Environments (a cache — re-read with `list_game_environments` before any write):
+  - <name> · <envId> · Beta Version Name: <name | null | ""> · Steam branch: <name | default (a user saying "public" means this) | ?> · integrator in it? <yes/no/?> · invited: <names>
 
 ## Launch model
 - Creator launch: menu-gated | boot-straight-to-gameplay
@@ -314,6 +382,8 @@ The gate — satisfy all before advancing to phase 2.
 - [ ] `LudeoSettings.asset` present with a real `apiKey`; dev flags appropriate for the build.
 - [ ] `LudeoManager.Initialize()` returns a `LudeoResult` (not `WrapperDllNotFound`), and
       `SessionManager.CreateSession` succeeds, in the **Editor and a player build**.
+- [ ] `KYG.md` → **Ludeo platform** lists every environment (name, id when known, Beta Version Name) and whether the
+      integrator is in each.
 - [ ] _(Self-contained build + `validate-build` — **moved to phase 7**, `7-upload-build.md` Step 3–4.)_
 
 ## 8. Common Mistakes

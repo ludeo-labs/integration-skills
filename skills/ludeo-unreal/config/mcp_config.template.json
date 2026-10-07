@@ -1,5 +1,5 @@
 {
-  "_comment": "Template for the two MCP servers this skill uses. Copy the relevant entries into your agent's MCP config (Claude Code: .mcp.json at the project root, or `claude mcp add`), then fill in the redacted credentials. For sdk-docs, set X-User-Name to your Ludeo username (the local-part of your Ludeo email, e.g. jane.doe) — it identifies the caller. Both servers are optional — the skill falls back to bundled references/ when they are absent (see SKILL.md → Check MCP Servers). Ask the Ludeo integrations team for current URLs and credentials.",
+  "_comment": "Template for the MCP servers this skill uses. Copy the relevant entries into your agent's MCP config (Claude Code: .mcp.json at the project root, or `claude mcp add`), then fill in the redacted credentials for sdk-docs and ludeo-context — ludeo-mcp needs none, it signs in with OAuth. For sdk-docs, set X-User-Name to your Ludeo username (the local-part of your Ludeo email, e.g. jane.doe) — it identifies the caller. All three are optional. sdk-docs and ludeo-context fall back to the bundled references/; ludeo-mcp falls back to asking the human to do the step in Studio Labs (see SKILL.md → Check MCP Servers). Ask the Ludeo integrations team for current URLs and credentials for those two.",
   "mcpServers": {
     "sdk-docs": {
       "_purpose": "Search the Ludeo SDK documentation — API reference, method signatures, parameter structs, callback chains. Primary source for SDK details at any phase. Fallback: bundled references/sdk-reference/ (concepts only) plus grepping the installed plugin headers under Plugins/LudeoUESDK/Source/ for exact signatures.",
@@ -16,6 +16,12 @@
       "headers": {
         "Authorization": "Bearer <your-token>"
       }
+    },
+    "ludeo-mcp": {
+      "_purpose": "Automates Studio Labs platform work the agent otherwise hands to the human (environments, beta version, ...). Touchpoints, cadence, and the read/write policy: references/ludeo-studio-mcp.md. Fallback: ask the human to do the step in Studio Labs.",
+      "_auth_note": "No token to paste — the server signs in with OAuth. The client prompts the human to log in with their Studio Labs account (Claude Code: /mcp → Authenticate). A staging deployment may appear as ludeo-mcp-staging; identify the server by its tools (list_game_environments, ping). A staging-only connection doesn't count for a studio's game: add this production entry.",
+      "type": "http",
+      "url": "https://mcp.ludeo.com/mcp"
     }
   }
 }

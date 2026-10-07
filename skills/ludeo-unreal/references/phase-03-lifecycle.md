@@ -986,7 +986,7 @@ class GAMENAME_API AMyGameState : public AGameState
 
 ### 3.16 Implementation — Config Setup
 
-**Environment variable helper:** A `SetupLudeoEnv.ps1` script is available in `.ludeo/tools/`. Tell the human: "Before testing, run `. .ludeo/tools/SetupLudeoEnv.ps1` in PowerShell to set the required environment variables interactively. Use `. .ludeo/tools/SetupLudeoEnv.ps1 check` to verify they're set."
+**Environment variable helper:** A `SetupLudeoEnv.ps1` script is available in `.ludeo/tools/`. Tell the human: "Before testing, run `. .ludeo/tools/SetupLudeoEnv.ps1` in PowerShell to set the environment variables interactively — the API key always; the Steam ID and Beta Version Name only for explicit-auth debugging, with the name copied from `sdkSetup.ludeoEnvironments`. Use `. .ludeo/tools/SetupLudeoEnv.ps1 check` to verify they're set."
 
 Add to the **project's** `DefaultGame.ini` (NOT a plugin-specific ini file):
 
@@ -996,6 +996,8 @@ Add to the **project's** `DefaultGame.ini` (NOT a plugin-specific ini file):
 
 **Auth type detection is presence-based** — do NOT gate Steam auth on a config flag like `AuthenticationType=Steam`. The presence of a `SteamAuthID` value (from any source) IS the signal to use Steam auth.
 
+**Which mode to run in:** implicit (no `SteamAuthID`, live Steam client) is what production and creators run on, and an integration can run on it **start to finish** — tell the human that, so they know explicit is optional. Explicit (`SteamAuthID` set) authenticates as a supplied id with no Steam client: a debugging convenience that **must be replaced before shipping**, gated in phase 07 before the upload.
+
 **Config section naming convention:** Always use `[Ludeo]` as the section name (not `[Ludeo.SessionActivate]` or other sub-sections). All integration config goes under a single flat `[Ludeo]` section. This matches the `GConfig->GetString(TEXT("Ludeo"), ...)` calls in the ActivateSession code.
 
 ```ini
@@ -1004,7 +1006,8 @@ Add to the **project's** `DefaultGame.ini` (NOT a plugin-specific ini file):
 ; Resolution order: command-line → env var → this config file.
 ; Each parameter checks all three sources independently.
 
-; API key (required) — also: -LudeoApiKey= or LUDEO_API_KEY
+; API key (required) — ask the human for it; it is in Studio Labs under Developer Tools -> Keys.
+; Also settable via -LudeoApiKey= or LUDEO_API_KEY
 ApiKey=
 
 ; Game version (optional — defaults to FApp::GetBuildVersion())
@@ -1017,19 +1020,35 @@ ApiKey=
 ; also: -SteamAuthID= or STEAM_AUTH_ID
 ; SteamAuthID=
 
-; Beta branch name (optional — for staging environments) — also: -LudeoBetaBranch= or LUDEO_STEAM_BETA_BRANCH
+; Target environment's Beta Version Name — explicit auth only; empty reaches the default environment — also: -LudeoBetaBranch= or LUDEO_STEAM_BETA_BRANCH
 ; BetaBranchName=
 ```
+
+**Explicit auth: ask the human for their Steam id and which environment they'll debug against**, and set them
+here: `SteamAuthID`, and `BetaBranchName` = **that environment's current Beta Version Name** from
+`sdkSetup.ludeoEnvironments` — copy it, don't ask for a new one (via the ini keys above or their
+`-SteamAuthID=` / `-LudeoBetaBranch=` equivalents). An empty `BetaBranchName` sends no name, which reaches the
+default environment (normally Production), the same as Steam's default branch — so never ask for a name *for*
+Production, and prefer debugging against a named QA environment. Only if that environment has no name yet, propose one — the next
+paragraph decides whether that's allowed. **Implicit auth** reads neither — ask instead *"which Steam beta branch
+do you run it on?"* and record it as `steamBranch` on the environment confirmed below.
+
+**Then match the branch to the environment.** Confirm which environment this build is for — Step 1 item 10
+recorded every environment in `sdkSetup.ludeoEnvironments`, and an integration often targets several (QA while
+iterating, production at ship). Then follow **Matching a branch to an environment** in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md) — it
+decides whether anything is written, and its write rules apply. `set_beta_version_name` isn't on production yet,
+so expect to hand a write to the human in Studio Labs. A cloud run reads none of this (the `-cloud` path in §5.3
+skips the auth block); phase 7 binds it.
 
 #### Configuration Reference
 
 | Parameter | CLI Flag | Env Var | Config Key | Fallback |
 |-----------|----------|---------|------------|----------|
-| ApiKey | `-LudeoApiKey=` | `LUDEO_API_KEY` | `[Ludeo] ApiKey` | — (required) |
+| ApiKey | `-LudeoApiKey=` | `LUDEO_API_KEY` | `[Ludeo] ApiKey` | — (required; Studio Labs → **Developer Tools → Keys**) |
 | GameVersion | — | — | `[Ludeo] GameVersion` | `FApp::GetBuildVersion()` |
 | PlatformUrl | `-LudeoPlatformUrl=` | `LUDEO_PLATFORM_URL` | `[Ludeo] PlatformUrl` | production default |
 | SteamAuthID | `-SteamAuthID=` | `STEAM_AUTH_ID` | `[Ludeo] SteamAuthID` | implicit auth |
-| BetaBranch | `-LudeoBetaBranch=` | `LUDEO_STEAM_BETA_BRANCH` | `[Ludeo] BetaBranchName` | production |
+| BetaBranch | `-LudeoBetaBranch=` | `LUDEO_STEAM_BETA_BRANCH` | `[Ludeo] BetaBranchName` | none — reaches the default environment (normally Production) |
 
 ### 3.17 Implementation — Compile-Fix Loop
 
@@ -1181,11 +1200,13 @@ Present this checklist to the human:
 
 Ask these after completing the analysis checklist. Skip questions where code analysis already provides a clear answer.
 
+**Ask short, in the human's words.** For the §3.16 config values, open by saying they go into the Ludeo config for their project, then one line per item: the value you need and where to find it — **API Key** (Studio Labs → Developer Tools → Keys), **Steam ID** and the environment to debug against (explicit — its Beta Version Name is copied from `sdkSetup.ludeoEnvironments`, not asked for; implicit — which Steam beta branch they run). **Game ID is not a §3.16 value** — it was recorded at Step 1 item 10 as `sdkSetup.ludeoGameId`; only ask if it is missing. Use those names, not `ApiKey`/`SteamAuthID`/`BetaBranchName`; mapping them onto ini keys is your job, not theirs. No rationale unless the item is a genuine decision — then one sentence and a default. A consequence belongs at the gate that catches it, not in the question.
+
 ### Required Questions
 
 1. **N-way gate conditions:** "I identified these async conditions for BeginGameplay: [list from 3.2]. Are there additional conditions before gameplay truly starts (asset loading, countdown timers, ready checks)?"
 2. **Frontend maps:** "Which maps/experiences are non-ludeoable (menus, lobbies, cinematics)? I found: [list from 3.4]. Confirm or adjust this list."
-3. **Steam authentication:** "Will Steam be initialized when the game starts (shipping build launched via Steam), or will we need explicit auth via environment variables (editor, cloud builds, sample projects)? If unsure, we'll use explicit auth — it works in all cases." — **Do NOT infer the answer.** "This game doesn't use Steam" is not a valid reason to skip auth. See Section 5.3 and `learnings/common-mistakes/auth-is-never-optional.md`.
+3. **Steam authentication:** "Will the game be launched through Steam with Steam initialized? That's implicit auth — the default, and what production and creators run on. Explicit auth (`SteamAuthID`) is for debugging without Steam (editor runs, sample projects) and comes out before shipping; a cloud run needs neither, since the `-cloud` path skips auth." — **Do NOT infer the answer.** "This game doesn't use Steam" is not a valid reason to skip auth. See Section 5.3 and `learnings/common-mistakes/auth-is-never-optional.md`.
 
 ### Conditional Questions (ask only if relevant)
 
@@ -1333,14 +1354,16 @@ void ULudeoSessionSubsystem::ActivateSession()
     //   - Implicit: Steam is initialized (SteamAPI_Init called). SDK reads Steam user automatically.
     //     Works in shipping builds where Steam launches the game.
     //   - Explicit: SteamAuthID provided via CLI/env/config. Required when Steam is NOT
-    //     initialized (editor, sample projects, cloud builds, non-Steam games).
+    //     initialized (editor, sample projects, non-Steam games) — debugging only, never shipped
+    //     (phase 07 gate). A -cloud run skips this
+    //     block entirely; the cloud token authenticates.
     //
     // The code below resolves explicit auth from CLI → env → config. If found, it's used.
     // If not found, the SDK falls back to implicit auth. If NEITHER is available,
     // activation will fail with InvalidParameters.
     //
     // DO NOT SKIP THIS BLOCK because "this game doesn't use Steam." Every Ludeo-integrated
-    // game needs auth. "Doesn't use Steam" = USE EXPLICIT AUTH, not "skip auth."
+    // game needs auth. "Doesn't use Steam" = explicit auth while debugging, not "skip auth."
     //
     // NOTE: Verify field names against current SDK headers (FLudeoSessionTypes.h).
     // Steam auth is NESTED inside FLudeoSessionSteamAuthenticationData.
@@ -1635,6 +1658,8 @@ The trigger side has **two types**, configured in Studio Lab (**Global Triggers*
 | Non-Ludeoable Area | `StartNoneLudeable` | `StopNoneLudeable` | Creator Flow (irreproducible capture segments) |
 | Pause/Resume | `PauseLudeo` | `ResumeLudeo` | Player Flow (the objective timer must stop) |
 
+> If a global-trigger tool has reached [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)'s table by the time you read this, use it (a **write** — confirm first) instead of the hand-off below.
+>
 > **These names are a convention, not SDK constants.** `SendAction` takes an arbitrary string; the strings only acquire meaning once a matching trigger **exists** in **Studio Lab → the environment → Global Triggers** (which tracked events start and end each segment). You can't see or create them, so **tell the user to create both — Pause/Resume on `PauseLudeo`/`ResumeLudeo`, Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`.** A missing or misnamed trigger drops the action silently: no error, the action still logs, the objective timer keeps counting.
 
 > **Time-dilation pausing: the component keeps ticking, but `DeltaTime` is scaled.** `bTickEvenWhenPaused` covers *engine* pause; a game that "pauses" by driving `TimeDilation` toward zero leaves the component ticking with `DeltaTime` scaled by the same factor. The transition detector is unaffected (it reads a boolean, not elapsed time), but any `DeltaTime` accumulator in the same component — a write-throttle, a debounce, a deferred-unpause timer — effectively stalls. Use unscaled time (`FApp::GetDeltaTime()` / real-time seconds) for anything that must advance while the game is "paused."

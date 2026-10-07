@@ -19,8 +19,8 @@
 Take the **release player build** (the user triggers it in the Editor), **verify** it is upload-ready
 (release settings gated — no Development/Debug build, no debug flags or cheats reachable; production auth
 gated; native layer self-contained; `validate-build` passing), then **publish** it to
-the Ludeo platform with the `ludeo` CLI and **poll** the build status to `ready`/`success`. This is the
-final phase — when it passes, the build is live on the platform.
+the Ludeo platform with the `ludeo` CLI, **poll** the build status to `ready`/`success`, and **assign** it to
+the target environment. This is the final phase — when it passes, the build is live in that environment.
 
 ## 2. Inputs (Input Contract)
 
@@ -41,9 +41,22 @@ final phase — when it passes, the build is live on the platform.
 - [ ] The **`validate-build`** user-level skill (the self-contained gate; also writes `run.bat`).
 - [ ] The **`ludeo` CLI** reachable — verify with `ludeo --help`. If not installed/located, **ask the user**
       to install it or for the path to the binary; do **not** invent a download source.
-- [ ] A Ludeo **access token** and the game's **Game Version ID** (from the Ludeo studio/platform). Ask if
-      not provided.
-- [ ] **Global Triggers created** in Studio Lab → the environment: Pause/Resume on `PauseLudeo`/`ResumeLudeo`,
+- [ ] A Ludeo **access token**, and the game's **Game ID** (Studio Lab → **Game Options → Info**; already in
+      `KYG.md` → **Ludeo platform** — ask only if missing).
+- [ ] **The environment this build ships to** — each of these, for *that* environment:
+      - **Named.** Confirm *which* with the user if more than one is in play, and re-read it with
+        `list_game_environments` (if it is in your tool list) rather than trusting `KYG.md` → **Ludeo platform**.
+      - **The integrator is in it.** If membership isn't recorded as yes, ask; if they don't know or it's no, have
+        them check or add themselves in Studio Lab → Environments → Users management. That doesn't block the
+        upload, but say plainly that their captures there fail silently until it's done.
+      - **Anyone else who needs to capture there** is invited, per [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
+      - **The branch creators run matches.** Ask which Steam beta branch they'll run the shipped build on — you
+        can't verify this, so record it as that environment's **Steam branch** — then apply
+        **Matching a branch to an environment** in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md); it decides whether anything is written.
+        Not `--game-version`.
+      - **The cloud binding is Step 11.** A cloud run is bound by assignment, not by the Beta Version Name — the
+        cloud token selects the environment.
+- [ ] **Global Triggers created** in Studio Lab → **the environment named above** (triggers are per environment): Pause/Resume on `PauseLudeo`/`ResumeLudeo`,
       Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. **Ask the user to confirm** — the cloud run
       is the first place the overlay pause happens, and without the trigger it won't stop the objective timer.
       The failure is silent (phase 6 · task 2 Step 6). If they aren't there yet, or new actions arrived since,
@@ -57,7 +70,7 @@ final phase — when it passes, the build is live on the platform.
 | Input | Used for | Notes |
 | --- | --- | --- |
 | **Build folder path** | `validate-build` + `--local-directory` | Absolute path to the release build folder. |
-| **Game Version ID** | `--game-id` | The API path ID from Ludeo studio — **not** a build "id". |
+| **Game ID** | `--game-id` | The game **version** uuid (Studio Lab → Game Options → Info). **Not** a build id, and not the backend `gameId` — the platform keeps those separate. Studio Lab's Environments page still shows it too, but that copy is being retired. |
 | **Game version** | `--game-version` | e.g. `1.2.3`. Default to `LudeoSettings.gameVersion` if set. |
 | **SDK version** | `--sdk-version` | **Confirm with the user — do NOT trust the package manifest.** Builds often use a swapped/overridden SDK, so the manifest can lie. Not needed for `sdkFree` builds. |
 | **Access token** | `auth set-token` / `--access-token` | Only if not already authenticated. |
@@ -243,7 +256,7 @@ crash), and **ensures a `run.bat` exists** (creating one when you approve).
 A **major** build stands alone; a **minor** build is a variant attached to an existing major
 (`--major-build-id`).
 ```bash
-ludeo builds list --game-id <GAME_VERSION_ID> --sort-by createdAt --sort-order desc
+ludeo builds list --game-id <GAME_ID> --sort-by createdAt --sort-order desc
 ```
 - **No builds returned ⇒ first build ⇒ `--build-type major`** (no `--major-build-id`).
 - **Builds already exist ⇒ default to `--build-type minor`**, with `--major-build-id <id>` = the major it
@@ -264,7 +277,7 @@ it in **both** the dry-run and the real command.
 ```bash
 # First build (major):
 ludeo builds upload --dry-run \
-  --game-id <GAME_VERSION_ID> \
+  --game-id <GAME_ID> \
   --game-version <X.Y.Z> \
   --sdk-version <SDK_X.Y.Z> \
   --build-type major \
@@ -275,7 +288,7 @@ ludeo builds upload --dry-run \
 
 # Subsequent build (minor) — add the major it attaches to:
 ludeo builds upload --dry-run \
-  --game-id <GAME_VERSION_ID> \
+  --game-id <GAME_ID> \
   --game-version <X.Y.Z> \
   --sdk-version <SDK_X.Y.Z> \
   --build-type minor --major-build-id <MAJOR_BUILD_ID> \
@@ -305,7 +318,7 @@ success on the upload alone.**
 ```powershell
 # Windows / PowerShell — one self-contained command (polls internally; do not hand-loop with sleeps)
 $ludeo  = "ludeo"                      # or the full path to ludeo.exe if not on PATH
-$gameId = "<GAME_VERSION_ID>"; $buildId = "<NEW_BUILD_ID>"
+$gameId = "<GAME_ID>"; $buildId = "<NEW_BUILD_ID>"
 $deadline = (Get-Date).AddMinutes(7)   # platform processing cap (see "Open task" below — builds can get stuck)
 do {
     $out = & $ludeo builds get --game-id $gameId --build-id $buildId | Out-String
@@ -332,8 +345,8 @@ do {
 ### Step 10: Verify the final build metadata
 Once `success`, confirm it's the build you intended:
 ```bash
-ludeo builds list --game-id <GAME_VERSION_ID> --sort-by createdAt --sort-order desc   # new build at top
-ludeo builds get  --game-id <GAME_VERSION_ID> --build-id <NEW_BUILD_ID>                # status + metadata
+ludeo builds list --game-id <GAME_ID> --sort-by createdAt --sort-order desc   # new build at top
+ludeo builds get  --game-id <GAME_ID> --build-id <NEW_BUILD_ID>                # status + metadata
 ```
 Confirm status **`success`** and that `game-version`, `sdk-version`, build type, and `exec-path` (the
 `run.bat`) are what you intended.
@@ -344,9 +357,25 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
 > runs/plays a Ludeo in the cloud** to confirm it. Leave this as an explicit gap to fill later (a CLI
 > command or platform action), per the team decision (2026-06-17). Do not fabricate a cloud-run step.
 
+### Step 11: Assign the build to the target environment
+
+The cloud run is bound by assignment, not by the Beta Version Name, and only a build that `ludeo builds get` reports as
+`success` — not just `ready` — can be assigned. Assigning changes what that environment serves — it may replace the build there now — so
+treat it like the upload (Step 8): show `environment · <NEW_BUILD_ID>` and the exact resolved command, then
+wait for an explicit go-ahead. One confirmed assign per environment.
+
+```bash
+ludeo builds assign --game-id <GAME_ID> --build-id <NEW_BUILD_ID> --env-id <ENV_ID>
+```
+
+`<ENV_ID>` is that environment's `envId` — from a fresh `list_game_environments` read if it is in your tool
+list, otherwise ask the user for it (Studio Lab → the environment). Or have the user assign it in Studio Lab
+→ Game Builds.
+
 ## 4. Questions to ask the human
 
-- **Build folder path**, **Game Version ID**, **game version**, **access token** — if not provided.
+- **Build folder path**, **Game ID**, **game version**, **access token** — if not provided.
+- **Target environment** (→ `<ENV_ID>`) — the one named at the Input Contract gate.
 - **SDK version** — always **confirm with the user**; the package manifest can lie (builds use swapped SDKs).
 - **Changes description** — if it can't be inferred from context.
 - **Which major** a minor build attaches to — if ambiguous.
@@ -384,6 +413,8 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
   what was audited/disabled recorded in the verification notes. CI-headless build flagged as the durable fix.
 - `run.bat` at the build root (used as the relative `--exec-path`), launching the exe directly with
   `-logFile -` so game logs reach the cloud runner's stdout collection.
+- The build **assigned** to the environment named at the Input Contract gate (Step 11), after an explicit
+  go-ahead — or assigned by the user in Studio Lab → Game Builds.
 
 ## 7. ✅ Success Criteria
 
@@ -414,6 +445,8 @@ Confirm status **`success`** and that `game-version`, `sdk-version`, build type,
 - [ ] `--dry-run` reviewed (file list + resolved flags) and confirmed with the user.
 - [ ] **Final upload ran ONLY after explicit user confirmation** (or the user ran it themselves) — never autonomously.
 - [ ] Final `builds get` confirms status `success` + correct `game-version`/`sdk-version`/build type/`exec-path`.
+- [ ] **Build assigned** to the environment named at the Input Contract gate (`builds assign … --env-id`, after an
+      explicit go-ahead), or by the user in Studio Lab → Game Builds.
 
 ## 8. Common Mistakes
 

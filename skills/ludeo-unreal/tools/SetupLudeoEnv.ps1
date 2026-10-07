@@ -21,8 +21,7 @@ if ($Action -eq "check") {
     }
 
     if ([string]::IsNullOrEmpty($env:STEAM_AUTH_ID)) {
-        Write-Host "  [MISSING] STEAM_AUTH_ID" -ForegroundColor Red
-        $allOk = $false
+        Write-Host "  [--]      STEAM_AUTH_ID not set (implicit auth through the Steam client)" -ForegroundColor DarkGray
     } else {
         Write-Host "  [OK]      STEAM_AUTH_ID=$env:STEAM_AUTH_ID" -ForegroundColor Green
     }
@@ -53,8 +52,8 @@ Write-Host "=== Ludeo SDK Environment Setup ==="
 Write-Host ""
 
 $env:LUDEO_API_KEY = Read-Host "Enter your Ludeo API key (from Ludeo Studio Labs)"
-$env:STEAM_AUTH_ID = Read-Host "Enter your Steam ID (find at https://steamid.io)"
-$branch = Read-Host "Steam beta branch name (press Enter to use config default)"
+$env:STEAM_AUTH_ID = Read-Host "Steam ID for explicit-auth debugging only (press Enter for implicit auth through the Steam client)"
+$branch = Read-Host "Beta Version Name of the environment you debug against, copied from Studio Labs - never 'public' (press Enter for none)"
 if (-not [string]::IsNullOrEmpty($branch)) {
     $env:LUDEO_STEAM_BETA_BRANCH = $branch
 }
