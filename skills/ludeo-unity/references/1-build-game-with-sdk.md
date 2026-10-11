@@ -261,7 +261,7 @@ Only what can't be inferred from code:
   *"has your Steam account been added to <environment> for this game?"* Creation silently fails without it:
   highlights record but never convert to Ludeos, `canCreateLudeo` still reads true (it is a consent flag, not
   membership), and nothing in any log says why. No tool can answer this — `list_game_environments` returns no membership — so it is always a question.
-  If they don't know, or the answer is no, point them at Studio Lab → Environments → Users management.
+  If they don't know, or the answer is no, have them add themselves — an invite link per [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
   Record the answer per environment in `KYG.md` → **Ludeo platform**, and ask again whenever the target
   environment changes (phase 7's gate does).
 - **Anyone else who needs to make Ludeos** — until the game is live on Ludeo, only people invited to the
