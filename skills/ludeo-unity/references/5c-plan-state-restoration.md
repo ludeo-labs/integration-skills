@@ -141,7 +141,7 @@ Also plan four distinct sets of hooks:
 - **Selection-time (`onBeginRestore`)** — fires at Ludeo *selection*, in `HandleGetLudeoDone` **before the
   room opens** (`onInitDone` is session-boot; `onRoomReady` is too late). This is where the game **starts
   the async scene load** (the world id is known from the buckets here) and **suppresses intros**. Its
-  loader must call `NotifySceneReadyForRestore()` `[Layer]` on completion — the **third leg of the begin
+  loader must call `NotifySceneReady()` `[Layer]` on completion — the **third leg of the begin
   gate** (`RoomReady ∧ AddPlayer ∧ sceneLoaded`), which usually means **adding an awaitable/completion
   event to an `async void` scene loader**. Map this onto a game hook (file:method); if no such loader
   callback exists, flag adding one as an Open Question. **Scene-ready must mean *fully assembled* — apply
@@ -323,7 +323,7 @@ a summary; the orchestrator surfaces it for approval.
 Surface to the orchestrator; don't guess:
 - The apply's **sync/async shape** if the spawner's awaiting behavior can't be inferred from code (decides
   freeze-vs-suppress).
-- A **scene loader with no completion signal** (`async void`) — adding `NotifySceneReadyForRestore()` is a
+- A **scene loader with no completion signal** (`async void`) — adding `NotifySceneReady()` is a
   prerequisite for the begin gate's third leg.
 - **Disagreements** between `OBJECT_TRACKING.md` rows and `CODE_MAP.save_system.per_entity` — surface, don't
   silently reconcile.
@@ -384,7 +384,7 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 |---|---|---|
 | Tear down gameplay session + room + **purge game registries** | ... | EndGameplay/AbortGameplay; SDK LudeoSession stays alive (CR-007); dead-ref-purge game lists, no Clear() of live (07 §2.2) |
 | SwitchToPlay → IsInLudeoFlow=true | LudeoController [Layer] | consent-gated (CR-012); gates pre-match suppression |
-| Selection-time: start scene load + suppress intros AND flow-blocking UI (press-start/modals/popups/EULA) | onBeginRestore (HandleGetLudeoDone, before room opens) | loader calls NotifySceneReadyForRestore() → begin-gate leg 3 |
+| Selection-time: start scene load + suppress intros AND flow-blocking UI (press-start/modals/popups/EULA) | onBeginRestore (HandleGetLudeoDone, before room opens) | loader calls NotifySceneReady() → begin-gate leg 3 |
 | Freeze sim / suppress (CR-010) | Time.timeScale = 0f (sync apply) or IsInLudeoFlow suppression (async apply) | separate flag from CR-011 overlay pause; async → freeze deadlocks |
 | Extract reader buckets | HandleGetLudeoDone [Layer] | cache into ludeoRestoredData; do NOT apply here |
 | On RoomReady (∧ AddPlayer ∧ sceneLoaded): apply → unfreeze → Begin | onRoomReady (phase 3) | two-pass + environment; apply before unfreeze; then BeginGameplay |
@@ -446,7 +446,7 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
 ## Overlay Control & Wait-For-Player
 - Pause mechanism: <reuse game pause | build minimal Time.timeScale freeze>
 - **Selection-time hook:** `onBeginRestore` (before room opens) → start async scene load + suppress intros;
-  loader calls `NotifySceneReadyForRestore()` (begin-gate leg 3). NOT `onInitDone` (session-boot).
+  loader calls `NotifySceneReady()` (begin-gate leg 3). NOT `onInitDone` (session-boot).
 - **Post-restore resume hook:** `onRoomReady` (phase 3) → ApplyRestoredState → unpause → `BeginGameplay`
   (apply before unpause). NOT `ResumeGame`, NOT `PlayerReady` (doesn't exist), NOT a self-built prompt.
 - **Mid-play overlay hooks** (CR-011): `PauseGameRequested` → <file:method>  ·  `ResumeGameRequested` →
@@ -481,7 +481,7 @@ May also surface disagreements between `OBJECT_TRACKING.md` rows and `CODE_MAP.s
       (`onBeginRestore`) → cache reader in `HandleGetLudeoDone` → on `RoomReady` apply (Pass 1 + Pass 2 +
       env) → unfreeze → `Begin`. Not Begin-then-apply; not unfreeze-then-apply; not apply-in-GetLudeo.
 - [ ] **Begin gate has all three legs** — `RoomReady ∧ AddPlayer ∧ sceneLoaded`; loader has a real
-      completion signal (`NotifySceneReadyForRestore()`), not an unguaranteed `async void`.
+      completion signal (`NotifySceneReady()`), not an unguaranteed `async void`.
 - [ ] **Freeze-vs-suppress matches the apply shape** — async spawn is suppressed via `IsInLudeoFlow`, not
       frozen with `timeScale = 0` (which deadlocks `FixedUpdate`).
 - [ ] **No SDK id-map anywhere** — identity is bucket + your stable key; `ObjectId` is not a match key (CR-014).

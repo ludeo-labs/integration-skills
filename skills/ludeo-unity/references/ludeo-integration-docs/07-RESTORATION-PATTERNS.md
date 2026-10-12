@@ -149,8 +149,11 @@ LudeoSelected event (player picked a Ludeo in the gallery)          [SDK]
    apply); never unfreeze *and* leave the sim un-suppressed during apply (§10.1). **Never unfreeze before the
    apply runs** — that's live sim frames mid-restore (the BL-4 trap).
 5. **The viewer never watches the level assemble.** The third begin-gate leg —
-   `sceneLoaded`/`NotifySceneReadyForRestore()` (CR-009) — means the scene is **fully assembled: apply done,
-   async spawns *settled*, sim *frozen-ready*** — not merely "scene activated + objects exist." Keep the
+   `sceneLoaded`/`NotifySceneReady()` (CR-009) — means the scene is **fully assembled: async spawns
+   *settled*, sim *frozen-ready*** — not merely "scene activated + objects exist." (⚠️ It includes
+   *apply done* **only** under the apply-at-scene-load placement below — under the `onRoomReady`
+   placement leg 3 must **not** wait on apply, or it gates the apply on itself and hangs, with no
+   timeout to rescue it.) Keep the
    loading cover up until then; the first frame revealed behind the (paused) overlay must be the **finished
    restored scene**, not a half-built one. Opening the room early to hide SDK latency is fine — but gate the
    *reveal* and the scene-ready leg on settle+freeze, or the player resumes onto a level still popping in (§10.1).
@@ -184,7 +187,7 @@ the second play:
 
 **Complete teardown** = `AbortGameplay()` `[Layer]` (abort the **session**, `StopTrackingAllLudeoStates()`,
 `CloseRoom`, reset `isGameplayActive`/`m_gameplayStarted`) **+** `ResetBeginGate()` `[Layer]`
-(`m_roomReady` / `m_sceneReadyForRestore` / `ludeoPlayer`) **+** reset both pause flags to an
+(`m_roomReady` / `m_sceneReady` / `ludeoPlayer`) **+** reset both pause flags to an
 unfrozen baseline (§10.3, done in `onBeginRestore`). **Start the new play ONLY in the teardown's
 callback** — `Abort`/`CloseRoom` are async, so issuing them and then opening the new room synchronously
 stacks a second room over the still-closing one. See the wired `HandleGetLudeoDone` in §3.3 and the
@@ -319,7 +322,7 @@ private void HandleGetLudeoDone(LudeoGetLudeoCallbackData data)
 
     void SwitchToLudeoPlay()
     {
-        ResetBeginGate();                            // [Layer] re-arm m_roomReady / m_sceneReadyForRestore / ludeoPlayer
+        ResetBeginGate();                            // [Layer] re-arm m_roomReady / m_sceneReady / ludeoPlayer
         if (!m_switch.SwitchToPlay()) return;        // [Layer] consent gate (CR-012)
         m_data.ludeoRestoredData = new LudeoRestoredData(m_data.ludeoId, data.ludeoDataReader, out bool ok);  // §3.1
         if (!ok) { m_onLudeoFailure("no Ludeo data"); return; }
@@ -722,7 +725,7 @@ Suppression holds until `Begin`, then lifts so the player drives the restored st
 
 > **⚠️ Settling is *visible*, not only a correctness concern.** §10.1 above treats async spawns as an
 > *overwrite* hazard (suppress vs freeze). They are also a **presentation** hazard: an async apply streams
-> spawns in over several frames, so if `NotifySceneReadyForRestore()` fires on "scene activated" the
+> spawns in over several frames, so if `NotifySceneReady()` fires on "scene activated" the
 > begin-gate releases and the player **resumes while entities are still popping in** — they watch the level
 > assemble. Await the async spawns to completion (then the narrow scalar freeze) **before** signaling
 > scene-ready, and keep the scene covered until then, so the paused overlay's background and the first

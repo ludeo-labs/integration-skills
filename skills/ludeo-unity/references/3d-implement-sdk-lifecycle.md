@@ -150,7 +150,12 @@ artifacts don't resolve it. Otherwise implement the plan as written.
 - [ ] All `[Layer]` files created (controller, data, flow switch, flows, init-room handler, gameplay
       session manager + dummy, state handler interface + default, keys).
 - [ ] Bootstrap constructs `LudeoController` with its delegates; `onRoomReady` applies **before**
-      unfreeze; begin gate includes the restore scene-load leg.
+      unfreeze.
+- [ ] **Begin gate is three legs, leg 3 wired on the CREATOR path, both edges** — the gate checks
+      `m_sceneReady` unconditionally (no `isInLudeo` condition), and the gameplay scene loader calls
+      `NotifySceneLoadStarted()` at the load *request* and `NotifySceneReady()` at completion. No timer
+      substitute. `BeginGameplay` starts the video encoder, so a mid-load begin records the loading
+      screen (CR-009).
 - [ ] Every gameplay exit path routes through `EndGameplay`/`AbortGameplay` (CR-007);
       `OnApplicationQuit` → `Shutdown()` ends/aborts **and** `Dispose()`s the session.
 - [ ] `UpdateStateObjects()` called per active-gameplay frame; **no** SDK tick wired (CR-005).

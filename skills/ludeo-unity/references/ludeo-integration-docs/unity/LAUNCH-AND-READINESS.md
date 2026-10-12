@@ -57,17 +57,25 @@ look unnecessary for capture.
 
 ```
 app boot → gameplay scene loads NOW + a "ready" cover, sim frozen/suppressed
+   ║        └─ NotifySceneLoadStarted() → … → loader completion → NotifySceneReady()   [Layer] leg 3
    ║  (in parallel)
    ╚→ Initialize + CreateSession (sync) → Activate → PlayerConsentUpdated (canCreate)   [SDK]
-         → OpenRoom(creator) → AddPlayer → RoomReady → Begin           [SDK] CR-009 gate
+         → OpenRoom(creator) → AddPlayer → RoomReady                    [SDK] legs 1+2
+                        └─► BeginGameplay  ⟵ fires when the LAST of the three legs lands (CR-009)
 release the cover / unfreeze / enable input   ⟵ when Begin lands
    ⇒ the first frame the player controls == the first captured frame
 ```
 
 The room chain (`OpenRoom → AddPlayer → RoomReady`) only starts **after** the readiness gate
 clears (Activate resolved + consent allows create) — never synchronously in the gameplay scene's
-`Start()`. `Begin` is then gated by the existing two-signal begin-gate (`RoomReady ∧ AddPlayer`,
-CR-009). The "ready" cover hides both the consent wait *and* the room-open→Begin latency.
+`Start()`. `BeginGameplay` is then gated by the **three-leg** begin-gate (`RoomReady ∧ AddPlayer ∧
+scene-loaded`, CR-009). The "ready" cover hides both the consent wait *and* the room-open→begin latency.
+
+> **Leg 3 in this model:** the scene load starts at boot and usually finishes *before* consent resolves,
+> so leg 3 is typically the **first** leg in — wire it anyway. On a cold or streaming load the order
+> flips, and the gate is what makes the guarantee independent of load speed. Don't conflate the two waits:
+> the *readiness gate* waits on Activate + consent, *leg 3* waits on the scene, and the cover comes down
+> only when `BeginGameplay` lands — after both.
 
 ### 3.2 Player path (Ludeo preselected at launch — `isLudeoSelected` / `autoStartInLudeo`)
 

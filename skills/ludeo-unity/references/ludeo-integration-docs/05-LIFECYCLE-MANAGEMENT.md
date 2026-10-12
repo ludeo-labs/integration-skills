@@ -30,8 +30,10 @@ branch into the play/restore flow. Map it onto **scenes + MonoBehaviour callback
 > constraining. For open-world / streaming / sandbox / MMO games — where boundaries are state-machine
 > or event-driven, not `SceneManager.LoadScene` calls — **one continuous live run is one gameplay
 > session**. Bind `OpenRoom` to the game's canonical "gameplay began" event, `EndGameplay` on death and
-> `AbortGameplay` on return-to-menu/quit, and keep the standard two-signal gate (`AddPlayer` +
-> `RoomReady` → `BeginGameplay`) — no third gate. Read
+> `AbortGameplay` on return-to-menu/quit, and gate `BeginGameplay` on the standard **three** legs
+> (`AddPlayer` + `RoomReady` + **scene-loaded**). The scene-loaded leg is *not* optional for streaming
+> games — it is where it matters most, because the SDK room chain routinely completes while
+> terrain/sublevels are still streaming in. Read
 > [`game-patterns/open-world.md`](./game-patterns/open-world.md) before mapping `OpenRoom` for these games.
 
 > **No main menu — game boots straight into gameplay?** The classic flow leans on a main menu as an
@@ -51,7 +53,9 @@ branch into the play/restore flow. Map it onto **scenes + MonoBehaviour callback
 | Stage | Typical Unity location |
 | --- | --- |
 | Initialize + CreateSession + subscribe events + Activate | Bootstrap MonoBehaviour in the **init scene** (e.g. `SceneInit`), `Awake`/`Start` `[Unity]` |
-| Open room / add player / begin | When the **gameplay scene** starts a match (after load) |
+| Open room / add player | When the **gameplay scene** starts a match — kick these at load *start*, so SDK latency hides under the load |
+| **Scene-loaded signal** (`[Layer]`) | `NotifySceneLoadStarted()` at the load **request**; `NotifySceneReady()` at its **completion**, once the loading screen is down |
+| BeginGameplay | Never from a game call site — the **three-leg gate** fires it (`RoomReady` ∧ `AddPlayer` ∧ scene-loaded) |
 | Per-frame attribute sampling | Gameplay MonoBehaviour `Update` `[Unity]` → `UpdateStateObjects()` `[Layer]` |
 | End / abort | Every gameplay **exit path** (CR-007) |
 | Session release (end/abort active run **+ `Dispose()` the owned session**) | App shutdown (`OnApplicationQuit` `[Unity]`) |
@@ -133,7 +137,7 @@ methods). Subscribe with `+=`, unsubscribe with `-=`.
 
 > **#1 lifecycle mistake:** calling `AddPlayer`/`BeginGameplay` straight from a game event. They are
 > driven by *callbacks*. Game code initiates only `Initialize`/`CreateSession`/`Activate`, `OpenRoom`,
-> `EndGameplay`/`AbortGameplay`, and shutdown.
+> the scene-loaded signal, `EndGameplay`/`AbortGameplay`, and shutdown.
 
 ```
 🎮 GAME CODE initiates                         📞 CALLBACK-DRIVEN (never from game events)
@@ -142,8 +146,10 @@ LudeoManager.Initialize        [SDK] (sync)
 SessionManager.CreateSession   [SDK] (sync)
 session.Activate               [SDK]
 session.OpenRoom               [SDK] ─────────► onOpenRoom cb → room.AddPlayer               [SDK]
-                                                onAddPlayer cb → store data.player (LudeoPlayer)
-                                                RoomReady event → player.BeginGameplay        [SDK]
+                                                onAddPlayer cb → store data.player (LudeoPlayer) ⎫ 3-leg
+                                                RoomReady event                                 ⎬ begin
+NotifySceneReady()             [Layer] ───────► (scene loader completion — leg 3)               ⎭ gate
+                                                    └─► player.BeginGameplay [SDK] ← last leg fires it
 player.EndGameplay / AbortGameplay [SDK] ─────► onEnd cb → room.CloseRoom                     [SDK]
 session.Dispose (shutdown)     [SDK]
 ```
@@ -152,28 +158,85 @@ The `[Layer]` façade (`LudeoController`) wires these callbacks for you; the gam
 `[Layer]` methods (`OpenLudeoGallery`, `BeginGameplay`, `EndGameplay`, …), which call the `[SDK]`
 methods above in the right order.
 
-> **⚠️ The `onAddPlayer` callback and the `RoomReady` event RACE — `BeginGameplay` needs both.**
-> They are **independent** async events: the `AddPlayer` callback delivers the `LudeoPlayer`, while
-> `RoomReady` is a separate event. The diagram lists them on consecutive lines, but there is **no
-> ordering guarantee** — `RoomReady` can (and on some backends does) arrive *before* `AddPlayer`'s
-> callback has stored the player. If you call `BeginGameplay` straight from `RoomReady`, the player is
-> still null and **the run records nothing** — a silent failure that often passes the first smoke test
-> (which happens to win the race the other way), then bites intermittently. Gate `BeginGameplay` on
-> **both** signals (whichever completes last triggers it) — see `unity/REFERENCE-ARCHITECTURE.md`
-> (`m_roomReady` + `NotifyPlayerAdded`). Or fetch the player from the room in the `RoomReady` handler
-> via `LudeoRoom.GetPlayer(gamePlayerId, out LudeoPlayer)`.
+---
+
+## 🔴 The `BeginGameplay` gate: THREE legs, both flows (CR-009)
+
+`BeginGameplay` `[SDK]` starts recording **including the video encoder** — everything from it to
+`EndGameplay` is in the Ludeo's video. So it fires only when all three legs are in, **whichever is
+last**, in *both* the capture and restore flows (leg 3 is not restore-only):
+
+| Leg | Signal | Delivered by |
+| --- | --- | --- |
+| 1 | `RoomReady` event | `[SDK]` |
+| 2 | `AddPlayer` callback stored the `LudeoPlayer` | `[SDK]` the `onAddPlayer` cb |
+| 3 | The gameplay scene finished loading **and the loading screen is down** | `[Layer]` `NotifySceneLoadStarted()` / `NotifySceneReady()` — *your* loader |
+
+**All three race each other; none is implied by another.**
+
+- **Legs 1 vs 2:** independent async events, no ordering guarantee. `BeginGameplay` straight from
+  `RoomReady` finds a null player and **records nothing** — intermittent, so it survives a first smoke
+  test. (Alternative: fetch the player in the `RoomReady` handler via
+  `LudeoRoom.GetPlayer(gamePlayerId, out LudeoPlayer)`.)
+- **Leg 3 vs the room chain:** `RoomReady` knows nothing about `SceneManager`, and the room chain
+  normally finishes *first* — you deliberately kick `OpenRoom` at load start to hide SDK latency. So
+  `BeginGameplay` on legs 1+2 alone starts the encoder **mid-load**, and the Ludeo opens on a loading
+  screen, a black frame, or the scene you left. In restore it also applies state into an empty scene
+  (`07 §10`). Timing-dependent: a fast local load wins the race and passes a smoke test; a cold or
+  streaming load loses.
+
+### Leg 3: what it means, and both its edges
+
+Latch it at **"the level is loaded and the loading screen is over"** — the first frame the player sees
+the game. Leg 3 is a **floor, not a ceiling**: `BeginGameplay` may never fire before it.
+
+- ✅ **Recorded on purpose — do NOT defer past these:** intro cinematics, fade-ins, countdowns, spawn
+  animations. They are part of the moment. For a genuinely non-gameplay stretch (lobby, scoreboard) use
+  non-ludeoable marking (`StartNoneLudeable`), not a later `BeginGameplay`. **Capture flow only:** in
+  *restore* these same mechanisms are separately **suppressed** because they would clobber restored
+  state (CR-010, `07 §10.1` — which also carves out a cutscene the viewer *should* see). That is
+  suppression of the mechanism, not a later leg 3.
+- ❌ **Excluded:** the loading screen, the load-time black frame, the scene you traveled *from*.
+- **It is scene STATE, so signal both edges:** `NotifySceneLoadStarted()` at the load **request**,
+  `NotifySceneReady()` when the load completes. Completion-only leaves the flag `true` after run 1, so
+  the **2nd+ run in a session** begins mid-load — invisible to a one-run smoke test. **Clear it at the
+  *request*, not from inside the loader**: loader/generator code runs only once the new scene is
+  already up, so a flag cleared there still answers for the level you are *leaving* — it fails by
+  succeeding at the wrong time. See
+  [[a-world-ready-flag-may-still-answer-for-the-world-you-are-leaving]]. (Play-flow re-entry is already
+  covered by `ResetBeginGate()`, `07 §2.2`.) Don't re-arm from `EndGameplay`/`AbortGameplay` instead:
+  they complete asynchronously and a late completion can wipe a leg the next run already latched.
+
+**Finding the signal** — best first: the **loading-screen controller** (whatever hides the cover already
+knows); else `SceneManager.LoadSceneAsync`'s `AsyncOperation.completed` / `SceneManager.sceneLoaded`
+`[Unity]`; for additive/streamed content, when *all* loads for the playable area report done. Prefer a
+**predicate over current state** to a fire-once event — a predicate can be re-evaluated, a missed event
+cannot.
+
+> **No timeout, no fallthrough.** The only real gap is an `async void` loader with no completion signal —
+> an authoring bug: add an awaitable/event and call from it (BL-2). A timer, frame count, or "begin anyway
+> after N seconds" re-creates exactly the bug this leg prevents, intermittently and silently. If leg 3
+> never latches, `BeginGameplay` never fires and the run is uncaptured — loud in verification, which is
+> the point.
+
+**Verify:** log a timestamp per leg. Leg 3 must be at or after the loading screen came down, and
+`BeginGameplay` at `max(leg1, leg2, leg3)`. Re-check on a **second run in the same session** — that is
+where a missing `NotifySceneLoadStarted()` shows up.
 
 ---
 
 ## Capture (creator) gameplay flow
 
 ```
-match start (game code)
+match start / scene load STARTS (game code)
+  ├─ start loading the gameplay scene                                     [Unity] async
   └─ session.OpenRoom(data.CreateOpenRoomDataForCreator(), onOpenRoom)   [SDK] arg via [Layer]
         └─ onOpenRoom: room.AddPlayer(new LudeoRoomAddPlayerParameters(playerId), onAddPlayer)  [SDK]
-              └─ onAddPlayer: store data.player (LudeoPlayer)             [SDK type]   ⎫ RACE —
-        └─ RoomReady event                                                [SDK]        ⎬ no order
-              └─ player.BeginGameplay(onBegun)  [SDK]  ← only once BOTH onAddPlayer + RoomReady done ⎭ guarantee
+              └─ onAddPlayer: store data.player (LudeoPlayer)             [SDK type]   ⎫ 3-leg
+        └─ RoomReady event                                                [SDK]        ⎬ gate —
+scene load COMPLETES / loading screen down (game code)                                 ⎪ no order
+  └─ controller.NotifySceneReady()                                        [Layer]      ⎭ guarantee
+              └─ player.BeginGameplay(onBegun)  [SDK]  ← only once ALL THREE legs are done
               └─ onBegun: gameplay runs; each frame UpdateStateObjects()  [Layer] scoped WriteData (CR-005/002)
               └─ create objects for tracked entities (see 06)             [SDK] room.Writer.CreateObject
 match ends / any exit (CR-007)
@@ -183,8 +246,11 @@ match ends / any exit (CR-007)
 
 - `CreateOpenRoomDataForCreator()` is a `[Layer]` helper that builds the `[SDK]`
   `LudeoSessionOpenRoomParameters` (creator form has **no** `ludeoId`).
-- `BeginGameplay` `[SDK]` starts SDK recording — only after the room is ready and the player added
-  (CR-009).
+- **`OpenRoom` early, `BeginGameplay` late.** Opening the room at load *start* is deliberate — it hides
+  SDK latency under the load. That is exactly why leg 3 exists: the room chain finishes first, and
+  `BeginGameplay` must still wait for the scene. Never "fix" a too-early begin by delaying `OpenRoom`.
+- `BeginGameplay` `[SDK]` starts SDK recording **and the video encoder** — only once all three gate legs
+  are in (CR-009). Everything after it is in the Ludeo's video.
 - `EndGameplay` `[SDK]` finalizes/creates the Ludeo; `AbortGameplay` `[SDK]` discards. Route **every**
   exit through one (CR-007), then `CloseRoom` `[SDK]`.
 
@@ -201,7 +267,7 @@ LudeoSelected (or Activate.isLudeoSelected) → store ludeoId
               └─ build restore buckets (LudeoRestoredData via dataReader.GetObjects) [Layer] ← do NOT apply yet (CR-010)
               └─ onBeginRestore() [Layer] ← start async scene load + suppress intros, BEFORE the room opens
               └─ flow.InitRoom() [Layer] → session.OpenRoom(CreateOpenRoomDataForLudeo()) [SDK] → AddPlayer [SDK]
-RoomReady ∧ AddPlayer ∧ sceneLoaded (NotifySceneReadyForRestore)   ← all three gate BeginGameplay (CR-009)
+RoomReady ∧ AddPlayer ∧ sceneLoaded (NotifySceneReady)   ← the same three legs gate BeginGameplay (CR-009)
   └─ apply restored state (two-pass, scoped reads) [Layer] → unfreeze (Time.timeScale=1f) [Unity] → player.BeginGameplay [SDK]  (CR-010 order)
 ```
 
@@ -271,11 +337,13 @@ thread when awaited from it. If the game uses coroutines/`async`/Jobs, marshal b
 | --- | --- | --- |
 | No Ludeo created | Missed an exit path | Route every exit through `EndGameplay`/`AbortGameplay` `[SDK]` (CR-007) |
 | Attribute never records / restores | `WriteData`/`ReadData` called outside a scope | Wrap in `using (obj.EnterObjectScope())` (CR-002); the handler does this per tick |
+| **Ludeo video opens on a loading screen / black frames / the previous scene**; first seconds are not gameplay | `BeginGameplay` fired on legs 1+2 while the gameplay scene was still loading — the encoder started during the load | Add leg 3: `NotifySceneReady()` `[Layer]` from the loader's completion (once the loading screen is down), and gate on all three (CR-009) |
+| First run's video is correct, **every later run in the same session** opens on the loading screen | Only leg 3's completion edge is wired, so `m_sceneReady` stayed `true` from the previous scene | Also call `NotifySceneLoadStarted()` at the load **request** (not from inside the loader) |
 | `BeginGameplay` fails / "no LudeoPlayer"; run records nothing (intermittent) | `BeginGameplay` called from `RoomReady` alone — it won the race against the `AddPlayer` callback that sets the player | Gate `BeginGameplay` on **both** `RoomReady` and `onAddPlayer` (whichever is last); or use `LudeoRoom.GetPlayer` in `RoomReady` (CR-009) |
 | `AddPlayer`/`BeginGameplay` no-ops | Called from a game event, not the callback | Chain via `onOpenRoom`/`RoomReady` (CR-009) |
 | Restored state wrong | Applied in `GetLudeo` cb / before `BeginGameplay`; or unfrozen before apply | Apply on `RoomReady`, **apply→unfreeze→`BeginGameplay`** (never unfreeze first) (CR-010) |
 | Restore hangs; `BeginGameplay` never fires | Async spawn (awaits physics/coroutine/`UniTask`/NavMesh) frozen with `timeScale=0` → `FixedUpdate` stalls | **Suppress** via `IsInLudeoFlow` instead of freezing the async create; freeze only the scalar write (CR-010, `07 §10.1`) |
-| Restore applies into empty scene | `BeginGameplay`/apply fired on `RoomReady` before the scene finished loading | Add the scene-load leg: `NotifySceneReadyForRestore()` from the loader's completion (CR-009) |
+| Restore applies into empty scene | `BeginGameplay`/apply fired on `RoomReady` before the scene finished loading | Add the scene-load leg: `NotifySceneReady()` from the loader's completion (CR-009) |
 | First-restore `NullReferenceException` | Play flow's `m_data` assigned lazily in `InitRoom`; restore-read fired earlier | Inject shared state into flows at **construction** (REFERENCE-ARCHITECTURE) |
 | Game plays under overlay | Pause/resume events not subscribed | Subscribe `PauseGameRequested`/`ResumeGameRequested` `[SDK]` before Activate (CR-011) |
 | Restored Ludeo loads but input is dead (player can't move/act) | A persistent-singleton (`ScriptableObject`/`DontDestroyOnLoad`/`static`) layer carried a stale pause/freeze flag from a prior playmode session → `timeScale = 0` | Reset all mutable runtime state at the start/bootstrap hook; check the three input gates (`07 §10.4`) |

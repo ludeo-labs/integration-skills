@@ -93,7 +93,7 @@ Surface to the orchestrator:
 | Notification `[SDK]` | Required? | Handler responsibility |
 | --- | --- | --- |
 | `LudeoSelected` | ✅ | Enter play flow — **stub** here (`GetLudeo` + cache reader); restore flow is phase 5 · task 3, data read-back phase 5 · task 4. |
-| `RoomReady` | ✅ | Gameplay-start gate **and** post-Ludeo-load resume: **apply → unfreeze → `Begin`** (never unfreeze first); restore `Begin` also waits on the scene-load leg (CR-010/CR-009). |
+| `RoomReady` | ✅ | Begin-gate **leg 1** **and** post-Ludeo-load resume: **apply → unfreeze → `BeginGameplay`** (never unfreeze first). `BeginGameplay` also waits on leg 2 (`AddPlayer`) **and leg 3 (scene-loaded), in BOTH flows** (CR-010/CR-009). |
 | `PlayerConsentUpdated` | ✅ | Feed `LudeoFlowSwitch.SetFlags(canCreate, canPlay)` + gate the gallery button (CR-012). |
 | `PauseGameRequested` | ✅ | **Freeze the simulation** (`Time.timeScale = 0f`) — the #1 mid-play failure if missing (CR-011) — **and emit `PauseLudeo`**, or the objective timer runs on under the overlay. Don't open the game's own pause menu (stacks under the overlay). |
 | `ResumeGameRequested` | ✅ | Unfreeze the sim (`Time.timeScale = 1f`) **and emit `ResumeLudeo`** — same pairing as the row above (CR-011). |
@@ -135,7 +135,10 @@ Surface to the orchestrator:
 
 - [ ] Layer file list (or opt-out mapping) defined against `REFERENCE-ARCHITECTURE.md`.
 - [ ] Bootstrap + all delegates planned; `onRoomReady` applies **before** unfreeze; begin-gate includes
-      the restore scene-load leg.
+      the scene-load leg.
+- [ ] **Begin-gate leg 3 planned for both flows and both edges** — named call sites for
+      `NotifySceneLoadStarted()` (at the load *request*) and `NotifySceneReady()` (loading screen down),
+      on the creator *and* restore paths, with no timer/timeout substitute (CR-009).
 - [ ] **Every** exit path routed to `End`/`Abort` (CR-007); `OnApplicationQuit` ends/aborts **and**
       `Dispose()`s the session.
 - [ ] **All required notifications registered before `Activate`** (§5).

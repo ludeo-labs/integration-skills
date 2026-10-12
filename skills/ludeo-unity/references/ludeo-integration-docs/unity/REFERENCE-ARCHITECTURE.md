@@ -181,7 +181,8 @@ public class LudeoController
     private readonly Action<Action> m_activateWhenReady;   // implicit-auth gate: game fires the supplied Activate once Steam is ready (null = activate inline)
     private bool m_gameplayStarted;
     private bool m_roomReady;              // leg 1 of the begin gate (see HandleRoomReady)
-    private bool m_sceneReadyForRestore;   // leg 3 (restore only): the gameplay scene the apply writes into has finished loading
+    private bool m_sceneReady;             // leg 3 (BOTH flows): IS the gameplay scene currently loaded (cover down)?
+                                           // STATE, not a one-shot event — the loader owns both edges (see NotifyScene*)
 
     public LudeoController(Action<bool> onInitDone, Action onRoomReady,
                            Action onStopGame, Action onResumeGame, Action onExitToMainMenu,
@@ -250,8 +251,12 @@ public class LudeoController
 
     // Re-arm the three begin-gate legs so a flag left set by the PRIOR run can't fire Begin on the new,
     // not-yet-ready session (the multi-replay "Begin on a stale session" failure, 07 §2.2).
+    // m_sceneReady is re-armed here for PLAY-flow re-entry (onBeginRestore kicks a fresh load right
+    // after); the creator flow's equivalent is the loader's NotifySceneLoadStarted(). Do NOT also reset
+    // from EndGameplay/AbortGameplay — those complete asynchronously and a late completion could wipe a
+    // leg the NEXT run already latched, so BeginGameplay would never fire.
     private void ResetBeginGate()
-    { m_roomReady = false; m_sceneReadyForRestore = false; m_data.ludeoPlayer = null; }
+    { m_roomReady = false; m_sceneReady = false; m_data.ludeoPlayer = null; }
 
     // ── lifecycle ────────────────────────────────────────────────────
     // v4.3.0: init is SYNCHRONOUS and two-step — Initialize() then SessionManager.CreateSession(out …).
@@ -325,16 +330,23 @@ public class LudeoController
     // Called by LudeoInitRoomHandler once AddPlayer has stored data.ludeoPlayer.
     public void NotifyPlayerAdded() => TryBeginAfterRoomReady();
 
-    // Called by the game's scene loader once the gameplay scene the restore applies into has FINISHED
-    // loading. RoomReady is independent of SceneManager — the SDK room chain knows nothing about your
-    // scene load, so this is a real third leg, not a guaranteed-by-RoomReady fact. An async-void scene
-    // loader has no completion signal; add an awaitable/event and call this from it (BL-2).
-    public void NotifySceneReadyForRestore() { m_sceneReadyForRestore = true; TryBeginAfterRoomReady(); }
+    // Leg 3 is SCENE STATE, so the game's loader signals BOTH edges — completion-only leaves the flag
+    // stuck true after run 1, and the 2nd+ run in a session begins mid-load. Clear it at the load
+    // REQUEST: loader/generator code runs only once the new scene is already up, so a flag cleared there
+    // still answers for the level you are LEAVING — it fails by succeeding at the wrong time
+    // ([[a-world-ready-flag-may-still-answer-for-the-world-you-are-leaving]]).
+    // Latch "ready" when the load is done AND the loading screen is down; intros/fade-ins/countdowns
+    // follow it and are recorded on purpose in CAPTURE (restore suppresses those mechanisms separately —
+    // they'd clobber restored state — CR-010). An async-void loader has no completion signal: add an
+    // awaitable/event and call from it (BL-2) — never a timer or frame count.
+    // Was named NotifySceneReadyForRestore() when leg 3 was restore-only.
+    public void NotifySceneLoadStarted() { m_sceneReady = false; }
+    public void NotifySceneReady()       { m_sceneReady = true; TryBeginAfterRoomReady(); }
 
     private void TryBeginAfterRoomReady()
     {
         if (!m_roomReady || m_data.ludeoPlayer == null) return;   // legs 1+2: RoomReady AND AddPlayer (CR-009)
-        if (m_data.isInLudeo && !m_sceneReadyForRestore) return;           // leg 3 (restore only): scene the apply writes into is loaded
+        if (!m_sceneReady) return;                                // leg 3: scene loaded, cover down — BOTH flows
         m_roomReady = false;                                               // begin exactly once per run
         m_onRoomReady();   // game: CR-010 → apply state → unfreeze → BeginGameplay (order per 07 §10.1)
     }
@@ -362,7 +374,7 @@ public class LudeoController
 
         void StartPlayFromSelectedLudeo()
         {
-            ResetBeginGate();              // re-arm m_roomReady / m_sceneReadyForRestore / ludeoPlayer
+            ResetBeginGate();              // re-arm m_roomReady / m_sceneReady / ludeoPlayer
             if (!m_switch.SwitchToPlay()) return;   // consent-gated
             // Extract restore buckets now; apply later on RoomReady (CR-010).
             m_data.ludeoRestoredData = new LudeoRestoredData(m_data.ludeoId, data.ludeoDataReader, out bool ok);
@@ -371,7 +383,7 @@ public class LudeoController
             // SELECTION-TIME hook — fires here, BEFORE the room opens. The room chain only yields the
             // world id at RoomReady, which is too late to start an async scene load; the game must begin
             // loading the restore scene (and suppress intros) NOW. onInitDone is session-boot only;
-            // onRoomReady is too late. The game's loader calls NotifySceneReadyForRestore() when done (BL-1).
+            // onRoomReady is too late. The game's loader calls NotifySceneReady() when done (BL-1).
             // It ALSO resets both pause flags to an unfrozen baseline (07 §10.3): a prior play's overlay /
             // Ludeo-done PauseGame is inherited within ONE session — bootstrap does not re-run on replay.
             m_onBeginRestore?.Invoke();    // may read restore buckets — safe because the play flow
@@ -403,7 +415,7 @@ public class LudeoController
 > RoomReady has nothing to do with `SceneManager`: the SDK room chain
 > (`OpenRoom → AddPlayer → RoomReady`) can complete while the gameplay scene the apply writes into is
 > still loading. Applying then writes into an **empty scene** (BL-2). So the restore gate is `RoomReady ∧
-> AddPlayer ∧ sceneLoaded` — the game signals the third leg via `NotifySceneReadyForRestore()`, which
+> AddPlayer ∧ sceneLoaded` — the game signals the third leg via `NotifySceneReady()`, which
 > almost always means **adding an awaitable/completion event to a scene loader that was `async void`**. And
 > the scene load must *start* before the room opens, so it's kicked from the **`onBeginRestore`
 > selection-time hook** (in `HandleGetLudeoDone`, before `InitRoom`) — `onInitDone` is session-boot, `onRoomReady`
@@ -757,7 +769,7 @@ m_ludeo = new LudeoController(                                            // [La
     onResumeGame:    () => ResumeGame(),                // [Unity] unfreeze + SendAction(ResumeLudeo)
     onExitToMainMenu:() => LoadMenuScene(),       // [Unity] SceneManager.LoadScene
     // SELECTION-TIME hook (restore only): kick the async scene load + suppress intros; call
-    // m_ludeo.NotifySceneReadyForRestore() from the loader's completion (begin-gate leg 3).
+    // m_ludeo.NotifySceneReady() from the loader's completion (begin-gate leg 3).
     onBeginRestore:  () => { Time.timeScale = 0f; StartCoroutine(LoadRestoreSceneThenNotify()); }); // [Unity]+[Layer]
 m_ludeo.SetGameplayerId(localPlayerId);           // [Layer]
 

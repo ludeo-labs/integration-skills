@@ -130,7 +130,9 @@ The orchestrator confirms **all** of these before advancing — they are produce
 
 - [ ] **Every game-event → SDK-call mapping listed** (task 1).
 - [ ] **All async gate conditions before `Begin` defined** — RoomReady apply→unfreeze→`Begin`, incl. the
-      restore scene-load leg (task 3).
+      scene-load leg (task 3).
+- [ ] **Leg 3 wired on the creator path** — both edges called from the gameplay scene loader's real
+      signals, so the Ludeo's video can't open on a loading screen. No timer (task 4, CR-009).
 - [ ] **Layer files created** (task 4).
 - [ ] **All notifications registered before `Activate`** (task 3 plan + task 4 enforcement).
 - [ ] **Activation includes apiKey + game version + auth** — via `LudeoSettings.asset` (phase 1), read
