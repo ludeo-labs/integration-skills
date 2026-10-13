@@ -73,8 +73,8 @@ LudeoManager.SessionManager.CreateSession(out session)   [SDK]  ← synchronous,
         ▼
   PlayerConsentUpdated fires → canCreateLudeo/canPlayLudeo → flowSwitch.SetFlags(...)  [Layer] (CR-012)
         ▼
-  if isLudeoSelected == true → a LudeoSelected event follows → PLAY flow
-  else → normal game start (CREATE flow available when consent allows)
+  if isLudeoSelected == true → a LudeoSelected event follows shortly → PLAY flow
+  else → normal game start (CREATE flow when consent allows) — LudeoSelected may still arrive later
 ```
 
 1. **`LudeoManager.Initialize()`** `[SDK]` — call once, synchronously; check the returned
@@ -89,7 +89,8 @@ LudeoManager.SessionManager.CreateSession(out session)   [SDK]  ← synchronous,
 4. **`LudeoSession.Activate`** `[SDK]` — connects to backend **and authenticates**. In its callback,
    check `data.resultCode` (treat failure as non-fatal — continue the game *without* Ludeo, never
    block the player), then `isLudeoSelected == true` ⇒ launched to play a Ludeo; a `LudeoSelected`
-   event follows → branch to the play flow.
+   event follows shortly → branch to the play flow. `false` does **not** rule a Ludeo out —
+   `LudeoSelected` can arrive at any later point, more than once (`07 §2.2`).
    > **Auth happens here, and with implicit (Steam) auth — `runWithoutLauncher = false`, the
    > production default — Steam must already be initialized before this call.** The SDK auto-detects
    > Steam but does **not** initialize it; if Steam isn't running, `Activate` returns
