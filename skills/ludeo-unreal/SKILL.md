@@ -220,7 +220,7 @@ Read `.ludeo/integration.json` from the target game repo.
    **Skip this step entirely** if the game is C++-heavy with minimal Blueprint gameplay logic (i.e., `Source/` headers contain all gameplay UPROPERTYs).
 8. Initialize `integration.json` — only if the file doesn't exist. If it exists, read it and resume from where it left off.
 9. Create empty TDD with header `# Ludeo SDK Integration — Technical Design Document` — only if the TDD file doesn't exist. If it exists, preserve it.
-10. **Ludeo environments, and who is in them.** Policy and touchpoints: `references/ludeo-studio-mcp.md`.
+10. **Ludeo environments, and who is in them.** Policy and touchpoints: `references/ludeo-studio-mcp.md`. Once (a) records the Game ID, start **Reporting progress** there.
     - **(a) Environments.** Ask the human for the Studio Labs **Game ID** (Studio Labs → **Game Options → Info**; the game **version** uuid, not the backend `gameId`) — phase 7 needs it either way. If `list_game_environments` is in your tool list, list the environments with it; otherwise ask which exist and what Beta Version Name each carries. Record the Game ID as `integration.json → sdkSetup.ludeoGameId` and **all** environments in `sdkSetup.ludeoEnvironments` as `{ envId, name, betaVersionName, isDefault, dialogValue, integratorIsMember, steamBranch, invited }` (`envId` when known; `isDefault` and `dialogValue` — what *Assign to beta version* shows: `{}`, a name, or `""` — come only from the Studio Labs dialog check, `null` = not yet checked; `integratorIsMember: null` = unknown; `steamBranch` is filled at phase 3 §3.16 — `""` = Steam's default branch, which a human saying "public" means, `null` = not asked; `invited` holds names, never emails). A game normally has several and an integration may target more than one, so which one a build is for is asked at the point of writing, not here.
     - **(b) The integrator's membership — always a question.** No tool reports it. For each recorded environment, ask: *"Has your Steam account been added to <environment>? Ludeo creation silently fails without it — highlights record but can't convert to Ludeos."* If they don't know, or the answer is no, have them add themselves (invite-link row). Record the answer in that entry's `integratorIsMember`, never off the back of a tool call, and ask again whenever the target environment changes.
     - **(c) Anyone else.** Ask now, and again when the target environment changes, in these terms (not "project access"): *"anyone else on your team who needs to capture — teammates, QA?"* — and in which environment. If `invite_user_to_env` is in your tool list, invite them (a **write** — show `environment · every invitee's email` and wait for a go-ahead); otherwise ask the human to invite them in Studio Labs. Default: just them.
@@ -228,7 +228,7 @@ Read `.ludeo/integration.json` from the target game repo.
     - `"Can the curated slice be played WITHOUT the game's live/online backend? If not, does an offline-mode preprocessor gate (e.g., LUDEO_OFFLINE_MODE) exist or need to be built as a prerequisite?"` — Record under `sdkSetup.offlineBackend` as `"works" | "gate-exists:<flag>" | "gate-needed"`. If `gate-needed`, this is a blocker for later phases; flag it.
     - `"What is the exact command/cheat/call to load the curated slice from a cold boot? ServerTravel by map name? A game-specific state-machine call? Editor PIE only?"` — Record under `sdkSetup.sliceLoadCommand`. The default `ServerTravel` may silently no-op for games with custom load paths (e.g., ActionGame uses `UGameStateMachine::RequestSoloGame`).
 12. **Run the kickoff intake questionnaire.** Read `<skill-base-dir>/references/phase-01-know-your-game.md` and walk the 4 question groups with the human. Target 20-30 minutes. Record answers to `integration.json` → `intake`. Unknown answers become risks, not blockers — they resurface at the phase that gates on them. Phases 3 and 4 pre-flight checklists read this block and fail if required fields are missing.
-13. Transition immediately to Phase 2.
+13. Report `sdk_set_up` · `finished`, then transition immediately to Phase 2.
 
 ### Available Tools
 
@@ -336,6 +336,7 @@ If a needed MCP is unavailable, set it up from `config/mcp_config.template.json`
 ### Step 5: Execute Phase Work
 
 Follow the loaded reference file's guidance:
+0. Report progress per **Reporting progress** (`references/ludeo-studio-mcp.md`).
 1. **Create TodoWrite items for each analysis sub-item** (e.g., 3.1, 3.2, ..., 3.6), not just the phase as a whole. An unchecked "Verify API exports for all hook points" todo prevents skipping critical steps.
 2. Analyze the game codebase (read files, grep patterns per the analysis checklist)
 3. Present your plan in chat — what you'll implement, which hook points, key decisions
@@ -427,6 +428,7 @@ After the review is merged/submitted (or human says phase is done):
    - Set current phase status to `completed` with `completedAt` date
    - Advance `currentPhase` to next phase
    - Set next phase status to `in_progress`
+3. Report progress per **Reporting progress**.
 
 ---
 

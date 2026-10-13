@@ -37,6 +37,8 @@ for each widened wave.
       census + wave plan** (`## Wave Rollout`, `## Object Type Census`, `## Spawn/Own Pattern Summary`) and
       the user **approved** it (type coverage, load-bearing flags, wave order, Wave 1 = restorable spine +
       must-have set). The **per-entity deep detail is NOT in it yet** — task 0 appends it per wave.
+- [ ] **A timer goal on the debug environment**, so each wave can cut a test Ludeo — `create_goal_or_constraint` in
+      [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
 - [ ] The task briefs are present in `references/` (see §3): `9a` (deep-scope), `9`, `10`, `11`, `12`.
 
 ## 3. Steps (the orchestration)
@@ -93,6 +95,8 @@ for N in waves:                                  # OUTER LOOP
     task 4  reconstruct(N)    -> fill N's buckets in ApplyRestoredState → GATE 4 (N restores)
     -> ask the human: "wave N restores — widen to wave N+1?"        # confirm-before-widen
 ```
+
+Report progress per wave ([`ludeo-studio-mcp.md`](ludeo-studio-mcp.md) → Reporting progress).
 
 **Wave 1 runs the full pipeline** (it builds the one-time restore flow). **Waves ≥ 2 are data-only**
 (`deep-scope → capture → restore-plan → reconstruct`) and **skip task 3** — the flow already exists; only

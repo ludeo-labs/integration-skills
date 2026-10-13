@@ -283,7 +283,7 @@ Actions sent before BeginGameplay are silently dropped. Gate all action reportin
 Some games fire kill events multiple times (once per damage source, once per game state update). If you see duplicate actions in Studio Labs, add a deduplication guard. **For MVP, don't add dedup proactively** — only add it if duplicates are observed.
 
 ### 8.4 Missing Action Names in Studio Labs
-Actions only appear in Studio Labs goals/scoring if they've been reported at least once. After implementing, play through the curated slice, press F9 to capture, and verify actions appear in the Studio Labs highlight inspector.
+Actions only appear in Studio Labs goals/scoring if they've been reported at least once. After implementing, play through the curated slice, press F9 to capture, and verify actions appear in the Studio Labs highlight inspector. Once they do, create goals (and any constraints) on them per `create_goal_or_constraint` in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
 
 ### 8.5 Forgetting to Unbind
 If action event delegates aren't unbound during cleanup, they can fire after the room is closed, causing errors. Always unbind in the same cleanup path as state tracking teardown.

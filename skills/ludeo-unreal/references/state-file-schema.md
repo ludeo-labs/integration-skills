@@ -66,6 +66,7 @@ Full reference for the state file the skill creates in the target game repo. SKI
     },
     "ludeoMcpServer": "ludeo-mcp",
     "ludeoGameId": "<Studio Labs Game ID — the game version uuid>",
+    "reportStateDisclosed": false,
     "ludeoEnvironments": [
       { "envId": "<id>", "name": "QA", "betaVersionName": "qa-ludeo", "isDefault": false, "dialogValue": "qa-ludeo", "integratorIsMember": true, "steamBranch": "qa-ludeo", "invited": ["Alice"] },
       { "envId": "<id>", "name": "Production", "betaVersionName": null, "isDefault": true, "dialogValue": "{}", "integratorIsMember": null, "steamBranch": "", "invited": [] }
@@ -111,5 +112,6 @@ Full reference for the state file the skill creates in the target game repo. SKI
 - `curatedSlice`: Set during Phase 2 — defines the gameplay moment that Phases 4-6 are scoped to. Entities and actions are populated during analysis and confirmed by the human.
 - `curatedSlice.restorationApproach`: Set during Phase 2 — `"reconciliation"` (use SaveWorld + property filters, like FPSGameStarterKit) or `"manual"` (read each property from DataReader, apply to spawned entities). Drives Phase 5 Player Flow implementation.
 - `stateApproach`: Set during Phase 5 — `"SaveWorld"` or `"Manual"` (may differ from restoration approach for full game coverage in Phase 8).
+- `reportStateDisclosed`: true once the human has been told about progress reports (`ludeo-studio-mcp.md` → Reporting progress).
 - `ludeoEnvironments[]`: `isDefault` and `dialogValue` are set only from the Studio Labs *Assign to beta version* check (`null` = not checked; while any `isDefault` is `null`, nothing is written); a re-read never overwrites `isDefault`, and resets `dialogValue` to `null` when it shows `betaVersionName` changed; where `betaVersionName` isn't a name, a `dialogValue` other than `"{}"`, `""` or `null` is the environment's beta name (`ludeo-studio-mcp.md`, Matching step 1); `name` is a display label only and never goes into `BetaBranchName`; `integratorIsMember: null` = unknown; `steamBranch: ""` = Steam's default branch (what a human means by "public"), `null` = not asked yet; `invited` holds names, never emails.
 - Phases also accumulate fields not shown in the template above as the integration progresses (e.g. `tools`, `intake`, `pauseMechanism`, `skillImprovementNotes`) — preserve unknown fields when updating, never rewrite the file from this template.

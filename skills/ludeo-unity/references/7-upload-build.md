@@ -57,11 +57,11 @@ the target environment. This is the final phase — when it passes, the build is
       - **The cloud binding is Step 11.** A cloud run is bound by assignment, not by the Beta Version Name — the
         cloud token selects the environment.
 - [ ] **Global Triggers created** in Studio Lab → **the environment named above** (triggers are per environment): Pause/Resume on `PauseLudeo`/`ResumeLudeo`,
-      Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. **Ask the user to confirm** — the cloud run
+      Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. Read them with the tools in
+      [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md), or **ask the user to confirm** — the cloud run
       is the first place the overlay pause happens, and without the trigger it won't stop the objective timer.
       The failure is silent (phase 6 · task 2 Step 6). If they aren't there yet, or new actions arrived since,
-      **offer to create them (and the goals and scores) with browser control — recommended**
-      (`learnings/architecture/offer-to-set-up-studio-lab-with-browser-control.md`).
+      create them with those tools. On Production, the user creates the triggers by hand.
 - [ ] [`ludeo-integration-docs/unity/READING-UNITY-LOGS.md`](ludeo-integration-docs/unity/READING-UNITY-LOGS.md)
       — the agent can't see the Console; the release-build gate (Step 2) reads `Editor.log`.
 

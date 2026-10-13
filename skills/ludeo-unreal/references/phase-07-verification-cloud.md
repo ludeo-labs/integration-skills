@@ -45,8 +45,9 @@ Required artifacts from prior phases:
         `if (!FParse::Param(…, TEXT("cloud")))`, so `[Ludeo] BetaBranchName` is never read there, and the cloud
         token selects the environment.
 - [ ] **Global Triggers created** in Studio Labs → **the environment named above** (triggers are per environment): Pause/Resume on
-      `PauseLudeo`/`ResumeLudeo`, Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. Ask the user to
-      confirm — without them the pause never stops the objective timer, and the failure is silent (phase 03 §5.9.1)
+      `PauseLudeo`/`ResumeLudeo`, Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`. Read them and create
+      any missing with the tools in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md) (on Production the user does it by hand), or ask
+      the user to confirm — without them the pause never stops the objective timer, and the failure is silent (phase 03 §5.9.1)
 - [ ] **Explicit auth removed before shipping** — `[Ludeo] SteamAuthID` empty in every `*Game.ini` under `Config/` (they're
       packaged, and platform layers like `Config/Windows/WindowsGame.ini` merge in), and no `-SteamAuthID=` / `STEAM_AUTH_ID` in `run.bat` or the shipped environment. Explicit auth is
       a debugging convenience (phase 03 §3.16); left in, every creator who runs the shipped build through Steam

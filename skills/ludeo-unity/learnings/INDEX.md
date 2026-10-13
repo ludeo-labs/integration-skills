@@ -8,7 +8,7 @@ Regenerate with `node scripts/generate-learnings-index.mjs` after adding a learn
 If you add a learning where you cannot run node (e.g. an installed skill copy),
 append the line by hand in the same format.
 
-Total: 175
+Total: 174
 
 - architecture/a-replay-teleport-breaks-ring-ahead-level-streaming.md | generalizable | p5 | Does the game prepare its level content just-in-time around the player - room setup one ring ahead, encounters configured as neighbors unlock? A replay that teleports the player breaks the streaming's ordering assumptio…
 - architecture/a-world-ready-flag-may-still-answer-for-the-world-you-are-leaving.md | generalizable | p5 | Does your restore flow poll a game-owned 'world/level is ready' flag to know when to restore? Find out what CLEARS it. If it is cleared by the loader or generator rather than by the load REQUEST, it still answers for th…
@@ -30,7 +30,6 @@ Total: 175
 - architecture/level-reset-registry-is-census-batch-iterator-and-reset-seam.md | generalizable | p4 | Does the game have a level-restart / reset contract — a small interface with a per-level registry that every stateful object self-registers into from its own Start()?
 - architecture/make-the-restore-verify-every-value-it-writes.md | universal | p5 | Make the restore verify every value it writes, and report it itself
 - architecture/non-ludeoable-spans-as-a-state-machine-not-paired-calls.md | generalizable | p3 | Does the game have a central game-state enum plus a state-change notification that most of its non-interactive segments (menus, shops, dialogue, cutscenes, upgrade screens, map) announce themselves through?
-- architecture/offer-to-set-up-studio-lab-with-browser-control.md | generalizable | p6,7 | Are the game's actions, Pause/Resume and Non-Ludeoable spans wired and already sent once by a build, and does this session have browser control with the integrator signed in to Studio Lab?
 - architecture/pause-and-non-ludeoable-triggers-split-by-flow-a-real-pause-needs-both.md | generalizable | p3,6 | Is a pause menu (or any stretch where the simulation freezes) emitting ONLY the pause/resume pair? Then Creator Lab still lets a creator trim the moment's start point into that stretch. Check the two trigger types' beha…
 - architecture/persisted-progression-can-be-a-generation-input.md | generalizable | p2 | Procedural world, and you're planning to reproduce it by capturing the RNG seed/state? Read the generator's own entry point for reads of PERSISTED player progression - many builders drop or unlock content based on save …
 - architecture/put-the-session-teardown-in-the-scene-loader.md | generalizable | p3 | Is your run teardown hooked to the game's 'before I load the next scene' method? Grep for direct calls to the scene LOADER — every caller that skips that method is an exit path with no teardown, and a DontDestroyOnLoad …

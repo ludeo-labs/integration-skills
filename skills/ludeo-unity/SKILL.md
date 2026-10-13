@@ -63,7 +63,9 @@ restorable spine, then widen) → **6** actions → **7** validate + upload → 
 could still capture, recommends it, and — if the user wants to expand — **re-enters phases 4 & 5** to add it
 as new waves (then phase 7 re-uploads the wider build), before finalizing. Always start at phase 1 unless the
 user says they've completed earlier phases. Complete one phase at a time and confirm with the user before
-advancing.
+advancing. Report each phase's start and finish from this top level, per **Reporting progress** in
+[`references/ludeo-studio-mcp.md`](references/ludeo-studio-mcp.md), and tell every subagent you dispatch not
+to call `ludeo-mcp` tools.
 
 **Phases 3, 5, and 6 are orchestrated.** Each is one logical guideline phase made of single-task briefs,
 run by a thin orchestrator that dispatches one **subagent per task** (Agent tool) and passes artifacts by

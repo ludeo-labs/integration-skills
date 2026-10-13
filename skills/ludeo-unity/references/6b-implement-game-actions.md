@@ -154,23 +154,16 @@ void PauseGame()  { /* … existing freeze … */   /* if span open, return */ S
 void ResumeGame() { /* … existing unfreeze … */ /* if span closed, return */ SendAction(LudeoActionKeys.ResumeLudeo); }
 ```
 
-### Step 6: Get the Global Triggers created — offer to do it with browser control (out-of-code, required)
+### Step 6: Get the Global Triggers created — the agent creates them (out-of-code, required)
 Both pairs are ordinary `SendAction` strings — **not SDK constants**. They do nothing until a matching **Global
 Trigger exists** on the platform. A missing or misnamed trigger drops the action **silently**: no error, the
 action still shows in the log, the timer keeps counting. So don't just note it. Hand it to the orchestrator as a
-required platform step with **two ways to do it**:
+required platform step:
 
-> **A third way, when it exists:** if a tool for global triggers has reached [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)’s table by the time you read this, prefer it over both — a **write**, so confirm first. None is deployed today, so expect to use one of the two below.
-
-1. **Recommended — the agent does it with browser control.** If the session has a browser tool, the orchestrator
-   offers, once a build has sent these actions (Studio Lab lists an event only after that):
-   > *"The actions reach the backend now. Want me to set up Studio Lab for you with browser control? I'd create the
-   > Global Triggers (and the goals, constraints and scores for the gameplay actions) in your environment and read
-   > each one back. (Recommended.)"*
-   The integrator signs in; the agent never types credentials. Follow
-   `learnings/architecture/offer-to-set-up-studio-lab-with-browser-control.md` (confirm the environment, pick
-   events by clicking the option, read the form back before saving).
-2. **By hand** — if there is no browser tool or the integrator declines, give the instruction verbatim:
+1. **With the tools.** Once a build has sent the actions (Studio Lab lists an event only after that), the
+   orchestrator creates the triggers, and the goals and constraints for the gameplay actions, with the tools in
+   [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
+2. **By hand** — only without the tools, give the instruction verbatim:
    > *"**Needed on the Ludeo platform.** In Studio Lab → your environment → Global Triggers,
    > create (or confirm) a **Pause/Resume** trigger starting on `PauseLudeo` and ending on `ResumeLudeo`, and a
    > **Non-Ludeoable Area** trigger starting on `StartNoneLudeable` and ending on `StopNoneLudeable`. Names must

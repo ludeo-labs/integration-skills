@@ -1657,7 +1657,7 @@ The trigger side has **two types**, configured in Studio Lab (**Global Triggers*
 | Non-Ludeoable Area | `StartNoneLudeable` | `StopNoneLudeable` | Creator Flow (irreproducible capture segments) |
 | Pause/Resume | `PauseLudeo` | `ResumeLudeo` | Player Flow (the objective timer must stop) |
 
-> If a global-trigger tool has reached [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)'s table by the time you read this, use it (a **write** — confirm first) instead of the hand-off below.
+> When the global trigger tools in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md) are in your tool list, use them instead of the hand-off below, once a run has sent these actions.
 >
 > **These names are a convention, not SDK constants.** `SendAction` takes an arbitrary string; the strings only acquire meaning once a matching trigger **exists** in **Studio Lab → the environment → Global Triggers** (which tracked events start and end each segment). You can't see or create them, so **tell the user to create both — Pause/Resume on `PauseLudeo`/`ResumeLudeo`, Non-Ludeoable Area on `StartNoneLudeable`/`StopNoneLudeable`.** A missing or misnamed trigger drops the action silently: no error, the action still logs, the objective timer keeps counting.
 
@@ -1769,6 +1769,8 @@ Blindly zeroing both is a silent hole: the detector is **transition**-based and 
 **Close any still-open span before `bGameplayActive` flips on `EndGameplay`** — see [[close-dangling-nonludeable-on-endgameplay]]. Both handlers bail on `!Room || !bGameplayActive` before touching the flag, so a span left open when gameplay ends would otherwise stay `true` into the next run — where the first pause hits the guard above and is never reported. **This matters most in games that run many matches per session** without returning to the main menu: nothing restarts the process to clear it.
 
 The **non-ludeoable area** trigger pair (`StartNoneLudeable`/`StopNoneLudeable`) is emitted from the area's own enter/exit sites, with the same start/end pairing discipline — not from this pause detector.
+
+**Then create the triggers.** Once a run has sent both events of a pair, create its Global Triggers with the tools in [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md) when they're in your tool list; otherwise §5.9.1's hand-off.
 
 #### 5.9.4 SDK Pause/Resume Requests (Player Flow Only)
 
@@ -2564,7 +2566,7 @@ These are errors from prior integration attempts. The skill should actively prev
 ### 8.29 Action Names Not Matching the Studio Lab Trigger Mapping
 
 **Mistake:** Sending action names the platform's **Global Triggers** config doesn't map. These strings are a convention (`StartNoneLudeable`/`StopNoneLudeable`, `PauseLudeo`/`ResumeLudeo`), not SDK constants — an unmapped string is silently ignored by the backend, and so is a mapped one whose flow branch never fires.
-**Prevention:** Use the conventional names, branch on `bIsPlayerFlow` only if the game's Studio Lab config actually distinguishes per flow (§5.9.1), and hand the integrator an explicit mapping action item. Verify in the log that the emitted string matches what's configured.
+**Prevention:** Use the conventional names, branch on `bIsPlayerFlow` only if the game's Studio Lab config actually distinguishes per flow (§5.9.1), and create the mapping per §5.9.3. Verify in the log that the emitted string matches what's configured.
 
 ### 8.30 Freezing on a Pause Request Without Sending the Trigger
 
