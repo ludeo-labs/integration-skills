@@ -79,8 +79,9 @@ file — so the user experiences each as a single phase.
   round-trip on the *restorable spine + must-have set*; each later wave widens the tracked set. **Every**
   sub-task ends in a gate the orchestrator runs. **Split each gate:** the agent verifies the *compile* half
   itself (headless `-batchmode`, then read the log — it has no interactive Console, but the Console's
-  **output** is in the log); the *human* half is only what needs a person — the capture/replay gates require
-  the human to capture/play a Ludeo and judge fidelity. On a failed gate it re-dispatches a fix subagent
+  **output** is in the log); the agent also plays the capture/replay gates itself
+  (`references/agent-play-loop.md`), and the *human* half is only what needs a person: what the loop can't
+  reach and each wave's sign-off. On a failed gate it re-dispatches a fix subagent
   with the logs — re-opening an **earlier wave** if the failure traces to its state.
 - **Phase 6** ("actions") follows `references/6-actions-orchestrator.md`: map → implement, then one human
   compile+log gate (each action must emit in **both** the Creator and Player flow).
@@ -102,6 +103,7 @@ file — so the user experiences each as a single phase.
 | 5 · task 1 | `references/5b-implement-object-tracking.md` | **Per wave (additive):** wire `ILudeoStateHandler` registration & per-tick attribute capture for this wave's types |
 | 5 · task 2 | `references/5c-plan-state-restoration.md` | **Per wave (append):** plan the restoration (objectType buckets, two-pass) for this wave → `RESTORATION_PLAN.md` |
 | 5 · task 3 | `references/5d-implement-restoration-flow.md` | **ONCE (Wave 1 only):** implement the restore **flow**: `LudeoSelected`→`GetLudeo`→play flow, freeze/overlay, `RoomReady`→`Begin`, the `ApplyRestoredState()` stub |
+| 5 · loop | `references/agent-play-loop.md` | Build a dev player, capture, get the Ludeo, replay and judge each capture/replay gate yourself |
 | 5 · task 4 | `references/5e-implement-state-reconstruction.md` | **Per wave (additive buckets):** fill `ApplyRestoredState()` for this wave — two-pass spawn-from-bucket apply, references, deferred props, environment |
 | **6** | **`references/6-actions-orchestrator.md`** | **Actions (orchestrated) — dispatches the two briefs below as subagents; runs after phase 5 (player flow proven); one human compile+log gate** |
 | 6 · task 1 | `references/6a-map-game-actions.md` | Find action points in game code (player-perspective; incl. the non-gameplay standard actions planned in phase 3) |

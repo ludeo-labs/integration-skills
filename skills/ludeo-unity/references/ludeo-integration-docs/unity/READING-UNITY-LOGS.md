@@ -34,9 +34,9 @@ the live run.
 ```bash
 # Editor, headless (compile + run a method), to a dedicated log:
 Unity -batchmode -projectPath <ABS_PROJECT> -logFile <ABS>\ludeo-run.log -quit [-executeMethod <Class.Method>]
-# Standalone player:
-<Game>.exe -logFile <ABS>\ludeo-run.log
 ```
+
+A standalone player: read its default `Player.log` instead; a `-logFile` capture can stop after start-up.
 
 Then `Read`/`Grep` that file. (`-batchmode` runs without the GUI; omit `-quit` to keep it alive while
 you tail the log.)

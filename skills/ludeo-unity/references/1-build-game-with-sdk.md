@@ -119,7 +119,7 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
   it.
 - **`runWithoutLauncher` is the implicit/explicit auth toggle** (the only auth switch — the plugin
   marshals the auth struct from it; no per-call `authDetails` like C++):
-  - **Production + creator flows → `false` (implicit).** What the platform and creators run on, and a viable mode for the **whole** integration — you never have to use explicit. Supply **no** id (leave `launcherUserId` empty); the
+  - **Production + creator flows → `false` (implicit).** What the platform and creators run on, and a viable mode for the **whole** integration when a human plays every gate; the agent's own play loop (phase 5) needs explicit, since replay by Ludeo id runs only with `runWithoutLauncher = true`. Supply **no** id (leave `launcherUserId` empty); the
     SDK auto-detects Steam but **does not init it** — Steam must be up before `Activate` or it returns
     `InvalidAuth`. Set the real Steam **app id** (not `0`). **Dev flags off.** Implicit auth is a
     code-ordering concern (gate `Activate`) and can't be validated from a cloud build — detail in
@@ -131,11 +131,12 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
   invisible ship-blocker. The flag is baked into `resources.assets` at build time, so the project
   value is only an *inference* of what ships; `phase 7` asserts the **actual baked value from the
   build log** before upload. Full field reference: `unity/UPM-INSTALL-AND-DEFINES.md §3`.
-- **QA/dev builds that must change `runWithoutLauncher` / `launcherUserId` / `ludeoToAutoStart` without
-  rebuilding:** the baked `.asset` can't do this. Set up the `LUDEO_DEV`-gated dev-override shim
+- **Dev builds that must change `runWithoutLauncher` / `launcherUserId` / `ludeoToAutoStart` without
+  rebuilding** (QA, and the agent's own play loop in phase 5, so **every integration**): the baked `.asset`
+  can't do this. Set up the `LUDEO_DEV`-gated dev-override shim
   (`unity/UPM-INSTALL-AND-DEFINES.md` → *Dev/QA runtime overrides*): a `ludeo-dev.ini` next to the build +
-  a loader applied before `LudeoManager.Initialize()`. **Gather the real QA values from the user and seed the file
-  with them** — don't leave placeholders. Production builds (no `LUDEO_DEV`) ignore it, so phase 7's baked
+  a loader applied before `LudeoManager.Initialize()`. Seed it with `ludeoLogLevel = Log`; add login keys only for a QA
+  tester who runs as another account. Production builds (no `LUDEO_DEV`) ignore it, so phase 7's baked
   `runWithoutLauncher` gate stays authoritative.
 
 ### Step 3 — Verify with the package installed
