@@ -268,7 +268,7 @@ Only what can't be inferred from code:
   environment can capture; for everyone else it just doesn't work, with nothing to say why. Ask here, and
   again when the target environment changes, in those terms — not as an access-control question ("who should have project access?" means nothing
   to them; "who else on your team needs to capture?" does. Teammates, QA, a producer who wants to try it).
-  Then invite whoever they name, by email, into the environment(s) they'll capture in — **`invite_user_to_env` is a
+  Then invite whoever they name, by email, into the environment(s) they'll capture in — **`invite_users_to_environment` is a
   write that reaches real people: show `environment · every invitee's email` and wait for a go-ahead before
   calling it, once per batch, not once per name** (it isn't on production yet, so it may be absent from your tool
   list; then fall back to asking them to invite in Studio Lab; see [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md)).
