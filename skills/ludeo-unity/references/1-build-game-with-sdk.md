@@ -257,13 +257,15 @@ Only what can't be inferred from code:
 - **Beta branch** — depends on the auth mode (below). Explicit: **Steam ID** + **which environment** to debug
   against (→ `launcherUserId`, and `betaVersion` copied from that environment's beta name per Matching step 1 in `ludeo-studio-mcp.md`, never its display label). Implicit: *"which Steam beta branch do
   you run it on?"* Either way it has to match the Beta Version Name on the environment this build targets.
-- **Is the integrator's own Steam user in each recorded environment?** Name the environment —
-  *"has your Steam account been added to <environment> for this game?"* Creation silently fails without it:
-  highlights record but never convert to Ludeos, `canCreateLudeo` still reads true (it is a consent flag, not
+- **Is the Steam account the game logs in as in each recorded environment?** That's `launcherUserId` with
+  explicit login, else whoever runs Steam. Name both — *"has Steam account <id> been added to <environment>
+  for this game?"* Without it, captures fail silently: the capture key may log nothing, or the moment
+  uploads but can never be turned into a Ludeo. `canCreateLudeo` still reads true (it is a consent flag, not
   membership), and nothing in any log says why. No tool can answer this — `list_game_environments` returns no membership — so it is always a question.
-  If they don't know, or the answer is no, point them at Studio Lab → Environments → Users management.
+  If they don't know, or the answer is no, have them add it — an invite link per [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
   Record the answer per environment in `KYG.md` → **Ludeo platform**, and ask again whenever the target
-  environment changes (phase 7's gate does).
+  environment changes (phase 7's gate does), and whenever a capture uploads no moment or a moment can't be
+  turned into a Ludeo, before debugging anything else.
 - **Anyone else who needs to make Ludeos** — until the game is live on Ludeo, only people invited to the
   environment can capture; for everyone else it just doesn't work, with nothing to say why. Ask here, and
   again when the target environment changes, in those terms — not as an access-control question ("who should have project access?" means nothing

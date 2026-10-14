@@ -269,6 +269,7 @@ thread when awaited from it. If the game uses coroutines/`async`/Jobs, marshal b
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
+| Capture key logs nothing, or a moment uploads but can't be turned into a Ludeo | The Steam account the game logs in as isn't in the environment; nothing logs it | Ask again about that account, even if `KYG.md` says yes; invite it per [`ludeo-studio-mcp.md`](../ludeo-studio-mcp.md), then capture again |
 | No Ludeo created | Missed an exit path | Route every exit through `EndGameplay`/`AbortGameplay` `[SDK]` (CR-007) |
 | Attribute never records / restores | `WriteData`/`ReadData` called outside a scope | Wrap in `using (obj.EnterObjectScope())` (CR-002); the handler does this per tick |
 | `BeginGameplay` fails / "no LudeoPlayer"; run records nothing (intermittent) | `BeginGameplay` called from `RoomReady` alone — it won the race against the `AddPlayer` callback that sets the player | Gate `BeginGameplay` on **both** `RoomReady` and `onAddPlayer` (whichever is last); or use `LudeoRoom.GetPlayer` in `RoomReady` (CR-009) |
