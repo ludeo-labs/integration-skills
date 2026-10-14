@@ -262,7 +262,7 @@ Only what can't be inferred from code:
   for this game?"* Without it, captures fail silently: the capture key may log nothing, or the moment
   uploads but can never be turned into a Ludeo. `canCreateLudeo` still reads true (it is a consent flag, not
   membership), and nothing in any log says why. No tool can answer this — `list_game_environments` returns no membership — so it is always a question.
-  If they don't know, or the answer is no, have them add themselves — an invite link per [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
+  If they don't know, or the answer is no, have them add it — an invite link per [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
   Record the answer per environment in `KYG.md` → **Ludeo platform**, and ask again whenever the target
   environment changes (phase 7's gate does), and whenever a capture uploads no moment or a moment can't be
   turned into a Ludeo, before debugging anything else.
