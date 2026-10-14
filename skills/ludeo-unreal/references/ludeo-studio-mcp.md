@@ -63,8 +63,8 @@ Never write `public` — that's Steam's label for the default branch, which send
 The **Assert when** column is a condition to hold, not a call count. Cadence follows from it: a tool whose
 invariant depends on local state is re-called whenever that state changes.
 
-**Reporting progress.** `report_integration_progress` sends only the Game ID (`gameVersionId`, from `sdkSetup.ludeoGameId`,
-never from `list_games`), a phase and `started`/`finished`.
+**Reporting progress.** `report_integration_progress` sends only the Game ID (`gameVersionId`, from `sdkSetup.ludeoGameId`),
+a phase and `started`/`finished`.
 
 - **Tell the human once per integration.** Before your first report, unless `sdkSetup.reportStateDisclosed`
   is true, say *"I'll also report to Ludeo which phase we're in, against this Game ID — nothing from your
@@ -101,4 +101,5 @@ never from `list_games`), a phase and `started`/`finished`.
   skill, and fall back when it is absent. A `ludeo-mcp*` server listed without its tools usually just isn't
   signed in — ask the human to sign in (Claude Code: `/mcp` → Authenticate) before falling back.
 - **A call that errors** → say what it returned. A **read**: check the input with the human once (a mistyped Game ID is the usual cause), then take the fallback column. A **write** may have partly landed (an invite batch), so re-read before falling back. A **name clash** means the name is taken — never rename the holder; go back to **Matching a branch to an environment**. An **auth error** means the sign-in expired — ask the human to sign in again (Claude Code: `/mcp` → Authenticate). Don't retry in a loop.
+- **`Input validation error`, or output that "does not match the tool's output schema"** → once the input checks out (a mistyped Game ID fails validation too), the client holds stale tool definitions from before a server update. Ask the human to reconnect the server (Claude Code: `/mcp` → reconnect), and don't retry until they have.
 - **Server absent, or the human says they'll do a step themselves** → follow the fallback column, and tell the human you're handing that step to them.
