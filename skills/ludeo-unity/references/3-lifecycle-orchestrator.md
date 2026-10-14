@@ -75,7 +75,9 @@ The orchestrator relays whatever a subagent surfaces — it does not invent its 
   Game code calls the `[Layer]` façade; the façade calls `[SDK]`. No scattered raw SDK calls (CR-001).
 - **Activation config is in `LudeoSettings.asset` (phase 1), not in `Activate()` args.** The guideline's
   "activation includes apiKey + game version + auth" is satisfied by the package reading
-  `LudeoSettings` — do **not** plan a config class or re-gather auth here.
+  `LudeoSettings` — do **not** plan a config class or re-gather auth here. The one exception is required,
+  not optional: `LudeoConfigFile.Apply()` (the dev build's `LudeoConfig.ini` reader, phase 1 Step 2b) runs
+  as the first boot step, before `LudeoManager.Initialize()`.
 
 ### Non-Gameplay Handling — the Unity model (standard action names)
 
