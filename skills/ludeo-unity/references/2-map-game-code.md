@@ -210,11 +210,11 @@ Decide **three orthogonal things** about how this game models a session:
 
 0. **Launch model** — does a capture session start through a **main menu / level-select**, or does the
    game **boot straight into gameplay** (the first `EditorBuildSettings` scene is itself a gameplay
-   scene that auto-starts a run)? And is a Ludeo **selected mid-run** (after `Activate`) or **launched
-   preselected**? **KYG (phase 1) is authoritative** — this is a product choice; here you only
-   **cross-check it against the code** (first-scene-is-gameplay? is there a menu scene? a forced
-   auto-start at boot?) and record `launch_model` in §6. If either axis is boot-straight / preselected
-   — or the menu is fast/skippable — **read
+   scene that auto-starts a run)? **KYG (phase 1) is authoritative** — this is a product choice; here
+   you only **cross-check it against the code** (first-scene-is-gameplay? is there a menu scene? a
+   forced auto-start at boot?) and record `launch_model` in §6. (There is no player-side choice: a
+   Ludeo can be selected at any time after `Activate`, so every game enters the play flow from any
+   state.) If the creator launch is boot-straight — or the menu is fast/skippable — **read
    [`ludeo-integration-docs/unity/LAUNCH-AND-READINESS.md`](ludeo-integration-docs/unity/LAUNCH-AND-READINESS.md)**:
    the SDK-readiness gate replaces the menu's implicit wait for Activate + consent. Flag any mismatch
    (KYG says boot-straight but the code boots to a menu, or vice-versa) — the integration may need
@@ -249,7 +249,6 @@ neither — and any of those can be boot-straight or menu-gated.
      ```json
      "launch_model": {
        "creator": "menu-gated | boot-straight",
-       "player": "mid-run | preselected | both",
        "first_scene_is_gameplay": true,
        "menu_scene": "<scene or null>",
        "readiness_gate_required": true,

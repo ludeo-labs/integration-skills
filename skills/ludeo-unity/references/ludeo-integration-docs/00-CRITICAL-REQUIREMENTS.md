@@ -132,7 +132,7 @@ returns `void` and reports its result through an `Action<…CallbackData>`. Chec
 ```csharp
 session.Activate(data => {                                       // [SDK]
     if (data.resultCode != LudeoResult.Success) { Debug.LogError($"Activate failed: {data.resultCode}"); return; }  // [Unity] Debug.LogError
-    // activated — and check data.isLudeoSelected to branch into the play flow
+    // activated — data.isLudeoSelected true ⇒ a LudeoSelected follows shortly; false doesn't rule one out
 });
 ```
 
