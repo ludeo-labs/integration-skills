@@ -39,7 +39,8 @@ Required artifacts / pre-flight:
 - [ ] Context files read (§5).
 
 > **If `list_game_environments` is in your tool list:** ask the user for the Studio Lab **Game ID** — it's in Studio Lab under
-> **Game Options → Info**, and nothing in the repo has it. It is the game **version** uuid — the same value
+> **Game Options → Info**, and nothing in the repo has it. Add the dashboard line and report the moment they
+> give it (`ludeo-studio-mcp.md` → **Reporting progress**). It is the game **version** uuid — the same value
 > phase 7 passes as `--game-id`, and **not** the backend `gameId`. Then list the game’s environments with
 > `list_game_environments` rather than asking what exists. **Otherwise:** still ask for the Game ID (phase 7 needs it), and ask which
 > environments exist and what Beta Version Name each carries. **Either way, record all of them** (name, id,
@@ -340,7 +341,6 @@ Context files (read first; relative to this workflow file):
 - Studio MCP server in use (e.g. `ludeo-mcp`):
 - Environments (a cache — re-read with `list_game_environments` before any write):
   - <name> · <envId> · Beta Version Name: <name | null | ""> · dialog: <{} | name | "" | ?> · default? <yes/no/?> · Steam branch: <name | default (a user saying "public" means this) | ?> · integrator in it? <yes/no/?> · invited: <names>
-- Progress reports disclosed? <yes | not yet>
 
 ## Launch model
 - Creator launch: menu-gated | boot-straight-to-gameplay
