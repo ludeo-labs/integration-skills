@@ -68,7 +68,8 @@ invariant depends on local state is re-called whenever that state changes.
 
 - **The first report goes out the moment the user gives the Game ID.** When you ask for it, add *"I'll list
   our integration as "started" on Ludeo's dashboard."*, then report `sdk_set_up` · `started` before anything
-  else. If they correct the Game ID later, report the phase you're in as `started` again with the new one.
+  else. If they correct the Game ID later, report the phase you're in as `started` again with the new one,
+  and the same way when a studio read with it first succeeds after a sign-in or an access fix.
 - **Report the phase you're in:** `started` as its work begins (a resumed session sends it again), `finished`
   when the user confirms it's done — unless the table says otherwise. No Game ID yet → don't report. Never
   suppress a repeat.
@@ -102,6 +103,6 @@ invariant depends on local state is re-called whenever that state changes.
   edge one — check your tool list for the exact name before taking the connected branch anywhere in this
   skill, and fall back when it is absent. A `ludeo-mcp*` server listed without its tools usually just isn't
   signed in — ask the user to sign in (Claude Code: `/mcp` → Authenticate) before falling back.
-- **A call that errors** → say what it returned. A **read**: check the input with the user once (a mistyped Game ID is the usual cause), then take the fallback column. A **write** may have partly landed (an invite batch), so re-read before falling back. A **name clash** means the name is taken — never rename the holder; go back to **Matching a branch to an environment**. An **auth error** means the sign-in expired — ask the user to sign in again (Claude Code: `/mcp` → Authenticate). Don't retry in a loop.
+- **A call that errors** → say what it returned. A **read**: check the input with the user once (a mistyped Game ID is the usual cause), then take the fallback column. A **write** may have partly landed (an invite batch), so re-read before falling back. A **name clash** means the name is taken — never rename the holder; go back to **Matching a branch to an environment**. An **auth error** means the sign-in expired — ask the user to sign in again (Claude Code: `/mcp` → Authenticate); if it follows a fresh sign-in, that Studio Lab account can't open this game: ask them to sign in with one that can, or to get that account access, then read again. Don't retry in a loop.
 - **`Input validation error`, or output that "does not match the tool's output schema"** → once the input checks out (a mistyped Game ID fails validation too), the client holds stale tool definitions from before a server update. Ask the user to reconnect the server (Claude Code: `/mcp` → reconnect), and don't retry until they have.
 - **Server absent, or the user says they'll do a step themselves** → follow the fallback column, and tell the user you're handing that step to them.
