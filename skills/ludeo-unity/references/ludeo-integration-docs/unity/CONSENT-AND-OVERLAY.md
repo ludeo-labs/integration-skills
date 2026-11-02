@@ -51,6 +51,12 @@ preselected launch), and the choice arrives as the `LudeoSelected` `[SDK]` notif
 play/restore flow (`GetLudeo` → restore → `OpenRoom` for the ludeo). That flow is phase 5 · task 3; here
 we only ensure `LudeoSelected` is subscribed **before** `Activate` and the play flow is consent-gated.
 
+When it arrives:
+- **Any time after `Activate`** — at boot, at the menu, mid-capture, or after a replay ends — and
+  **more than once** per session. A live run is torn down first ([`07`](../07-RESTORATION-PATTERNS.md) §2.2).
+- **`isLudeoSelected` at `Activate` is only an early hint.** `true` means one follows shortly; `false`
+  does **not** rule one out for this run.
+
 ## 3. Pause / resume — two directions, both required (CR-011)
 
 Pause/resume is **two separate wirings that travel in opposite directions**. A complete integration needs

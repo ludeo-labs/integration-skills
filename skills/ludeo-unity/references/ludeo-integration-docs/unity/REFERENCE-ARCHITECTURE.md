@@ -299,7 +299,9 @@ public class LudeoController
             return;
         }
         m_data.isInLudeo = data.isLudeoSelected;
-        // If isLudeoSelected, a LudeoSelected notification is guaranteed to follow → play flow.
+        // true → a LudeoSelected notification follows shortly → play flow. false does NOT rule a Ludeo
+        // out: LudeoSelected can still arrive at any later point, more than once, and HandleLudeoSelected
+        // takes it from whatever run is live (re-entrant teardown, 07 §2.2).
         m_onInitDone(isStartingInLudeoFlow: data.isLudeoSelected);
     }
 
@@ -458,10 +460,11 @@ private void TryReleaseCreatorGate()
 // expiry/failure, so the game falls through to an uncaptured run instead of hanging.
 ```
 
-> **The gate is opt-in.** Classic menu-gated games keep the plain `HandleActivateDone` above (one
-> unconditional `m_onInitDone(data.isLudeoSelected)`); the menu is the wait. Add the gate only when the
-> launch model is boot-straight — or when a classic menu is fast/skippable enough to race consent
-> ([`LAUNCH-AND-READINESS.md`](./LAUNCH-AND-READINESS.md) §6).
+> **The creator gate is opt-in.** Classic menu-gated games keep the plain `HandleActivateDone` above
+> (one unconditional `m_onInitDone(data.isLudeoSelected)`); the menu is the wait. Add the gate only when
+> the creator launch is boot-straight — or when a classic menu is fast/skippable enough to race consent
+> ([`LAUNCH-AND-READINESS.md`](./LAUNCH-AND-READINESS.md) §6). The play path never needs it:
+> `HandleLudeoSelected` enters the play flow whenever `LudeoSelected` arrives.
 
 ---
 

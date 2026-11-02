@@ -1,9 +1,9 @@
 # Launch Models & the SDK-Readiness Gate (Unity)
 
-> **Load when:** KYG's launch model (phase 1) is **"boot-straight-to-gameplay"** (creator axis) or
-> **"launched preselected"** (player axis), or `CODE_MAP.launch_model` records either. Classic
-> menu-gated games don't need the gate — but read [§6](#6-also-hardens-the-classic-menu-flow) first;
-> the same window can bite a fast menu.
+> **Load when:** KYG's creator launch (phase 1) is **"boot-straight-to-gameplay"**, or
+> `CODE_MAP.launch_model.readiness_gate_required` is `true`. Classic menu-gated games don't need the
+> gate — but read [§6](#6-also-hardens-the-classic-menu-flow) first; the same window can bite a fast
+> menu.
 >
 > **This is a structural lifecycle pattern, not a genre pattern.** Like
 > [`../game-patterns/open-world.md`](../game-patterns/open-world.md) (which is about *session
@@ -69,17 +69,19 @@ clears (Activate resolved + consent allows create) — never synchronously in th
 `Start()`. `Begin` is then gated by the existing two-signal begin-gate (`RoomReady ∧ AddPlayer`,
 CR-009). The "ready" cover hides both the consent wait *and* the room-open→Begin latency.
 
-### 3.2 Player path (Ludeo preselected at launch — `isLudeoSelected` / `autoStartInLudeo`)
+### 3.2 Player path (Ludeo selected at boot — `isLudeoSelected` / `autoStartInLudeo`)
 
-When the app is launched with a Ludeo already chosen, `Activate`'s callback returns
-`isLudeoSelected == true` and a `LudeoSelected` notification follows `[SDK]`. The game must **not** run
+`LudeoSelected` `[SDK]` can arrive at any time after `Activate`, and more than once per session; a
+later one re-enters the play flow through the `07 §2.2` teardown. This section covers the earliest
+case: the app is launched with a Ludeo already chosen, so `Activate`'s callback returns
+`isLudeoSelected == true` and a `LudeoSelected` notification follows shortly. The game must **not** run
 its normal boot-into-creator-gameplay:
 
 - **Suppress the auto-start** — the same `IsInLudeoFlow` `[Layer]` suppression the restore flow uses
   for intros/spawns/press-start gates ([`5d-implement-restoration-flow.md`](../../5d-implement-restoration-flow.md)
   §5). The `onInitDone(isStartingInLudeo: true)` branch is the signal to take this path.
-- **The world may already be live.** Unlike the classic flow (where `LudeoSelected` fires at a menu
-  with no world yet), here the boot scene may have already instantiated the default new-game world —
+- **The world may already be live.** Unlike a menu boot (where `LudeoSelected` fires at a menu with
+  no world yet), here the boot scene may have already instantiated the default new-game world —
   and possibly auto-started a creator run — before `LudeoSelected` resolves. So restoration **resets /
   reloads the already-loaded scene** rather than booting a fresh one (contrast
   [`5d-implement-restoration-flow.md`](../../5d-implement-restoration-flow.md) Step 3's
@@ -87,8 +89,8 @@ its normal boot-into-creator-gameplay:
   re-entrancy teardown (`07 §2.2`).
 
 > **`autoStartInLudeo`/`ludeoToAutoStart` (phase 1) is the dev-side test harness for this production
-> path** — it forces the preselected-Ludeo launch without the platform launcher. If KYG's player
-> axis is "launched preselected", wire and verify this path, don't treat the flags as test-only.
+> path** — it forces the preselected-Ludeo launch without the platform launcher. Any game can be
+> launched this way, so wire and verify this path; don't treat the flags as test-only.
 
 ## 4. ⚠️ The gate MUST be bounded with a fallthrough — or the game is unlaunchable offline
 
@@ -103,6 +105,10 @@ The readiness gate is a **bounded** wait, not an indefinite one. Release the cre
 An unbounded wait **hangs the game at the cover forever** when the player is offline or auth fails.
 Reuse the layer's existing per-callback timeout (the tank's `cancellationTokenSource` exists for
 exactly this — cancel the timer when the callback arrives, fall through on expiry).
+
+This bound belongs to the **creator** gate only. The play path has no readiness gate, and its wait for
+`RoomReady` is the player's "Play Moment" click — it can take minutes, so never arm a timeout on it
+(see `learnings/architecture/room-ready-is-the-players-play-click.md`).
 
 > **Open decision — "uncaptured fallthrough" vs "uncaptured-then-upgrade".** If consent reliably
 > arrives within a tight bound of `Activate`, a short timeout + fallthrough is enough. If consent can
@@ -133,8 +139,9 @@ The gate is not only for boot-straight games. Any **menu-gated** game whose "Pla
 loads-and-starts a level, or that **auto-continues / skips the intro**, can blow past the same consent
 window — the classic flow is only safe because the menu is *assumed slow*. If the game has a fast or
 skippable menu, apply the gate there too: it makes startup timing **explicit** instead of relying on
-the player dawdling. For a slow, click-through main menu the gate is redundant (consent has long since
-arrived) — skip it.
+the player dawdling. For a slow, click-through main menu the creator gate is redundant (consent has
+long since arrived) — skip it. Either way the play path needs no gate: it starts whenever
+`LudeoSelected` arrives (§3.2).
 
 ## 7. Validation Checklist
 

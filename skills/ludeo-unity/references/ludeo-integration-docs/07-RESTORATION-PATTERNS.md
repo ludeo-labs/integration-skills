@@ -165,7 +165,8 @@ LudeoSelected event (a Ludeo was selected for playback)             [SDK]
 
 ### 2.2 Play-flow re-entry (tear-down) — capture→play **and replay→replay**
 
-`LudeoSelected` can fire while a run is **already live**, by two routes that hit the same code:
+`LudeoSelected` can arrive **any time after `Activate`**, more than once, so it can fire while a run is
+**already live**, by two routes that hit the same code:
 1. **Mid-capture** — a Ludeo is selected while a capture run is in progress.
 2. **Replay→replay** — the player finishes one replay and picks a **second** Ludeo from the overlay
    **without quitting**. This is the easy one to miss: there's no scene reload, no app restart, so a

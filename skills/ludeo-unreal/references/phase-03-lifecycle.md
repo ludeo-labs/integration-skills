@@ -2444,7 +2444,7 @@ These are errors from prior integration attempts. The skill should actively prev
 
 ### 8.9 Missing Startup Player Flow Check
 
-**Mistake:** Not checking `bIsLudeoSelected` after session activation succeeds.
+**Mistake:** Not checking `bIsLudeoSelected` after session activation succeeds, or treating `false` as "no Ludeo this run" (`OnLudeoSelected` can still fire later — §5.7).
 **Why it's wrong:** If the app was launched with `-LudeoID=`, the session may already have a Ludeo selected at activation time. Without the check, the launch-arg Player Flow is silently ignored.
 **Prevention:** `CheckCommandLineLudeo()` runs immediately after successful activation (Step 7). It parses `-LudeoID=` from the command line and calls `PlayLudeo()`.
 

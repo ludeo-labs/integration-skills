@@ -359,7 +359,8 @@ C# closure instead.
 2. **Subscribe to events before `Activate`.** `Activate` registers them natively; late subscribers
    miss early notifications.
 3. **`isLudeoSelected == true`** in the Activate callback guarantees a `LudeoSelected` event follows
-   shortly — branch into the play flow rather than starting normal gameplay.
+   shortly — branch into the play flow rather than starting normal gameplay. `false` does **not** rule
+   a Ludeo out — `LudeoSelected` can arrive at any time after `Activate`, more than once.
 4. **Every `WriteData`/`ReadData` is inside a `using` scope (CR-002).** Component scopes nest inside
    the parent object scope. Writes/reads outside a scope are silently dropped.
 5. **Attributes over blobs.** Use typed `WriteData`; reserve `byte[]` for genuinely opaque data.
