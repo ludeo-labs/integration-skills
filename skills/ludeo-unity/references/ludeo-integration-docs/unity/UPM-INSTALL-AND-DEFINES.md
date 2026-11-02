@@ -198,9 +198,10 @@ gated so it can never affect a production build:**
    LudeoManager.Initialize();
    LudeoManager.SessionManager.CreateSession(out var session);
    ```
-4. **Author `LudeoConfig.ini`.** For the agent's play loop it holds only per-run keys; the login stays in
-   `LudeoSettings`. The three login keys are for a QA tester who runs as another account: then ask the user
-   for the tester Steam id and which environment to debug against, and copy that environment's beta name as
+4. **Author `LudeoConfig.ini`.** It holds the per-run keys. The three login keys go in too for the agent's
+   play loop (replay by Ludeo id needs explicit login, and phase 7 turns it off in the asset, so the play loop
+   can't rely on the asset's) or for a QA tester who runs as another account. Then ask the user for the tester
+   Steam id and which environment to debug against, and copy that environment's beta name as
    Matching step 1 in [`ludeo-studio-mcp.md`](../../ludeo-studio-mcp.md) defines it (never `{}`, `null` or
    empty; an unknown name means running step 1 first) from `KYG.md` → Ludeo platform into `betaVersion` (a
    named QA environment, never Production). Never ship placeholders.
@@ -209,7 +210,7 @@ gated so it can never affect a production build:**
    ludeoLogLevel      = Log           # Log = the SDK lines the agent's play loop reads (default Error hides them)
    ludeoToAutoStart   =               # a Ludeo id to auto-replay on launch; blank = normal capture
    devEnter           =               # passed to the game's own load/start call; blank = normal boot
-   # QA tester only, to run as another account (all three or none):
+   # Login for the agent's play loop or a QA tester; uncomment with real values (all three or none):
    # runWithoutLauncher = true
    # launcherUserId     = <tester Steam id>
    # betaVersion        = <QA env's beta name>   # never "public"

@@ -135,8 +135,8 @@ stable first (alongside the project, not a temp dir, so the `file:` path keeps r
   rebuilding** (QA, and the agent's own play loop in phase 5, so **every integration**): the baked `.asset`
   can't do this. Set up the `LUDEO_DEV`-gated dev-override shim
   (`unity/UPM-INSTALL-AND-DEFINES.md` → *Dev/QA runtime overrides*): a `LudeoConfig.ini` next to the build +
-  a loader applied before `LudeoManager.Initialize()`. Seed it with `ludeoLogLevel = Log`; add login keys only for a QA
-  tester who runs as another account. Production builds (no `LUDEO_DEV`) ignore it, so phase 7's baked
+  a loader applied before `LudeoManager.Initialize()`. Seed it with `ludeoLogLevel = Log`; add the login keys (real values)
+  for the agent's play loop, which needs explicit login, or for a QA tester who runs as another account. Production builds (no `LUDEO_DEV`) ignore it, so phase 7's baked
   `runWithoutLauncher` gate stays authoritative.
 
 ### Step 3 — Verify with the package installed
