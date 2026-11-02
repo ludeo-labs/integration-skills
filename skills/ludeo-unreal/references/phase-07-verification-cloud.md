@@ -33,7 +33,7 @@ Required artifacts from prior phases:
       - **Named.** Confirm *which* with the human if more than one is in play, and re-read it with
         `list_game_environments` (if it is in your tool list) rather than trusting `sdkSetup.ludeoEnvironments`.
       - **The integrator is in it.** If that entry's `integratorIsMember` isn't true, ask; if they don't know or
-        it's no, have them check or add themselves in Studio Labs → Environments → Users management. That doesn't
+        it's no, have them add themselves — an invite link per [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md). That doesn't
         block the upload, but say plainly that their captures there fail silently until it's done.
       - **Anyone else who needs to capture there** is invited, per [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
       - **The branch creators run matches.** Ask which Steam beta branch they'll run the shipped build on — you

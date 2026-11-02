@@ -47,7 +47,7 @@ the target environment. This is the final phase — when it passes, the build is
       - **Named.** Confirm *which* with the user if more than one is in play, and re-read it with
         `list_game_environments` (if it is in your tool list) rather than trusting `KYG.md` → **Ludeo platform**.
       - **The integrator is in it.** If membership isn't recorded as yes, ask; if they don't know or it's no, have
-        them check or add themselves in Studio Lab → Environments → Users management. That doesn't block the
+        them add themselves — an invite link per [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md). That doesn't block the
         upload, but say plainly that their captures there fail silently until it's done.
       - **Anyone else who needs to capture there** is invited, per [`ludeo-studio-mcp.md`](ludeo-studio-mcp.md).
       - **The branch creators run matches.** Ask which Steam beta branch they'll run the shipped build on — you
