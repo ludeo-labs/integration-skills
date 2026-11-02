@@ -67,6 +67,15 @@ Full reference for the state file the skill creates in the target game repo. SKI
     "ludeoMcpServer": "ludeo-mcp",
     "ludeoGameId": "<Studio Labs Game ID — the game version uuid>",
     "reportStateDisclosed": false,
+    "progress": {
+      "sent": [
+        { "phase": "sdk_set_up", "status": "started", "at": "2026-10-14T09:12:00Z" }
+      ],
+      "pending": [
+        { "phase": "sdk_set_up", "status": "finished", "at": "2026-10-14T15:40:00Z",
+          "lastError": "this account cannot report on that Game Id" }
+      ]
+    },
     "ludeoEnvironments": [
       { "envId": "<id>", "name": "QA", "betaVersionName": "qa-ludeo", "isDefault": false, "dialogValue": "qa-ludeo", "integratorIsMember": true, "steamBranch": "qa-ludeo", "invited": ["Alice"] },
       { "envId": "<id>", "name": "Production", "betaVersionName": null, "isDefault": true, "dialogValue": "{}", "integratorIsMember": null, "steamBranch": "", "invited": [] }
@@ -113,5 +122,6 @@ Full reference for the state file the skill creates in the target game repo. SKI
 - `curatedSlice.restorationApproach`: Set during Phase 2 — `"reconciliation"` (use SaveWorld + property filters, like FPSGameStarterKit) or `"manual"` (read each property from DataReader, apply to spawned entities). Drives Phase 5 Player Flow implementation.
 - `stateApproach`: Set during Phase 5 — `"SaveWorld"` or `"Manual"` (may differ from restoration approach for full game coverage in Phase 8).
 - `reportStateDisclosed`: true once the human has been told about progress reports (`ludeo-studio-mcp.md` → Reporting progress).
+- `sdkSetup.progress`: the delivery record for `report_integration_progress` (`ludeo-studio-mcp.md` → Reporting progress). Every report is appended to `pending` before it is sent, and moves to `sent` only when the server answers `Recorded`; a refusal, an error, a rate limit or a missing tool leaves it in `pending` with `lastError`. `pending` is flushed oldest first at Step 1, Step 5 and Step 9. `at` is when the work actually started or finished, not when the report went out. A file without this field (from before it existed) gets `{ "sent": [], "pending": [] }`, then the reconcile rule queues every completed phase's reports. Never edit `sent` by hand.
 - `ludeoEnvironments[]`: `isDefault` and `dialogValue` are set only from the Studio Labs *Assign to beta version* check (`null` = not checked; while any `isDefault` is `null`, nothing is written); a re-read never overwrites `isDefault`, and resets `dialogValue` to `null` when it shows `betaVersionName` changed; where `betaVersionName` isn't a name, a `dialogValue` other than `"{}"`, `""` or `null` is the environment's beta name (`ludeo-studio-mcp.md`, Matching step 1); `name` is a display label only and never goes into `BetaBranchName`; `integratorIsMember: null` = unknown; `steamBranch: ""` = Steam's default branch (what a human means by "public"), `null` = not asked yet; `invited` holds names, never emails.
 - Phases also accumulate fields not shown in the template above as the integration progresses (e.g. `tools`, `intake`, `pauseMechanism`, `skillImprovementNotes`) — preserve unknown fields when updating, never rewrite the file from this template.

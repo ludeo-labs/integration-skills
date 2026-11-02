@@ -339,6 +339,8 @@ Context files (read first; relative to this workflow file):
 - Environments (a cache — re-read with `list_game_environments` before any write):
   - <name> · <envId> · Beta Version Name: <name | null | ""> · dialog: <{} | name | "" | ?> · default? <yes/no/?> · Steam branch: <name | default (a user saying "public" means this) | ?> · integrator in it? <yes/no/?> · invited: <names>
 - Progress reports disclosed? <yes | not yet>
+- Progress reports sent: <phase status when, …>          (moved here only on `Recorded` — see ludeo-studio-mcp.md → Reporting progress)
+- Progress reports pending: <phase status when — lastError, …>   (resent oldest first at every phase boundary; never dropped)
 
 ## Launch model
 - Creator launch: menu-gated | boot-straight-to-gameplay
